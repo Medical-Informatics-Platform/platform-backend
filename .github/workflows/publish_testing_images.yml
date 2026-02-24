@@ -1,9 +1,8 @@
 name: Publish testing images
 
+
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   build_and_push:
