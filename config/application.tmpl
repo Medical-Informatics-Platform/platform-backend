@@ -23,6 +23,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 1000
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher

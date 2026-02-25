@@ -42,6 +42,7 @@ public class PersistenceConfiguration {
     public Flyway migrations() {
         Flyway flyway = new Flyway();
         flyway.setBaselineOnMigrate(true);
+        flyway.setBaselineVersionAsString("1000");
         flyway.setDataSource(platformDataSource());
         return flyway;
     }
