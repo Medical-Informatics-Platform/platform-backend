@@ -11,7 +11,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 
-
 @Entity
 @Data
 @NoArgsConstructor
@@ -30,7 +29,7 @@ public class ExperimentDAO {
 
     @Expose
     @ManyToOne
-    @JoinColumn(name = "created_by_username",columnDefinition = "CHARACTER VARYING")
+    @JoinColumn(name = "created_by_username", columnDefinition = "CHARACTER VARYING")
     private UserDAO createdBy;
 
     @Expose
@@ -51,13 +50,13 @@ public class ExperimentDAO {
     private String algorithm;
 
     @Expose
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "algorithm_id", columnDefinition = "TEXT")
     private String algorithmId;
 
     @Expose
     @Column(columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Date created = new Date();
-    
+
     @Expose
     @Column(columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Date updated;
@@ -65,6 +64,10 @@ public class ExperimentDAO {
     @Expose
     @Column(columnDefinition = "BOOLEAN")
     private boolean shared = false;
+
+    @Expose
+    @Column(name = "mip_version", columnDefinition = "TEXT")
+    private String mipVersion;
 
     // Whether the experiment's result have been viewed by its owner
     @Expose
@@ -94,6 +97,7 @@ public class ExperimentDAO {
                 ", created=" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(this.created) +
                 ", updated=" + this.updated +
                 ", shared=" + this.shared +
+                ", mipVersion=" + this.mipVersion +
                 ", viewed=" + this.viewed + ")";
     }
 }

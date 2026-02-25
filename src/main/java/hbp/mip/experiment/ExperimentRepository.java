@@ -14,7 +14,8 @@ import java.util.Date;
 import java.util.UUID;
 
 @RestResource(exported = false)
-public interface ExperimentRepository extends CrudRepository<ExperimentDAO, UUID>, JpaSpecificationExecutor<ExperimentDAO> {
+public interface ExperimentRepository
+        extends CrudRepository<ExperimentDAO, UUID>, JpaSpecificationExecutor<ExperimentDAO> {
     ExperimentDAO findByUuid(UUID experimentUuid);
 
     default ExperimentDAO loadExperiment(String uuid, Logger logger) {
@@ -23,7 +24,7 @@ public interface ExperimentRepository extends CrudRepository<ExperimentDAO, UUID
         try {
             experimentUuid = UUID.fromString(uuid);
         } catch (IllegalArgumentException e) {
-            logger.error("Conversion of string to UUID failed:" +  e.getMessage());
+            logger.error("Conversion of string to UUID failed:" + e.getMessage());
             throw new BadRequestException(e.getMessage());
         }
 
@@ -37,13 +38,17 @@ public interface ExperimentRepository extends CrudRepository<ExperimentDAO, UUID
         return experimentDAO;
     }
 
-    default ExperimentDAO createExperimentInTheDatabase(ExperimentExecutionDTO experimentExecutionDTO, UserDTO user, Logger logger) {
+    default ExperimentDAO createExperimentInTheDatabase(ExperimentExecutionDTO experimentExecutionDTO, UserDTO user,
+            Logger logger) {
         ExperimentDAO experimentDAO = new ExperimentDAO();
-        experimentDAO.setUuid(UUID.randomUUID());
+        UUID experimentUuid = UUID.randomUUID();
+
+        experimentDAO.setUuid(experimentUuid);
         experimentDAO.setCreatedBy(new UserDAO(user));
         experimentDAO.setAlgorithm(JsonConverters.convertObjectToJsonString(experimentExecutionDTO.algorithm()));
         experimentDAO.setAlgorithmId(experimentExecutionDTO.algorithm().name());
         experimentDAO.setName(experimentExecutionDTO.name());
+        experimentDAO.setMipVersion(experimentExecutionDTO.mipVersion());
         experimentDAO.setStatus(ExperimentDAO.Status.pending);
 
         try {
