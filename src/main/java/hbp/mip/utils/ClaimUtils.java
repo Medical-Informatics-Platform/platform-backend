@@ -46,14 +46,18 @@ public class ClaimUtils {
     }
 
     public void validateAccessRightsOnDatasets(Authentication authentication,
-                                                      String experimentDatasets, Logger logger) {
+                                               List<String> experimentDatasets, Logger logger) {
+
+        if (experimentDatasets == null || experimentDatasets.isEmpty()) {
+            String errorMessage = "At least one dataset must be provided.";
+            logger.warn(errorMessage);
+            throw new BadRequestException(errorMessage);
+        }
 
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 
-        // Don't check for dataset claims if "super" claim exists allowing everything
         if (!hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
-
-            for (String dataset : experimentDatasets.split(",")) {
+            for (String dataset : experimentDatasets) {
                 String datasetRole = getDatasetClaim(dataset);
                 if (!hasRoleAccess(authorities, datasetRole, logger)) {
                     logger.warn("You are not allowed to use dataset: " + dataset);
