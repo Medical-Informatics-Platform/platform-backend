@@ -1,4 +1,4 @@
-[![CHUV](https://img.shields.io/badge/CHUV-LREN-AF4C64.svg)](https://www.unil.ch/lren/en/home.html) [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.html)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.html)
 [![DockerHub](https://img.shields.io/badge/docker-hbpmip%2Fplatform--backend-008bb8.svg)](https://hub.docker.com/r/hbpmip/platform-backend/)
 
 # Backend for the MIP platform
