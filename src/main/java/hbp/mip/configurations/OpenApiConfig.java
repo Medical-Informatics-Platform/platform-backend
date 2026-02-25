@@ -12,7 +12,7 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI usersMicroserviceOpenAPI() {
         return new OpenAPI()
-                .info(new Info().title("Portal-backend API")
+                .info(new Info().title("Platform-backend API")
                         .version("1.0"));
     }
 }

@@ -22,7 +22,7 @@ public class PersistenceConfiguration {
     @Primary
     @Bean(name = "datasource")
     @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource portalDataSource() {
+    public DataSource platformDataSource() {
         return DataSourceBuilder.create().build();
     }
 
@@ -30,7 +30,7 @@ public class PersistenceConfiguration {
     @DependsOn("flyway")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
-        emfb.setDataSource(portalDataSource());
+        emfb.setDataSource(platformDataSource());
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         emfb.setJpaVendorAdapter(vendorAdapter);
         emfb.setPackagesToScan("hbp.mip.experiment", "hbp.mip.user");
@@ -42,13 +42,7 @@ public class PersistenceConfiguration {
     public Flyway migrations() {
         Flyway flyway = new Flyway();
         flyway.setBaselineOnMigrate(true);
-        flyway.setDataSource(portalDataSource());
+        flyway.setDataSource(platformDataSource());
         return flyway;
-
-// TODO Flyway upgrade to latest version
-//        return Flyway.configure()
-//                .dataSource(portalDataSource())
-//                .baselineOnMigrate(true)
-//                .load();
     }
 }

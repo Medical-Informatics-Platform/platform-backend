@@ -3,10 +3,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <name>portal-backend</name>
-    <description>Medical Informatics Platform - portal-backend</description>
+    <name>platform-backend</name>
+    <description>Medical Informatics Platform - platform-backend</description>
     <groupId>hbp.mip</groupId>
-    <artifactId>portal-backend</artifactId>
+    <artifactId>platform-backend</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
@@ -27,7 +27,7 @@
         <gson.version>2.10.1</gson.version>
         <commons-dbcp.version>2.9.0</commons-dbcp.version>
         <springdoc-openapi-starter-webmvc-ui.version>2.1.0</springdoc-openapi-starter-webmvc-ui.version>
-        <lombok.version>1.18.28</lombok.version>
+        <lombok.version>1.18.34</lombok.version>
     </properties>
 
     <dependencies>
@@ -70,6 +70,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>
@@ -122,7 +126,7 @@
     </dependencies>
 
    <build>
-       <finalName>portal-backend</finalName>
+       <finalName>platform-backend</finalName>
        <resources>
            <resource>
                <directory>src/main/resources</directory>
