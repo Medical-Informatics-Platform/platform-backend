@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import hbp.mip.utils.CustomResourceLoader;
 import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.Logger;
+import hbp.mip.utils.Exceptions.InternalServerError;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Async;
@@ -17,7 +18,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static hbp.mip.utils.InputStreamConverter.convertInputStreamToString;
 
@@ -27,67 +27,68 @@ public class AlgorithmService {
 
     private static final Gson gson = new Gson();
 
-    private final Exareme2AlgorithmsSpecs exareme2AlgorithmsSpecs;
+    private final AlgorithmsSpecs algorithmsSpecs;
     private final CustomResourceLoader resourceLoader;
 
     @Value("${files.disabledAlgorithms_json}")
     private String disabledAlgorithmsFilePath;
 
-    @Value("${services.exareme2.algorithmsUrl}")
-    private String exareme2AlgorithmsUrl;
+    @Value("${services.exaflow.algorithmsUrl}")
+    private String exaflowAlgorithmsUrl;
 
-    public AlgorithmService(Exareme2AlgorithmsSpecs exareme2AlgorithmsSpecs, CustomResourceLoader resourceLoader) {
-        this.exareme2AlgorithmsSpecs = exareme2AlgorithmsSpecs;
+    public AlgorithmService(AlgorithmsSpecs algorithmsSpecs, CustomResourceLoader resourceLoader) {
+        this.algorithmsSpecs = algorithmsSpecs;
         this.resourceLoader = resourceLoader;
     }
 
     public List<AlgorithmSpecificationDTO> getAlgorithms(Logger logger) {
 
-        // Fetch exareme2 algorithm specifications and convert to generic algorithm specifications.
-        ArrayList<AlgorithmSpecificationDTO> exaremeAlgorithms = new ArrayList<>();
-        getExareme2Algorithms(logger).forEach(algorithm -> exaremeAlgorithms.add(new AlgorithmSpecificationDTO(algorithm)));
+        List<AlgorithmSpecificationDTO> exaflowAlgorithms = getExaflowAlgorithms(logger);
 
         List<String> disabledAlgorithms = getDisabledAlgorithms(logger);
         logger.debug("Disabled algorithms: " + disabledAlgorithms);
 
         // Remove any disabled algorithm
         ArrayList<AlgorithmSpecificationDTO> enabledAlgorithms = new ArrayList<>();
-        for (AlgorithmSpecificationDTO algorithm : exaremeAlgorithms) {
+        for (AlgorithmSpecificationDTO algorithm : exaflowAlgorithms) {
             if (!disabledAlgorithms.contains(algorithm.name())) {
                 enabledAlgorithms.add(algorithm);
             }
         }
 
-        logger.debug("Disabled " + (exaremeAlgorithms.size() - enabledAlgorithms.size()) + " algorithms.");
+        logger.debug("Disabled " + (exaflowAlgorithms.size() - enabledAlgorithms.size()) + " algorithms.");
         return enabledAlgorithms;
     }
 
     /**
-     * This method gets all the available exareme2 algorithms and removes the disabled.
+     * This method gets all the available exaflow algorithms and removes the
+     * disabled.
      *
-     * @return a list of Exareme2AlgorithmSpecificationDTO or null if something fails
+     * @return a list of ExaflowAlgorithmSpecificationDTO or null if something
+     *         fails
      */
-    private List<Exareme2AlgorithmSpecificationDTO> getExareme2Algorithms(Logger logger) {
-        List<Exareme2AlgorithmSpecificationDTO> algorithms;
+    private List<AlgorithmSpecificationDTO> getExaflowAlgorithms(Logger logger) {
+        List<AlgorithmSpecificationDTO> algorithms;
         StringBuilder response = new StringBuilder();
         try {
-            HTTPUtil.sendGet(exareme2AlgorithmsUrl, response);
+            HTTPUtil.sendGet(exaflowAlgorithmsUrl, response);
             algorithms = gson.fromJson(
                     response.toString(),
-                    new TypeToken<List<Exareme2AlgorithmSpecificationDTO>>() {
-                    }.getType()
-            );
+                    new TypeToken<List<AlgorithmSpecificationDTO>>() {
+                    }.getType());
         } catch (Exception e) {
-            logger.error("Could not fetch exareme2 algorithms: " + e.getMessage());
-            return Collections.emptyList();
+            logger.error("Could not fetch exaflow algorithms: " + e.getMessage());
+            throw new InternalServerError("Could not fetch exaflow algorithms.");
         }
 
-        // Filter out algorithms with type "flower"
-        algorithms = algorithms.stream()
-                .filter(algorithm -> "exareme2".equals(algorithm.type()))
-                .collect(Collectors.toList());
-        logger.debug("Fetched " + algorithms.size() + " exareme2 algorithms.");
-        exareme2AlgorithmsSpecs.setAlgorithms(algorithms);
+        if (algorithms == null || algorithms.isEmpty()) {
+            String errorMessage = "Exaflow algorithms response was empty.";
+            logger.error(errorMessage);
+            throw new InternalServerError(errorMessage);
+        }
+
+        logger.debug("Fetched " + algorithms.size() + " exaflow algorithms.");
+        algorithmsSpecs.setAlgorithms(algorithms);
         return algorithms;
     }
 
@@ -96,15 +97,17 @@ public class AlgorithmService {
 
         private final AlgorithmService algorithmService;
 
-        public AlgorithmAggregator(AlgorithmService algorithmService){
+        public AlgorithmAggregator(AlgorithmService algorithmService) {
             this.algorithmService = algorithmService;
         }
+
         @Async
         @Scheduled(fixedDelayString = "${services.algorithmsUpdateInterval}000")
         public void scheduleFixedRateTaskAsync() {
-            algorithmService.getExareme2Algorithms(new Logger("AlgorithmAggregator","(GET) /algorithms"));
+            algorithmService.getExaflowAlgorithms(new Logger("AlgorithmAggregator", "(GET) /algorithms"));
         }
     }
+
     /**
      * Fetches the disabled algorithms from a .json file
      *
@@ -116,8 +119,7 @@ public class AlgorithmService {
             return gson.fromJson(
                     convertInputStreamToString(resource.getInputStream()),
                     new TypeToken<List<String>>() {
-                    }.getType()
-            );
+                    }.getType());
         } catch (IOException e) {
             logger.error("Could not load the disabled algorithms. Exception: " + e.getMessage());
             return Collections.emptyList();
