@@ -1,6 +1,5 @@
 package hbp.mip.experiment;
 
-import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import hbp.mip.user.UserDAO;
 import jakarta.persistence.*;
@@ -19,8 +18,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Table(name = "`experiment`")
 public class ExperimentDAO {
-
-    private static final Gson gson = new Gson();
 
     @Expose
     @Id

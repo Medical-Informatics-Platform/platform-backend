@@ -33,13 +33,13 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            hbpmip/portal-backend
-            docker-registry.ebrains.eu/medical-informatics-platform/portal-backend
+            hbpmip/platform-backend
+            docker-registry.ebrains.eu/medical-informatics-platform/platform-backend
             
       - name: Load cached image
         uses: actions/cache@v3
         with:
-          path: /tmp/.buildx-cache/portal-backend
+          path: /tmp/.buildx-cache/platform-backend
           key: buildx-backend
           restore-keys: buildx-backend
 
@@ -50,8 +50,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=local,src=/tmp/.buildx-cache/portal-backend
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/portal-backend
+          cache-from: type=local,src=/tmp/.buildx-cache/platform-backend
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/platform-backend
 
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252
@@ -60,4 +60,3 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-

@@ -112,11 +112,13 @@ public class SecurityConfiguration {
     @RequiredArgsConstructor
     static class GrantedAuthoritiesMapperImpl implements GrantedAuthoritiesMapper {
         private static Collection<GrantedAuthority> extractAuthorities(Map<String, Object> claims) {
-            Collection<String> authorities = (Collection<String>) claims.get("authorities");
-            if (authorities == null) {
-                return Collections.emptyList(); // or throw a more informative exception if appropriate
+            Object rawAuthorities = claims.get("authorities");
+            if (!(rawAuthorities instanceof Collection<?> authorities)) {
+                return Collections.emptyList();
             }
             return authorities.stream()
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         }

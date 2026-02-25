@@ -32,18 +32,21 @@ spring:
         registration:
           keycloak:
             authorization-grant-type: authorization_code
-            client-id: MIP
-            client-secret: dae83a6b-c769-4186-8383-f0984c6edf05
+            client-id: replaceme
+            client-secret: replaceme
             provider: keycloak
             scope: openid
         provider:
           keycloak:
             user-name-attribute: preferred_username
-            issuer-uri: http://172.17.0.1/auth/realms/MIP
+            issuer-uri: https://iam.ebrains.eu/auth/realms/MIP
+      resourceserver:
+        jwt:
+          issuer-uri: https://iam.ebrains.eu/auth/realms/MIP
 
 ### AUTHENTICATION ###
 authentication:
-  enabled: 0
+  enabled: 1
   all_datasets_allowed_claim: research_dataset_all
   all_experiments_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_
@@ -51,13 +54,16 @@ authentication:
 ### EXTERNAL SERVICES ###
 services:
   algorithmsUpdateInterval: 100
-  exareme2:
+  exaflow:
     algorithmsUrl: "http://127.0.0.1:5000/algorithms"
     attributesUrl: "http://127.0.0.1:5000/data_models_attributes"
-    cdesMetadataUrl: "http://127.0.0.1:5000/cdes_metadata"
     datasets_variables: "http://127.0.0.1:5000/datasets_variables"
+    cdesMetadataUrl: "http://127.0.0.1:5000/cdes_metadata"
 
 ### EXTERNAL FILES ###
 # Files are loaded from the resources
 files:
   disabledAlgorithms_json: "classPath:/disabledAlgorithms.json"
+
+frontend:
+  base-url: "http://localhost:4200"
