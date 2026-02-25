@@ -20,7 +20,8 @@ public class ExperimentSpecifications {
             this.regExp = name;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (name == null) {
                 return cb.isTrue(cb.literal(true));
             } else {
@@ -49,7 +50,8 @@ public class ExperimentSpecifications {
             this.algorithm = algorithm;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (algorithm == null) {
                 return cb.isTrue(cb.literal(true));
             }
@@ -66,7 +68,8 @@ public class ExperimentSpecifications {
             this.viewed = viewed;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> query, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> query,
+                @NonNull CriteriaBuilder cb) {
             if (viewed == null) {
                 return cb.isTrue(cb.literal(true)); // always true = no filtering
             }
@@ -82,7 +85,8 @@ public class ExperimentSpecifications {
             this.shared = shared;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (shared == null) {
                 return cb.isTrue(cb.literal(true));
             }
@@ -98,12 +102,31 @@ public class ExperimentSpecifications {
             this.username = username;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (username == null) {
                 return cb.isTrue(cb.literal(true));
             }
             Join<Object, Object> experimentDAOUserDAOJoin = root.join("createdBy");
             return cb.equal(experimentDAOUserDAOJoin.get("username"), username);
+        }
+    }
+
+    public static class NotMyExperiment implements Specification<ExperimentDAO> {
+
+        private final String username;
+
+        public NotMyExperiment(String username) {
+            this.username = username;
+        }
+
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
+            if (username == null) {
+                return cb.isTrue(cb.literal(true));
+            }
+            Join<Object, Object> experimentDAOUserDAOJoin = root.join("createdBy");
+            return cb.notEqual(experimentDAOUserDAOJoin.get("username"), username);
         }
     }
 
@@ -115,7 +138,8 @@ public class ExperimentSpecifications {
             this.shared = shared;
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (!shared) {
                 return cb.isTrue(cb.literal(false));
             }
@@ -136,7 +160,8 @@ public class ExperimentSpecifications {
             this.descending = Objects.requireNonNullElse(descending, true);
         }
 
-        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery, @NonNull CriteriaBuilder cb) {
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
             if (descending) {
                 criteriaQuery.orderBy(cb.desc(root.get(orderBy)));
             } else {
@@ -162,4 +187,3 @@ public class ExperimentSpecifications {
         }
     }
 }
-

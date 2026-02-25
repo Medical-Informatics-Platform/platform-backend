@@ -81,12 +81,13 @@ public class ExperimentService {
      * @return a map experiments
      */
     public ExperimentsDTO getExperiments(Authentication authentication, String name, String algorithm, Boolean shared,
-            Boolean viewed, boolean includeShared, boolean mine, int page, int size, String orderBy, Boolean descending,
+            Boolean viewed, boolean includeShared, boolean mine, boolean notMine, int page, int size, String orderBy,
+            Boolean descending,
             Logger logger) {
         validatePageSize(size);
 
         Specification<ExperimentDAO> spec = buildExperimentSpecification(authentication, name, algorithm, shared,
-                viewed, includeShared, mine, orderBy, descending, logger);
+                viewed, includeShared, mine, notMine, orderBy, descending, logger);
         Pageable pageable = PageRequest.of(page, size);
         Page<ExperimentDAO> experimentsPage = experimentRepository.findAll(spec, pageable);
 
@@ -104,7 +105,8 @@ public class ExperimentService {
     }
 
     private Specification<ExperimentDAO> buildExperimentSpecification(Authentication authentication, String name,
-            String algorithm, Boolean shared, Boolean viewed, boolean includeShared, boolean mine, String orderBy,
+            String algorithm, Boolean shared, Boolean viewed, boolean includeShared, boolean mine, boolean notMine,
+            String orderBy,
             Boolean descending, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         boolean hasAccessRights = !authenticationIsEnabled
@@ -114,6 +116,9 @@ public class ExperimentService {
 
         if (mine) {
             spec = Specification.where(new ExperimentSpecifications.MyExperiment(user.username()));
+        } else if (notMine) {
+            spec = Specification.where(new ExperimentSpecifications.NotMyExperiment(user.username()))
+                    .and(new ExperimentSpecifications.SharedExperiment(true));
         } else if (hasAccessRights) {
             spec = Specification.where(null);
         } else {
