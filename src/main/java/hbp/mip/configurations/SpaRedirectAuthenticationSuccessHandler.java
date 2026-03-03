@@ -12,7 +12,7 @@ import org.springframework.util.StringUtils;
 public class SpaRedirectAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
     public static final String REDIRECT_PATH_ATTRIBUTE = "SPA_REDIRECT_TARGET_PATH";
-    public static final String FRONTEND_BASE_URL_ATTRIBUTE = "SPA_REDIRECT_FRONTEND_BASE_URL";
+    public static final String PLATFORM_UI_BASE_URL_ATTRIBUTE = "SPA_REDIRECT_PLATFORM_UI_BASE_URL";
 
     private final String frontendBaseUrl;
 
@@ -63,8 +63,8 @@ public class SpaRedirectAuthenticationSuccessHandler extends SavedRequestAwareAu
         // Dev fallback: FrontendRedirectCaptureFilter stores this based on Referer / frontend_redirect.
         HttpSession session = request.getSession(false);
         if (session != null) {
-            Object attribute = session.getAttribute(FRONTEND_BASE_URL_ATTRIBUTE);
-            session.removeAttribute(FRONTEND_BASE_URL_ATTRIBUTE);
+            Object attribute = session.getAttribute(PLATFORM_UI_BASE_URL_ATTRIBUTE);
+            session.removeAttribute(PLATFORM_UI_BASE_URL_ATTRIBUTE);
             if (attribute instanceof String storedUrl && StringUtils.hasText(storedUrl)) {
                 return normalizeBaseUrl(storedUrl);
             }
