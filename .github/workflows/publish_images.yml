@@ -4,58 +4,82 @@ on:
   release:
     types: [published]
 
+env:
+  HARBOR_REGISTRY: docker-registry.ebrains.eu
+  DOCKER_BUILDKIT: 1
+  DOCKER_CLIENT_TIMEOUT: 300
+  COMPOSE_HTTP_TIMEOUT: 300
+  RETRY_ATTEMPTS: "4"
+  RETRY_SLEEP: "10"
+
 jobs:
-  build_and_push:
-    name: Build image and push to dockerhub
+  build_and_push_backend:
+    name: Build BACKEND image and push to registries
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             hbpmip/platform-backend
-            docker-registry.ebrains.eu/medical-informatics-platform/platform-backend
-            
-      - name: Load cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/platform-backend
-          key: buildx-backend
-          restore-keys: buildx-backend
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/platform-backend
 
-      - name: Build and Push image to dockerhub
-        uses: docker/build-push-action@v3
+      - name: Load BACKEND service cached image
+        uses: actions/cache@v5
+        with:
+          path: /tmp/.buildx-cache/backend
+          key: ${{ runner.os }}-buildx-backend-${{ hashFiles('**/Dockerfile', '**/*.py', '**/*.js', '**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-backend-
+
+      - name: Build BACKEND docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=local,src=/tmp/.buildx-cache/platform-backend
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/platform-backend
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache/backend
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/backend
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
       - name: Move Docker images cache
         run: |
           rm -rf /tmp/.buildx-cache
