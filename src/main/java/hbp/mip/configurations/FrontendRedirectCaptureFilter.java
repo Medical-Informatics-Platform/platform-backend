@@ -28,7 +28,7 @@ public class FrontendRedirectCaptureFilter extends OncePerRequestFilter {
                 HttpSession session = request.getSession(true);
                 session.setAttribute(SpaRedirectAuthenticationSuccessHandler.REDIRECT_PATH_ATTRIBUTE, redirect.targetPath());
                 if (StringUtils.hasText(redirect.frontendBaseUrl())) {
-                    session.setAttribute(SpaRedirectAuthenticationSuccessHandler.FRONTEND_BASE_URL_ATTRIBUTE, redirect.frontendBaseUrl());
+                    session.setAttribute(SpaRedirectAuthenticationSuccessHandler.PLATFORM_UI_BASE_URL_ATTRIBUTE, redirect.frontendBaseUrl());
                 }
             }
         }
