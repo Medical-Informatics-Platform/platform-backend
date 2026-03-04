@@ -1,7 +1,7 @@
 #######################################################
 # Build the spring boot maven project
 #######################################################
-FROM maven:3.9.3-amazoncorretto-17 AS mvn-build-env
+FROM maven:3.9.11-amazoncorretto-21 AS mvn-build-env
 LABEL maintainer="Thanasis Karampatsis <tkarabatsis@athenarc.gr>"
 
 ENV CODE_PATH="/opt/code"
@@ -19,7 +19,7 @@ RUN mvn -B -ntp clean package
 #######################################################
 # Setup the running container
 #######################################################
-FROM amazoncorretto:17.0.8-alpine3.18
+FROM amazoncorretto:21-alpine3.21
 
 #######################################################
 # Setting up timezone
@@ -46,7 +46,7 @@ RUN apk add --no-cache curl
 #######################################################
 # Install dockerize
 #######################################################
-ENV DOCKERIZE_VERSION=v0.6.1
+ENV DOCKERIZE_VERSION=v0.10.1
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
