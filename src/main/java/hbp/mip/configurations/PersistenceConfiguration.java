@@ -40,10 +40,8 @@ public class PersistenceConfiguration {
 
     @Bean(name = "flyway", initMethod = "migrate")
     public Flyway migrations() {
-        Flyway flyway = new Flyway();
-        flyway.setBaselineOnMigrate(true);
-        flyway.setBaselineVersionAsString("1000");
-        flyway.setDataSource(platformDataSource());
-        return flyway;
+        return Flyway.configure()
+                .dataSource(platformDataSource())
+                .load();
     }
 }
