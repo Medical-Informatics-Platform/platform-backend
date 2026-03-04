@@ -120,7 +120,7 @@ public class ExperimentService {
             spec = Specification.where(new ExperimentSpecifications.NotMyExperiment(user.username()))
                     .and(new ExperimentSpecifications.SharedExperiment(true));
         } else if (hasAccessRights) {
-            spec = Specification.where(null);
+            spec = Specification.where((Specification<ExperimentDAO>) null);
         } else {
             spec = Specification.where(new ExperimentSpecifications.MyExperiment(user.username()))
                     .or(new ExperimentSpecifications.SharedExperiment(includeShared));

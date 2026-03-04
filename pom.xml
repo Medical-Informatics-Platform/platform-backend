@@ -13,24 +13,24 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.12</version>
+        <version>4.0.3</version>
     </parent>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
-        <postgresql.version>42.6.1</postgresql.version>
-        <jakarta.version>3.1.0</jakarta.version>
-        <hibernate.version>6.2.7.Final</hibernate.version>
-        <flyway-core.version>4.2.0</flyway-core.version>
-        <gson.version>2.10.1</gson.version>
-        <commons-dbcp.version>2.9.0</commons-dbcp.version>
-        <springdoc-openapi-starter-webmvc-ui.version>2.1.0</springdoc-openapi-starter-webmvc-ui.version>
-        <lombok.version>1.18.34</lombok.version>
-        <tomcat.version>10.1.35</tomcat.version>
-        <spring-security.version>6.2.5</spring-security.version>
-        <snakeyaml.version>2.2</snakeyaml.version>
-        <nimbus-jose-jwt.version>9.40</nimbus-jose-jwt.version>
+        <java.version>21</java.version>
+        <postgresql.version>42.7.10</postgresql.version>
+        <jakarta.version>3.2.0</jakarta.version>
+        <hibernate.version>7.2.6.Final</hibernate.version>
+        <flyway-core.version>12.0.3</flyway-core.version>
+        <gson.version>2.13.2</gson.version>
+        <commons-dbcp.version>2.14.0</commons-dbcp.version>
+        <springdoc-openapi-starter-webmvc-ui.version>3.0.2</springdoc-openapi-starter-webmvc-ui.version>
+        <lombok.version>1.18.42</lombok.version>
+        <tomcat.version>11.0.18</tomcat.version>
+        <spring-security.version>7.0.3</spring-security.version>
+        <snakeyaml.version>2.6</snakeyaml.version>
+        <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
     </properties>
 
     <dependencies>
@@ -51,6 +51,10 @@
                     <artifactId>spring-boot-starter-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -75,6 +79,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>
@@ -102,6 +111,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+            <version>${flyway-core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
             <version>${flyway-core.version}</version>
         </dependency>
         <dependency>
