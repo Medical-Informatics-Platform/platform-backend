@@ -92,11 +92,27 @@ public class ActiveUserService {
         // Browser login flow (session-based): OIDC user.
         if (principal instanceof DefaultOidcUser oidcUser) {
             OidcUserInfo userinfo = oidcUser.getUserInfo();
+            String username = firstNonBlank(
+                    userinfo != null ? userinfo.getPreferredUsername() : null,
+                    oidcUser.getName(),
+                    oidcUser.getSubject());
+            String fullName = firstNonBlank(
+                    userinfo != null ? userinfo.getFullName() : null,
+                    (String) oidcUser.getClaims().get("name"),
+                    username);
+            String email = firstNonBlank(
+                    userinfo != null ? userinfo.getEmail() : null,
+                    (String) oidcUser.getClaims().get("email"),
+                    username + "@unknown.local");
+            String subject = firstNonBlank(
+                    userinfo != null ? userinfo.getSubject() : null,
+                    oidcUser.getSubject(),
+                    username);
             return new UserDAO(
-                    userinfo.getPreferredUsername(),
-                    userinfo.getFullName(),
-                    userinfo.getEmail(),
-                    userinfo.getSubject());
+                    username,
+                    fullName,
+                    email,
+                    subject);
         }
 
         // API client flow (token-based): JWT bearer.
