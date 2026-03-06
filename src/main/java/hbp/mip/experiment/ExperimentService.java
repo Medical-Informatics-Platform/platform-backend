@@ -120,7 +120,8 @@ public class ExperimentService {
             spec = Specification.where(new ExperimentSpecifications.NotMyExperiment(user.username()))
                     .and(new ExperimentSpecifications.SharedExperiment(true));
         } else if (hasAccessRights) {
-            spec = Specification.where((Specification<ExperimentDAO>) null);
+            // Spring Data JPA no longer accepts null in Specification.where(...).
+            spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
         } else {
             spec = Specification.where(new ExperimentSpecifications.MyExperiment(user.username()))
                     .or(new ExperimentSpecifications.SharedExperiment(includeShared));
