@@ -7,11 +7,12 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
-
 @Service
+@Transactional
 public class ActiveUserService {
 
     private final UserRepository userRepository;
@@ -39,8 +40,7 @@ public class ActiveUserService {
             if (activeUserDatabaseDetails != null) {
                 boolean changed = false;
                 if ((!Objects.equals(activeUserDAO.getEmail(), activeUserDatabaseDetails.getEmail()))
-                        || !Objects.equals(activeUserDAO.getFullname(), activeUserDatabaseDetails.getFullname())
-                ) {
+                        || !Objects.equals(activeUserDAO.getFullname(), activeUserDatabaseDetails.getFullname())) {
                     // Fullname and email are the only values allowed to change.
                     // username is the PK in our database and subjectid is the PK in keycloak
                     activeUserDatabaseDetails.setFullname(activeUserDAO.getFullname());
@@ -75,7 +75,11 @@ public class ActiveUserService {
     public UserDTO agreeToNDA(Authentication authentication) {
         UserDTO userDTO = getActiveUser(authentication);
 
-        UserDAO userDAO = new UserDAO(userDTO);
+        UserDAO userDAO = userRepository.findByUsername(userDTO.username());
+        if (userDAO == null) {
+            userDAO = new UserDAO(userDTO);
+        }
+
         userDAO.setAgreeNDA(true);
         userRepository.save(userDAO);
 
@@ -92,8 +96,7 @@ public class ActiveUserService {
                     userinfo.getPreferredUsername(),
                     userinfo.getFullName(),
                     userinfo.getEmail(),
-                    userinfo.getSubject()
-            );
+                    userinfo.getSubject());
         }
 
         // API client flow (token-based): JWT bearer.
@@ -108,12 +111,10 @@ public class ActiveUserService {
             String username = firstNonBlank(
                     jwt.getClaimAsString("preferred_username"),
                     jwt.getClaimAsString("username"),
-                    jwt.getSubject()
-            );
+                    jwt.getSubject());
             String fullName = firstNonBlank(
                     jwt.getClaimAsString("name"),
-                    jwt.getClaimAsString("given_name")
-            );
+                    jwt.getClaimAsString("given_name"));
             String email = firstNonBlank(jwt.getClaimAsString("email"), username + "@unknown.local");
             String subject = firstNonBlank(jwt.getSubject(), username);
             return new UserDAO(username, fullName, email, subject);
