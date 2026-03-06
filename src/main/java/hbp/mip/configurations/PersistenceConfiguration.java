@@ -8,15 +8,18 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
-
 @Configuration
-@EnableJpaRepositories(basePackages = {"hbp.mip.experiment", "hbp.mip.user"})
+@EnableJpaRepositories(basePackages = { "hbp.mip.experiment", "hbp.mip.user" })
+@EnableTransactionManagement
 public class PersistenceConfiguration {
 
     @Primary
@@ -36,6 +39,14 @@ public class PersistenceConfiguration {
         emfb.setPackagesToScan("hbp.mip.experiment", "hbp.mip.user");
 
         return emfb;
+    }
+
+    @Bean(name = "transactionManager")
+    public PlatformTransactionManager transactionManager(
+            LocalContainerEntityManagerFactoryBean entityManagerFactory) {
+        JpaTransactionManager txManager = new JpaTransactionManager();
+        txManager.setEntityManagerFactory(entityManagerFactory.getObject());
+        return txManager;
     }
 
     @Bean(name = "flyway", initMethod = "migrate")

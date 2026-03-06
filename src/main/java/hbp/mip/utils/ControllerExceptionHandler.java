@@ -51,14 +51,8 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(NoContent.class)
-    public ResponseEntity<ErrorMessage> handleNoContent(NoContent nc, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.NO_CONTENT.value(),
-                new Date(),
-                nc.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.NO_CONTENT);
+    public ResponseEntity<Void> handleNoContent(NoContent nc, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @ExceptionHandler({InternalServerError.class, Exception.class})
