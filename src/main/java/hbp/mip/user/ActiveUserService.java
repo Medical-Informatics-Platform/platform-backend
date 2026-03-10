@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 
 @Service
-@Transactional
 public class ActiveUserService {
 
     private final UserRepository userRepository;
@@ -30,6 +29,7 @@ public class ActiveUserService {
      *
      * @return the userDAO
      */
+    @Transactional
     public UserDTO getActiveUser(Authentication authentication) {
         UserDAO activeUserDAO;
         if (authenticationIsEnabled) {
@@ -72,6 +72,7 @@ public class ActiveUserService {
         return new UserDTO(activeUserDAO);
     }
 
+    @Transactional
     public UserDTO agreeToNDA(Authentication authentication) {
         UserDTO userDTO = getActiveUser(authentication);
 
