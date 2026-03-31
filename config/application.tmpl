@@ -41,7 +41,6 @@ spring:
         provider:
           keycloak:
             issuer-uri: {{ .Env.KEYCLOAK_AUTH_URL }}realms/{{ .Env.KEYCLOAK_REALM }}
-            user-name-attribute: preferred_username
       # Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
       resourceserver:
         jwt:
@@ -51,6 +50,7 @@ spring:
 ### AUTHENTICATION ###
 authentication:
   enabled: {{ default .Env.AUTHENTICATION "1" }}
+  skip_authorization: true
   all_datasets_allowed_claim: research_dataset_all
   all_experiments_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_

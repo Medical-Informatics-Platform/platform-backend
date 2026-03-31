@@ -11,12 +11,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -27,6 +32,8 @@ import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -74,7 +81,8 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain clientSecurityFilterChain(HttpSecurity http,
-            ClientRegistrationRepository clientRegistrationRepo) throws Exception {
+            ClientRegistrationRepository clientRegistrationRepo,
+            OidcUserService idTokenOnlyUserService) throws Exception {
         if (authenticationEnabled) {
             http.addFilterBefore(frontendRedirectCaptureFilter, OAuth2AuthorizationRequestRedirectFilter.class);
             http.authorizeHttpRequests(auth -> auth
@@ -89,7 +97,9 @@ public class SecurityConfiguration {
                     .permitAll()
                     .requestMatchers("/**").authenticated());
 
-            http.oauth2Login(login -> login.successHandler(spaRedirectAuthenticationSuccessHandler));
+            http.oauth2Login(login -> login
+                    .successHandler(spaRedirectAuthenticationSuccessHandler)
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(idTokenOnlyUserService)));
 
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.
@@ -100,9 +110,10 @@ public class SecurityConfiguration {
             // https://docs.spring.io/spring-security/reference/servlet/oauth2/login/advanced.html#oauth2login-advanced-oidc-logout
             OidcClientInitiatedLogoutSuccessHandler successHandler = new OidcClientInitiatedLogoutSuccessHandler(
                     clientRegistrationRepo);
-            if (StringUtils.hasText(frontendBaseUrl)) {
-                successHandler.setPostLogoutRedirectUri(frontendBaseUrl);
-            }
+            String postLogoutRedirectUri = StringUtils.hasText(frontendBaseUrl) && !isLoopbackBaseUrl(frontendBaseUrl)
+                    ? frontendBaseUrl
+                    : "{baseUrl}";
+            successHandler.setPostLogoutRedirectUri(postLogoutRedirectUri);
             http.logout(logout -> logout.logoutSuccessHandler(successHandler));
 
             // ---> XSRF Token handling
@@ -196,6 +207,54 @@ public class SecurityConfiguration {
             return fallback.convert(jwt);
         });
         return converter;
+    }
+
+    @Bean
+    OidcUserService idTokenOnlyUserService(GrantedAuthoritiesMapper authoritiesMapper) {
+        return new OidcUserService() {
+            @Override
+            public OidcUser loadUser(org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest userRequest) {
+                OidcIdToken idToken = userRequest.getIdToken();
+                OidcUserInfo userInfo = new OidcUserInfo(idToken.getClaims());
+                Collection<? extends GrantedAuthority> mappedAuthorities = authoritiesMapper.mapAuthorities(
+                        List.of(new OidcUserAuthority(idToken, userInfo)));
+                String nameAttributeKey = resolveOidcNameAttributeKey(idToken);
+
+                return new DefaultOidcUser(mappedAuthorities, idToken, userInfo, nameAttributeKey);
+            }
+        };
+    }
+
+    private static String resolveOidcNameAttributeKey(OidcIdToken idToken) {
+        Map<String, Object> claims = idToken.getClaims();
+        if (claims.containsKey("preferred_username")) {
+            return "preferred_username";
+        }
+        if (claims.containsKey("email")) {
+            return "email";
+        }
+        return "sub";
+    }
+
+    private static boolean isLoopbackBaseUrl(String baseUrl) {
+        if (!StringUtils.hasText(baseUrl)) {
+            return false;
+        }
+
+        try {
+            URI uri = new URI(baseUrl);
+            String host = uri.getHost();
+            if (!StringUtils.hasText(host)) {
+                return false;
+            }
+
+            return "localhost".equalsIgnoreCase(host)
+                    || "127.0.0.1".equals(host)
+                    || "0.0.0.0".equals(host)
+                    || "::1".equals(host);
+        } catch (URISyntaxException ex) {
+            return false;
+        }
     }
 
     @Component

@@ -21,6 +21,9 @@ public class ClaimUtils {
     @Value("${authentication.all_datasets_allowed_claim}")
     private String allDatasetsAllowedClaim;
 
+    @Value("${authentication.skip_authorization:false}")
+    private boolean skipAuthorization;
+
     @Value("${authentication.all_experiments_allowed_claim}")
     private String allExperimentsAllowedClaim;
 
@@ -54,6 +57,11 @@ public class ClaimUtils {
             throw new BadRequestException(errorMessage);
         }
 
+        if (skipAuthorization) {
+            logger.debug("Authorization bypass is enabled; allowing datasets: " + experimentDatasets);
+            return;
+        }
+
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 
         if (!hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
@@ -69,12 +77,22 @@ public class ClaimUtils {
     }
 
     public boolean validateAccessRightsOnALLExperiments(Authentication authentication, Logger logger) {
+        if (skipAuthorization) {
+            logger.debug("Authorization bypass is enabled; allowing access to all experiments.");
+            return true;
+        }
+
         ArrayList<String> authorities = getAuthorityRoles(authentication);
         return hasRoleAccess(authorities, allExperimentsAllowedClaim, logger);
     }
 
     public List<DataModelDTO> getAuthorizedDataModels(Logger logger, Authentication authentication,
                                                       List<DataModelDTO> allDataModels) {
+
+        if (skipAuthorization) {
+            logger.debug("Authorization bypass is enabled; returning all data models.");
+            return allDataModels;
+        }
 
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 

@@ -38,7 +38,6 @@ spring:
             scope: openid
         provider:
           keycloak:
-            user-name-attribute: preferred_username
             issuer-uri: https://iam.ebrains.eu/auth/realms/MIP
       resourceserver:
         jwt:
@@ -47,6 +46,7 @@ spring:
 ### AUTHENTICATION ###
 authentication:
   enabled: 1
+  skip_authorization: true
   all_datasets_allowed_claim: research_dataset_all
   all_experiments_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_
