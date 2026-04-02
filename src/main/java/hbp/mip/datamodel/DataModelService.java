@@ -3,6 +3,8 @@ package hbp.mip.datamodel;
 import com.google.gson.reflect.TypeToken;
 import hbp.mip.utils.ClaimUtils;
 import hbp.mip.utils.Exceptions.InternalServerError;
+import hbp.mip.utils.Exceptions.NoAuthorizedPathologiesException;
+import hbp.mip.utils.Exceptions.NoPathologiesAvailableException;
 import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
@@ -37,11 +39,26 @@ public class DataModelService {
     public List<DataModelDTO> getDataModels(Authentication authentication, Logger logger) {
 
         List<DataModelDTO> allDataModelDTOS = getAggregatedDataModelDTOs(logger);
+        if (allDataModelDTOS.isEmpty()) {
+            logger.warn("No pathologies are available for this federation.");
+            throw new NoPathologiesAvailableException("No pathologies are available for this federation.");
+        }
 
         if (!authenticationIsEnabled) {
             return allDataModelDTOS;
         }
-        return claimUtils.getAuthorizedDataModels(logger, authentication, allDataModelDTOS);
+
+        List<DataModelDTO> authorizedDataModels =
+                claimUtils.getAuthorizedDataModels(logger, authentication, allDataModelDTOS);
+
+        if (authorizedDataModels.isEmpty()) {
+            logger.warn("User does not have access to any federation pathology.");
+            throw new NoAuthorizedPathologiesException(
+                    "You do not have access to any of the pathologies in this federation."
+            );
+        }
+
+        return authorizedDataModels;
     }
 
     private List<DataModelDTO> getAggregatedDataModelDTOs(Logger logger) {
@@ -55,7 +72,9 @@ public class DataModelService {
         try {
             StringBuilder response = new StringBuilder();
             HTTPUtil.sendGet(exaflowAttributesUrl, response);
-            exaflowDataModelAttributes = JsonConverters.convertJsonStringToObject(response.toString(), pathologyAttributesType);
+            Map<String, DataModelAttributes> convertedResponse =
+                    JsonConverters.convertJsonStringToObject(response.toString(), pathologyAttributesType);
+            exaflowDataModelAttributes = convertedResponse != null ? convertedResponse : Collections.emptyMap();
         } catch (Exception e) {
             logger.error("Could not fetch exaflow dataModels' metadata: " + e.getMessage());
             throw new InternalServerError(e.getMessage());
