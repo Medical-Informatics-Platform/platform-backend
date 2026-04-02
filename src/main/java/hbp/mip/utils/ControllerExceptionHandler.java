@@ -50,6 +50,34 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(NoAuthorizedPathologiesException.class)
+    public ResponseEntity<Object> handleNoAuthorizedPathologiesException(
+            NoAuthorizedPathologiesException ex,
+            WebRequest request
+    ) {
+        ErrorMessage message = new ErrorMessage(
+                HttpStatus.FORBIDDEN.value(),
+                new Date(),
+                ex.getMessage(),
+                request.getDescription(false));
+
+        return new ResponseEntity<>(message, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(NoPathologiesAvailableException.class)
+    public ResponseEntity<Object> handleNoPathologiesAvailableException(
+            NoPathologiesAvailableException ex,
+            WebRequest request
+    ) {
+        ErrorMessage message = new ErrorMessage(
+                HttpStatus.NOT_FOUND.value(),
+                new Date(),
+                ex.getMessage(),
+                request.getDescription(false));
+
+        return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(NoContent.class)
     public ResponseEntity<Void> handleNoContent(NoContent nc, WebRequest request) {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
