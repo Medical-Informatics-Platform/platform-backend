@@ -58,7 +58,7 @@ authentication:
 
 ### EXTERNAL SERVICES ###
 services:
-  algorithmsUpdateInterval: {{  .Env.ALGORITHM_UPDATE_INTERVAL}}
+  algorithmsUpdateInterval: {{ default .Env.ALGORITHM_UPDATE_INTERVAL "100" }}
   exaflow:
     algorithmsUrl: {{ .Env.EXAFLOW_URL}}/algorithms
     attributesUrl: {{ .Env.EXAFLOW_URL}}/data_models_attributes
