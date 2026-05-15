@@ -23,6 +23,7 @@ public record AlgorithmRequestDTO(
     }
 
     public record InputDataRequestDTO(String data_model, List<String> datasets, List<String> x, List<String> y,
+                                      List<String> validation_datasets,
                                       FilterRequestDTO filters) {
     }
 

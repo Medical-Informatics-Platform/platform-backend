@@ -12,6 +12,8 @@ public record AlgorithmSpecificationDTO(
         String label,
         String desc,
         String documentation,
+        String type,
+        List<String> flags,
         ExaflowAlgorithmInputdataSpecificationDTO inputdata,
         Map<String, AlgorithmParameterSpecificationDTO> parameters,
         List<TransformerSpecificationDTO> preprocessing) {
@@ -31,8 +33,8 @@ public record AlgorithmSpecificationDTO(
             List<String> types,
             String required,
             String multiple,
-            String minValue,
-            String maxValue,
+            String min,
+            String max,
             @SerializedName("default") String default_value,
             AlgorithmEnumDTO enums,
             AlgorithmEnumDTO dict_keys_enums,
@@ -51,6 +53,7 @@ public record AlgorithmSpecificationDTO(
             AlgorithmInputDataDetailSpecificationDTO y,
             AlgorithmInputDataDetailSpecificationDTO data_model,
             AlgorithmInputDataDetailSpecificationDTO datasets,
+            AlgorithmInputDataDetailSpecificationDTO validation_datasets,
             AlgorithmInputDataDetailSpecificationDTO filter) {
     }
 
@@ -60,8 +63,8 @@ public record AlgorithmSpecificationDTO(
             List<String> types,
             List<String> stattypes,
             String required,
-            String multiple,
-            Integer enumslen
+            Integer min_count,
+            Integer max_count
 
     ) {
     }

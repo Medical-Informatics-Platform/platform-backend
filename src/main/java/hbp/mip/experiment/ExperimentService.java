@@ -42,7 +42,7 @@ public class ExperimentService {
     private static Object convertResponseToAlgorithmResults(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
             case 200 -> JsonConverters.convertJsonStringToObject(responseBody.toString(), Object.class);
-            case 400, 460, 461, 512 -> convertExaflowResponseToAlgorithmResult(responseBody.toString());
+            case 400, 460, 461, 512, 513 -> convertExaflowResponseToAlgorithmResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAlgorithmResult(GENERIC_ERROR_MESSAGE);
             default -> handleUnexpectedResponseCode(logger, code);
         };

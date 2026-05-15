@@ -28,10 +28,13 @@ class AlgorithmSpecificationDTOTest {
                     "label": "Outlier Report",
                     "desc": "Detect outliers.",
                     "documentation": "Long algorithm documentation.",
+                    "type": "stats",
+                    "flags": ["beta"],
                     "inputdata": {
                       "data_model": { "label": "Data model", "desc": "", "types": ["text"] },
                       "datasets": { "label": "Datasets", "desc": "", "types": ["text"] },
-                      "y": { "label": "Y", "desc": "", "types": ["real"], "required": true, "multiple": true }
+                      "validation_datasets": { "label": "Validation datasets", "desc": "", "types": ["text"], "required": false, "min_count": 0, "max_count": 2 },
+                      "y": { "label": "Y", "desc": "", "types": ["real"], "required": true, "min_count": 1, "max_count": 3 }
                     },
                     "parameters": {
                       "folds": {
@@ -39,6 +42,8 @@ class AlgorithmSpecificationDTOTest {
                         "types": ["dict"],
                         "required": false,
                         "multiple": false,
+                        "min": 0,
+                        "max": 10,
                         "dict_keys_enums": {
                           "type": "input_var_names",
                           "source": ["x", "y"]
@@ -71,6 +76,13 @@ class AlgorithmSpecificationDTOTest {
         assertThat(folds.dict_keys_enums().type()).isEqualTo("input_var_names");
         assertThat(folds.dict_keys_enums().source()).containsExactly("x", "y");
         assertThat(algorithm.documentation()).isEqualTo("Long algorithm documentation.");
+        assertThat(algorithm.type()).isEqualTo("stats");
+        assertThat(algorithm.flags()).containsExactly("beta");
+        assertThat(algorithm.inputdata().y().min_count()).isEqualTo(1);
+        assertThat(algorithm.inputdata().y().max_count()).isEqualTo(3);
+        assertThat(algorithm.inputdata().validation_datasets().max_count()).isEqualTo(2);
+        assertThat(folds.min()).isEqualTo("0");
+        assertThat(folds.max()).isEqualTo("10");
         assertThat(algorithm.preprocessing().getFirst().order()).isEqualTo(2);
         assertThat(algorithm.preprocessing().getFirst().documentation()).isEqualTo("Long preprocessing documentation.");
 
@@ -82,24 +94,24 @@ class AlgorithmSpecificationDTOTest {
     }
 
     @Test
-    void keepsDocumentationOptionalForOlderExaflowResponses() {
+    void keepsDocumentationOptionalWhenMissing() {
         String payload = """
                 [
                   {
-                    "name": "legacy_algorithm",
-                    "label": "Legacy Algorithm",
-                    "desc": "Legacy short description.",
+                    "name": "canonical_optional_algorithm",
+                    "label": "Canonical Optional Algorithm",
+                    "desc": "Canonical short description.",
                     "inputdata": {
                       "data_model": { "label": "Data model", "desc": "", "types": ["text"] },
                       "datasets": { "label": "Datasets", "desc": "", "types": ["text"] },
-                      "y": { "label": "Y", "desc": "", "types": ["real"], "required": true, "multiple": false }
+                      "y": { "label": "Y", "desc": "", "types": ["real"], "required": true }
                     },
                     "parameters": {},
                     "preprocessing": [
                       {
-                        "name": "legacy_preprocessing",
-                        "label": "Legacy Preprocessing",
-                        "desc": "Legacy preprocessing summary.",
+                        "name": "canonical_preprocessing",
+                        "label": "Canonical Preprocessing",
+                        "desc": "Canonical preprocessing summary.",
                         "order": 4,
                         "parameters": {}
                       }
@@ -134,6 +146,7 @@ class AlgorithmSpecificationDTOTest {
                                 List.of("ds1"),
                                 List.of("outcome"),
                                 List.of("age"),
+                                null,
                                 null
                         ),
                         Map.of(),
