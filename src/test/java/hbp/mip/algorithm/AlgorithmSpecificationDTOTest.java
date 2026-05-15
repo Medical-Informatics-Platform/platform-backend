@@ -27,6 +27,7 @@ class AlgorithmSpecificationDTOTest {
                     "name": "outlier_report",
                     "label": "Outlier Report",
                     "desc": "Detect outliers.",
+                    "documentation": "Long algorithm documentation.",
                     "inputdata": {
                       "data_model": { "label": "Data model", "desc": "", "types": ["text"] },
                       "datasets": { "label": "Datasets", "desc": "", "types": ["text"] },
@@ -49,6 +50,8 @@ class AlgorithmSpecificationDTOTest {
                       {
                         "name": "outlier_winsorizer",
                         "label": "Outlier Winsorizer",
+                        "desc": "Clip outliers.",
+                        "documentation": "Long preprocessing documentation.",
                         "order": 2,
                         "parameters": {}
                       }
@@ -67,11 +70,52 @@ class AlgorithmSpecificationDTOTest {
         assertThat(folds.dict_values_type()).isEqualTo("real");
         assertThat(folds.dict_keys_enums().type()).isEqualTo("input_var_names");
         assertThat(folds.dict_keys_enums().source()).containsExactly("x", "y");
+        assertThat(algorithm.documentation()).isEqualTo("Long algorithm documentation.");
         assertThat(algorithm.preprocessing().getFirst().order()).isEqualTo(2);
+        assertThat(algorithm.preprocessing().getFirst().documentation()).isEqualTo("Long preprocessing documentation.");
 
         JsonNode serialized = objectMapper.readTree(objectMapper.writeValueAsString(algorithm));
+        assertThat(serialized.at("/documentation").asText()).isEqualTo("Long algorithm documentation.");
         assertThat(serialized.at("/parameters/folds/dict_values_type").asText()).isEqualTo("real");
+        assertThat(serialized.at("/preprocessing/0/documentation").asText()).isEqualTo("Long preprocessing documentation.");
         assertThat(serialized.at("/preprocessing/0/order").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    void keepsDocumentationOptionalForOlderExaflowResponses() {
+        String payload = """
+                [
+                  {
+                    "name": "legacy_algorithm",
+                    "label": "Legacy Algorithm",
+                    "desc": "Legacy short description.",
+                    "inputdata": {
+                      "data_model": { "label": "Data model", "desc": "", "types": ["text"] },
+                      "datasets": { "label": "Datasets", "desc": "", "types": ["text"] },
+                      "y": { "label": "Y", "desc": "", "types": ["real"], "required": true, "multiple": false }
+                    },
+                    "parameters": {},
+                    "preprocessing": [
+                      {
+                        "name": "legacy_preprocessing",
+                        "label": "Legacy Preprocessing",
+                        "desc": "Legacy preprocessing summary.",
+                        "order": 4,
+                        "parameters": {}
+                      }
+                    ]
+                  }
+                ]
+                """;
+
+        Type algorithmListType = new TypeToken<List<AlgorithmSpecificationDTO>>() {
+        }.getType();
+        List<AlgorithmSpecificationDTO> algorithms = gson.fromJson(payload, algorithmListType);
+
+        AlgorithmSpecificationDTO algorithm = algorithms.getFirst();
+
+        assertThat(algorithm.documentation()).isNull();
+        assertThat(algorithm.preprocessing().getFirst().documentation()).isNull();
     }
 
     @Test

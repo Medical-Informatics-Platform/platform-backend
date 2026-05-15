@@ -11,6 +11,7 @@ public record AlgorithmSpecificationDTO(
         String name,
         String label,
         String desc,
+        String documentation,
         ExaflowAlgorithmInputdataSpecificationDTO inputdata,
         Map<String, AlgorithmParameterSpecificationDTO> parameters,
         List<TransformerSpecificationDTO> preprocessing) {
@@ -69,6 +70,7 @@ public record AlgorithmSpecificationDTO(
             String name,
             String label,
             String desc,
+            String documentation,
             Integer order,
             Map<String, AlgorithmParameterSpecificationDTO> parameters) {
         @Override
