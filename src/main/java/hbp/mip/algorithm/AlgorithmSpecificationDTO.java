@@ -30,12 +30,13 @@ public record AlgorithmSpecificationDTO(
             List<String> types,
             String required,
             String multiple,
-            String min,
-            String max,
+            String minValue,
+            String maxValue,
             @SerializedName("default") String default_value,
             AlgorithmEnumDTO enums,
             AlgorithmEnumDTO dict_keys_enums,
-            AlgorithmEnumDTO dict_values_enums
+            AlgorithmEnumDTO dict_values_enums,
+            String dict_values_type
 
     ) {
         public record AlgorithmEnumDTO(
@@ -68,6 +69,7 @@ public record AlgorithmSpecificationDTO(
             String name,
             String label,
             String desc,
+            Integer order,
             Map<String, AlgorithmParameterSpecificationDTO> parameters) {
         @Override
         public Map<String, AlgorithmParameterSpecificationDTO> parameters() {

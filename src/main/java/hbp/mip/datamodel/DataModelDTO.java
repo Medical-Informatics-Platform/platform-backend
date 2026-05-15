@@ -172,8 +172,8 @@ public record DataModelDTO(
         private String is_categorical;
         @Setter
         private List<DataModelDTO.EnumerationDTO> enumerations;
-        private String min;
-        private String max;
+        private String minValue;
+        private String maxValue;
         private String type;
         private String methodology;
         private String units;
