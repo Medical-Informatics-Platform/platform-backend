@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.6</version>
     </parent>
 
     <properties>
@@ -27,8 +27,8 @@
         <commons-dbcp.version>2.14.0</commons-dbcp.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.2</springdoc-openapi-starter-webmvc-ui.version>
         <lombok.version>1.18.42</lombok.version>
-        <tomcat.version>11.0.18</tomcat.version>
-        <spring-security.version>7.0.3</spring-security.version>
+        <tomcat.version>11.0.22</tomcat.version>
+        <spring-security.version>7.0.5</spring-security.version>
         <snakeyaml.version>2.6</snakeyaml.version>
         <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
     </properties>
