@@ -1,0 +1,37 @@
+name: SCA CI
+
+on:
+  push: # To be removed after testing, SCA trigger on PRs only
+    branches:
+      - ci/sca-pipeline
+  pull_request:
+
+
+jobs:
+  sca:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write # required for uploading SCA results to github security
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 #v6.2.0
+        with:
+          python-version: '3.14.4'
+
+      - name: Setup tools
+        run: bash .github/scripts/setup-tools.sh
+
+      - name: Run SCA tools
+        run: python .github/scripts/run_sca.py
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        with:
+          sarif_file: trivy.sarif
