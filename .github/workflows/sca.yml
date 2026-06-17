@@ -10,6 +10,8 @@ on:
 jobs:
   sca:
     runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
     
     permissions:
       contents: read
@@ -26,6 +28,9 @@ jobs:
 
       - name: Setup tools
         run: bash .github/scripts/setup-tools.sh
+
+      - name: Resolve Maven dependencies
+        run: mvn dependency:resolve -q
 
       - name: Run SCA tools
         run: python .github/scripts/run_sca.py
