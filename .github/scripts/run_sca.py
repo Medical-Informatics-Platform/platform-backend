@@ -1,9 +1,18 @@
 import subprocess
 import os
 import sys
+import logging
 
+GREEN = '\033[92m'
+RED = '\033[91m'
+RESET = '\033[0m'
+BOLD = '\033[1m'
 
-# TODO: Add structured logging 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s'
+)
+logger = logging.getLogger("sca-orchestrator")
 
 def run_trivy():
     cmd = [
@@ -53,18 +62,20 @@ def main():
         results[tool.__name__] = code
 
         if code and code != 0:
-            print(f"Tool {tool.__name__} failed with exit code {code}")
+            logger.error(f"{RED}[!] Tool {tool.__name__} failed with exit code {code}{RESET}")
             failed_ci = True
-        print("\n\n----------------------------------\n\n")
+        logger.info("-" * 40)
 
-
-    print("\n\n========== SCA SUMMARY ==========")
+    logger.info(f"\n{BOLD}========== SCA PIPELINE SUMMARY =========={RESET}")
     for tool_name, code in results.items():
-        status = "PASSED" if code == 0 else f"FAILED (exit code {code})"
-        print(f"{tool_name}: {status}")
-    print("==================================\n\n")
+        if code == 0:
+            logger.info(f"[{tool_name}]: {GREEN}PASSED{RESET}")
+        else:
+            logger.error(f"[{tool_name}]: {RED}FAILED (Exit Code {code}){RESET}")
+    logger.info(f"{BOLD}=========================================={RESET}\n")
 
     if failed_ci:
+        logger.error(f"{RED}Pipeline blocked due to security findings.{RESET}")
         sys.exit(1)
 
 if __name__ == "__main__":
