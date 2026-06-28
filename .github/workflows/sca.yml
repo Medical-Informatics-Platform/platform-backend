@@ -6,6 +6,7 @@ on:
 
 jobs:
   sca:
+    name: Software Composition Analysis
     runs-on: ubuntu-latest    # TODO: Migrate back to debian:trixie once pipeline MVP is fully stable
     permissions:
       contents: read
