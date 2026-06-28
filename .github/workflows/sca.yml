@@ -3,16 +3,13 @@ name: SCA CI
 on:
   push: # To be removed after testing, SCA trigger on PRs only
     branches:
-      - ci/sca-pipeline
+      - CI/sca-pipeline-sbom 
   pull_request:
 
 
 jobs:
   sca:
-    runs-on: ubuntu-latest
-    container:
-      image: debian:trixie
-    
+    runs-on: ubuntu-latest    # TODO: Migrate back to debian:trixie once pipeline MVP is fully stable
     permissions:
       contents: read
       security-events: write # required for uploading SCA results to github security
@@ -24,17 +21,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 #v6.2.0
         with:
-          python-version: '3.13'
+          python-version: '3.14.4'
 
       - name: Setup tools
         run: bash .github/scripts/setup-tools.sh
 
-      - name: Cache Maven dependencies
+
+      - name: Cache Maven packages
         uses: actions/cache@v4
         with:
-          path: ~/.m2
-          key: maven-${{ hashFiles('**/pom.xml') }} #  generates a unique hash based on the content of pom.xml.
-
+          path: ~/.m2/repository # /.m2 only is too braod and can cause cache corruption issues
+          key: ${{ runner.os }}-m2-v1-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-v1-
+          
       - name: Resolve Maven dependencies
         run: mvn dependency:resolve -q
 
@@ -46,3 +45,15 @@ jobs:
         uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
         with:
           sarif_file: trivy.sarif
+      
+      - name: Upload Dependency Check SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        with:
+          sarif_file: dependency-check-report.sarif
+
+      - name: Upload OSV Scanner SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        with:
+          sarif_file: osv-scanner.sarif
