@@ -23,7 +23,7 @@ jobs:
       - name: Cache Maven packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
-          path: ~/.m2/repository # /.m2 only is too braod and can cause cache corruption issues
+          path: ~/.m2/repository # /.m2 only is too broad and can cause cache corruption issues
           key: ${{ runner.os }}-m2-v1-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2-v1-
    
