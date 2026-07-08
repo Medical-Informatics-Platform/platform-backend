@@ -1,15 +1,25 @@
 name: SCA CI - image
 
 on:
+  push:
+    branches:
+      - CI/sca-pipeline-sbom
   pull_request:
 
 jobs:
   sca:
     name: Software Composition Analysis
-    runs-on: ubuntu-latest    # TODO: Migrate back to debian:trixie once pipeline MVP is fully stable
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write # required for uploading SCA results to github security
+    env:
+      IMAGE_NAME: platform-backend:testing
+      TRIVY_IGNOREFILE: .github/scripts/suppress_trivy.yaml
+      OSV_IGNOREFILE: .github/scripts/suppress_osv_scanner.toml
+      TRIVY_SARIF_OUTPUT: trivy-image.sarif
+      OSV_SARIF_OUTPUT: osv-scanner-image.sarif
+      MERGED_SARIF_OUTPUT: merged-SCA-platform-backend-image.sarif
     
     steps:
       - name: Check out repository
@@ -19,9 +29,9 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 #v6.2.0
         with:
           python-version: '3.14.4'
-     
+
       - name: Build Docker image
-        run: docker build -t platform-backend:testing .
+        run: docker build -t ${{ env.IMAGE_NAME }} .
 
       - name: Setup tools
         run: bash .github/scripts/setup-tools.sh
@@ -34,18 +44,20 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
         with:
-          sarif_file: trivy-image.sarif
+          sarif_file: ${{ env.TRIVY_SARIF_OUTPUT }}
+          category: trivy-image
 
       - name: Upload OSV Scanner SARIF to GitHub Security tab
         id: upload_osv
         if: always()
         uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
         with:
-          sarif_file: osv-scanner-image.sarif
+          sarif_file: ${{ env.OSV_SARIF_OUTPUT }}
+          category: osv-scanner-image
 
       - name: Upload merged SARIF to GitHub Security tab
         if: ${{ always() && steps.upload_trivy.outcome == 'success' && steps.upload_osv.outcome == 'success' }}
         uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
         with:
-          sarif_file: merged-SCA-platform-backend-image.sarif
-          category: merged-sca
+          sarif_file: ${{ env.MERGED_SARIF_OUTPUT }}
+          category: merged-sca-image
