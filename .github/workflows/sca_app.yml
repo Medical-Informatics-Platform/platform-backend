@@ -41,7 +41,7 @@ jobs:
         run: mvn dependency:resolve -q
 
       - name: Setup tools
-        run: bash .github/scripts/setup-tools.sh maven
+        run: bash .github/scripts/setup-tools.sh --install-tool trivy,osv-scanner --sbom-ecosystem maven
 
       - name: Run SCA tools
         run: python .github/scripts/run_sca_app.py
