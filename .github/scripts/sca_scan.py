@@ -21,14 +21,13 @@ logger = logging.getLogger("sca-orchestrator")
 SBOM_PATH = os.getenv("SBOM_PATH", "target/bom.json")
 TRIVY_IGNOREFILE = os.getenv("TRIVY_IGNOREFILE", ".github/scripts/suppress_trivy.yaml")
 OSV_IGNOREFILE = os.getenv("OSV_IGNOREFILE", ".github/scripts/suppress_osv_scanner.toml")
-TRIVY_SARIF_OUTPUT = os.getenv("TRIVY_SARIF_OUTPUT", "trivy-app.sarif")
-OSV_SARIF_OUTPUT = os.getenv("OSV_SARIF_OUTPUT", "osv-scanner-app.sarif")
-MERGED_SARIF_OUTPUT = os.getenv("MERGED_SARIF_OUTPUT", "merged-SCA-platform-backend-app.sarif")
+TRIVY_SARIF_OUTPUT = os.getenv("TRIVY_SARIF_OUTPUT", "trivy-platform-backend.sarif")
+OSV_SARIF_OUTPUT = os.getenv("OSV_SARIF_OUTPUT", "osv-scanner-platform-backend.sarif")
+SCA_MERGED_SARIF_OUTPUT = os.getenv("SCA_MERGED_SARIF_OUTPUT", "SCA-platform-backend-merged.sarif")
 
 def run_trivy():
     cmd = [
-        "trivy", "sbom",
-        SBOM_PATH,
+        "trivy", "sbom", SBOM_PATH,
         "--format", "sarif",
         "--ignorefile", TRIVY_IGNOREFILE,
         "--output", TRIVY_SARIF_OUTPUT
@@ -37,7 +36,7 @@ def run_trivy():
 
 def run_osv_scanner():
     cmd = [
-        "osv-scanner", "scan", "source",
+        "osv-scanner", "scan", "source", 
         "--lockfile", SBOM_PATH,
         "--config", OSV_IGNOREFILE,
         "--format", "sarif",
@@ -63,7 +62,7 @@ def merge_sarifs():
             sarif = json.load(f, strict=False)
         merged["runs"].extend(sarif.get("runs", []))
 
-    with open(MERGED_SARIF_OUTPUT, "w") as f:
+    with open(SCA_MERGED_SARIF_OUTPUT, "w") as f:
         json.dump(merged, f)
 
     logger.info("SARIF files merged successfully.")

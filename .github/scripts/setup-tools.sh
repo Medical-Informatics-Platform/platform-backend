@@ -105,7 +105,7 @@ if should_install "opengrep"; then
   echo "OpenGrep installed OK"
 fi
 
-# --- Semgrep community Dockerfile ruleset (cloned, not registry) ---------
+# --- Semgrep community  ruleset (cloned, not registry) ---------
 if should_install "semgrep-rules"; then
   echo "[setup-tools] Cloning semgrep-rules @ ${SEMGREP_RULES_REF}"
   sudo rm -rf "${SEMGREP_RULES_DIR}"
