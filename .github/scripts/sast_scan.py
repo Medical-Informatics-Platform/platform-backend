@@ -18,7 +18,7 @@ logger = logging.getLogger("sast-orchestrator")
 # --- Configurable values -----------------------------------------------
 SEMGREP_CONFIG_RULESETS = os.getenv(
     "SEMGREP_CONFIG_RULESETS",
-    "/opt/semgrep-rules"
+    "opt/semgrep-rules"
 ).split()
 OPENGREP_EXCLUDE = os.getenv(
     "OPENGREP_EXCLUDE",

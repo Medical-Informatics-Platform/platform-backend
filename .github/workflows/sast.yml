@@ -14,7 +14,7 @@ jobs:
       contents: read
       security-events: write # required for uploading SAST results to github security
     env:
-      SEMGREP_CONFIG_RULESETS: "/opt/semgrep-rules/generic /opt/semgrep-rules/problem-based-packs /opt/semgrep-rules/bash  /opt/semgrep-rules/java"
+      SEMGREP_CONFIG_RULESETS: "opt/semgrep-rules/generic opt/semgrep-rules/problem-based-packs opt/semgrep-rules/bash  opt/semgrep-rules/java"
       OPENGREP_EXCLUDE: ".github/scripts Dockerfile*"
       OPENGREP_SARIF_OUTPUT: sast-semgrep-app.sarif
 
