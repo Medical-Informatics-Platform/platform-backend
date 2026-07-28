@@ -66,31 +66,31 @@ def handle_sca():
     sarif_files = {"trivy": TRIVY_SCA_SARIF_OUTPUT, "osv-scanner": OSV_SCA_SARIF_OUTPUT}
     tool_status = {}   # "PASSED" | "WARNING" | "FAILED" | "ERROR"
     gate_failed = False
-    
+
     # Run each SCA tool and collect their exit codes
     for name, tool_fn in tools.items():
         exit_code = tool_fn()
         logger.info("-" * 40)
- 
+
         path = sarif_files[name]
         if exit_code != 0 and os.path.exists(path):
             logger.error(f"{RED}[!] {name} exit code {exit_code} but wrote {path}{RESET}")
             tool_status[name] = "ERROR"
             gate_failed = True
-     
+
     # Evaluate each SARIF file for gate decision
     for name, path in sarif_files.items():
         if name in tool_status:
             continue  # already flagged ERROR above, don't overwrite it
- 
+
         if not os.path.exists(path):
             logger.error(f"{RED}[!] {name} SARIF missing: {path},tool failed to run (not a vulnerability){RESET}")
             tool_status[name] = "ERROR"
             gate_failed = True
             continue
- 
+
         eval_result = evaluate(path)
- 
+
         if eval_result.gate_failed:
             tool_status[name] = "FAILED"          # this tool found CVSS >= 8.0
             gate_failed = True
@@ -98,7 +98,7 @@ def handle_sca():
             tool_status[name] = "WARNING"         # this tool found 5.0 <= CVSS < 8.0
         else:
             tool_status[name] = "PASSED"          # this tool found nothing >= 5.0
-    
+
     # Print summary of results
     logger.info(f"\n{BOLD}========== SCA PIPELINE SUMMARY =========={RESET}")
     for name, status in tool_status.items():
@@ -132,7 +132,7 @@ def run_hadolint():
 
 def run_opengrep():
     base_cmd = ["opengrep", "scan", "--include=Dockerfile", "-q"] + \
-        [f"--config {config}" for config in SEMGREP_CONFIG_RULESETS] 
+        [f"--config {config}" for config in SEMGREP_CONFIG_RULESETS]
 
     report_cmd = (base_cmd + ["--sarif", "--output", OPENGREP_SAST_SARIF_OUTPUT])
     report_cmd = " ".join(report_cmd).split()
@@ -197,9 +197,9 @@ def merge_sarifs(sarif_paths, output_path):
 def main():
     parser = argparse.ArgumentParser(
         prog="sec-orchestrator",
-        description="Agnostic DevSecOps Container scannning Pipeline Orchestrator"
+        description="Agnostic DevSecOps Container scanning Pipeline Orchestrator"
     )
-    
+
     # The primary router
     parser.add_argument(
         "-s", "--scan-type",
@@ -212,7 +212,7 @@ def main():
         "-i", "--image",
         help="Target Docker image reference"
     )
-    
+
     parser.add_argument(
     "--merge-sarif",
     nargs="+",
@@ -230,14 +230,14 @@ def main():
     if args.scan_type == "sast":
         logger.info(f"{BOLD}Initiating SAST pipeline: {RESET}")
         handle_sast()
-    # Execution 
+    # Execution
     elif args.scan_type == "sca":
         logger.info(f"{BOLD}Initiating SCA pipeline on {args.image}{RESET}")
         global IMAGE_NAME
         if args.image:               # Override the global IMAGE_NAME
-            IMAGE_NAME = args.image 
+            IMAGE_NAME = args.image
         handle_sca()
-    
+
     if args.merge_sarif:
         merge_sarifs(args.merge_sarif, args.merge_output)
         return
