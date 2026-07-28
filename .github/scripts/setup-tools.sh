@@ -24,7 +24,7 @@ OPENGREP_SHA256="${OPENGREP_SHA256:-9ac4aebb47ba3f7b0d8fc641ac8749cb6c2f253f6161
 
 # renovate: datasource=github-tags depName=semgrep/semgrep-rules
 SEMGREP_RULES_REF="${SEMGREP_RULES_REF:-bf362e1642cc2a16ca44bcae0fdda78639e383c3}"
-SEMGREP_RULES_DIR="/opt/semgrep-rules"
+SEMGREP_RULES_DIR="semgrep-rules"
 
 # renovate: datasource=github-release-attachments depName=hadolint/hadolint
 HADOLINT_VERSION="${HADOLINT_VERSION:-v2.14.0}"
@@ -105,12 +105,12 @@ if should_install "opengrep"; then
   echo "OpenGrep installed OK"
 fi
 
-# --- Semgrep community  ruleset (cloned, not registry) ---------
+# --- Semgrep community ruleset (cloned, not registry) ---------
 if should_install "semgrep-rules"; then
   echo "[setup-tools] Cloning semgrep-rules @ ${SEMGREP_RULES_REF}"
-  sudo rm -rf "${SEMGREP_RULES_DIR}"
-  sudo git clone --quiet https://github.com/semgrep/semgrep-rules.git "${SEMGREP_RULES_DIR}"
-  sudo git -C "${SEMGREP_RULES_DIR}" checkout --quiet "${SEMGREP_RULES_REF}"
+  rm -rf "${SEMGREP_RULES_DIR}"
+  git clone --quiet https://github.com/semgrep/semgrep-rules.git "${SEMGREP_RULES_DIR}"
+  git -C "${SEMGREP_RULES_DIR}" checkout --quiet "${SEMGREP_RULES_REF}"
   echo "semgrep-rules ready at ${SEMGREP_RULES_DIR} (ref: ${SEMGREP_RULES_REF})"
 fi
 

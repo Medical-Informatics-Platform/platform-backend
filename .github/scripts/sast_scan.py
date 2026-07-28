@@ -18,11 +18,11 @@ logger = logging.getLogger("sast-orchestrator")
 # --- Configurable values -----------------------------------------------
 SEMGREP_CONFIG_RULESETS = os.getenv(
     "SEMGREP_CONFIG_RULESETS",
-    "opt/semgrep-rules"
+    "semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/javascript"
 ).split()
 OPENGREP_EXCLUDE = os.getenv(
     "OPENGREP_EXCLUDE",
-    ".github/scripts Dockerfile"
+    ".github/scripts/ *.sarif Dockerfile* "
 ).split()
 OPENGREP_SARIF_OUTPUT = os.getenv("OPENGREP_SARIF_OUTPUT", "sast-opengrep-app.sarif")
 
@@ -36,7 +36,7 @@ def run_opengrep():
     logger.info(f"{BOLD}Running (report):{RESET} {' '.join(report_cmd)}")
     subprocess.run(report_cmd)
 
-    gate_cmd = (base_cmd + ["--severity=ERROR", "--error"])
+    gate_cmd = (base_cmd + ["--severity=ERROR", "--error", "-q"])
     gate_cmd = " ".join(gate_cmd).split()
     logger.info(f"{BOLD}Running (gate):{RESET} {' '.join(gate_cmd)}")
     return subprocess.run(gate_cmd).returncode
@@ -61,7 +61,7 @@ def main():
     if status == "PASSED":
         logger.info(f"[opengrep]: {GREEN}PASSED (exit code 0){RESET}")
     elif status == "FAILED":
-        logger.error(f"[opengrep]: {RED}FAILED (exit code 1 - {SAST_SEVERITY}-severity findings){RESET}")
+        logger.error(f"[opengrep]: {RED}FAILED (exit code 1 - error-severity findings){RESET}")
     else:
         logger.error(f"[opengrep]: {RED}ERROR (exit code {exit_code}, tool did not run correctly){RESET}")
     logger.info(f"{BOLD}==========================================={RESET}\n")

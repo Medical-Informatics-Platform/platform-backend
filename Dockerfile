@@ -66,7 +66,13 @@ ENV DISABLED_ALGORITHMS_CONFIG_PATH="/opt/platform/algorithms/disabledAlgorithms
 COPY config/disabledAlgorithms.json $DISABLED_ALGORITHMS_CONFIG_PATH
 VOLUME /opt/platform/api
 
+# TODO: temp fix/patch
+# missing-user-entrypoint finding. Needs verification that
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /opt/config /opt/platform/api \
+    && chown -R appuser:appgroup /opt/config /opt/platform/api /usr/share/jars
 
+USER appuser
 ENTRYPOINT ["sh", "-ec", "exec dockerize -template ${APP_CONFIG_TEMPLATE}:${APP_CONFIG_LOCATION} java --add-opens java.base/java.io=ALL-UNNAMED -Daeron.term.buffer.length -jar /usr/share/jars/platform-backend.jar"]
 EXPOSE 8080
 HEALTHCHECK --start-period=60s CMD curl --fail --silent --show-error http://localhost:8080/services/actuator/health | grep -q '"status":"UP"'

@@ -1,11 +1,10 @@
 name: Container Vulnerability Scanning
 
 on:
-  push: # To be removed after testing 
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1' # weekly SCA scan, every Monday 02:00 UTC
+    - cron: '0 2 * * 1' # weekly scan, every Monday 02:00 UTC
     
 jobs:
   container-scan:
@@ -23,9 +22,10 @@ jobs:
       OSV_IGNOREFILE: .github/scripts/suppress_osv_scanner.toml
       TRIVY_SCA_SARIF_OUTPUT: sca-trivy-container.sarif
       OSV_SCA_SARIF_OUTPUT: sca-osv-container.sarif
-      SCA_MERGED_SARIF_OUTPUT: sca-merged-container.sarif
 
       # SAST /Linting
+      SEMGREP_CONFIG_RULESETS: >-
+              semgrep-rules/dockerfile
       OPENGREP_SAST_SARIF_OUTPUT: sast-opengrep-dockerfile.sarif
       HADOLINT_SAST_SARIF_OUTPUT: sast-hadolint-dockerfile.sarif
     

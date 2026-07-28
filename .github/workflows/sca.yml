@@ -68,4 +68,4 @@ jobs:
         with:
           name: sca-scan-sarif-report
           path: ${{ env.SCA_MERGED_SARIF_OUTPUT }}
-          retention-days: 30     
+          retention-days: 30
