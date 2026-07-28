@@ -14,8 +14,10 @@ jobs:
       contents: read
       security-events: write # required for uploading SAST results to github security
     env:
-      SEMGREP_CONFIG_RULESETS: "opt/semgrep-rules/generic opt/semgrep-rules/problem-based-packs opt/semgrep-rules/bash  opt/semgrep-rules/java"
-      OPENGREP_EXCLUDE: ".github/scripts Dockerfile*"
+      SEMGREP_CONFIG_RULESETS: >-
+        semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/java
+      OPENGREP_EXCLUDE: >-
+        *.sarif .github/scripts Dockerfile* .pre-commit-config.yaml docs/** README.md AGENTS.md
       OPENGREP_SARIF_OUTPUT: sast-semgrep-app.sarif
 
     steps:
@@ -42,7 +44,6 @@ jobs:
           category: semgrep-app
 
       - name: Upload SARIF artifact
-        if: ${{ always() && steps.upload_semgrep.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: sast-scan-sarif-report
