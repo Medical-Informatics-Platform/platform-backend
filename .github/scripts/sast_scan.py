@@ -18,11 +18,11 @@ logger = logging.getLogger("sast-orchestrator")
 # --- Configurable values -----------------------------------------------
 SEMGREP_CONFIG_RULESETS = os.getenv(
     "SEMGREP_CONFIG_RULESETS",
-    "semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/javascript"
+    "semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/java auto"
 ).split()
 OPENGREP_EXCLUDE = os.getenv(
     "OPENGREP_EXCLUDE",
-    ".github/scripts/ *.sarif Dockerfile* "
+    "*.sarif .github/scripts Dockerfile* .pre-commit-config.yaml docs/** README.md AGENTS.md"
 ).split()
 OPENGREP_SARIF_OUTPUT = os.getenv("OPENGREP_SARIF_OUTPUT", "sast-opengrep-app.sarif")
 
@@ -36,7 +36,7 @@ def run_opengrep():
     logger.info(f"{BOLD}Running (report):{RESET} {' '.join(report_cmd)}")
     subprocess.run(report_cmd)
 
-    gate_cmd = (base_cmd + ["--severity=ERROR", "--error", "-q"])
+    gate_cmd = (base_cmd + ["--severity=ERROR", "--error"])
     gate_cmd = " ".join(gate_cmd).split()
     logger.info(f"{BOLD}Running (gate):{RESET} {' '.join(gate_cmd)}")
     return subprocess.run(gate_cmd).returncode

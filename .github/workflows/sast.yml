@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1' # weekly SCA scan, every Monday 02:00 UTC
+    - cron: '0 2 * * 1' # weekly scan, every Monday 02:00 UTC
 
 jobs:
   sast:
@@ -15,7 +15,7 @@ jobs:
       security-events: write # required for uploading SAST results to github security
     env:
       SEMGREP_CONFIG_RULESETS: >-
-        semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/java
+        semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash semgrep-rules/java auto
       OPENGREP_EXCLUDE: >-
         *.sarif .github/scripts Dockerfile* .pre-commit-config.yaml docs/** README.md AGENTS.md
       OPENGREP_SARIF_OUTPUT: sast-semgrep-app.sarif

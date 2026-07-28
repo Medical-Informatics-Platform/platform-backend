@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: syncmaster
-        uses: wei/git-sync@v3
+        uses: wei/git-sync@55c6b63b4f21607da0e9877ca9b4d11a29fc6d83 #v3.0.0
         with:
           source_repo: "Medical-Informatics-Platform/platform-backend"
           source_branch: "master"
           destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/portal-backend.git"
           destination_branch: "master"
       - name: synctags
-        uses: wei/git-sync@v3
+        uses: wei/git-sync@55c6b63b4f21607da0e9877ca9b4d11a29fc6d83 #v3.0.0
         with:
           source_repo: "Medical-Informatics-Platform/platform-backend"
           source_branch: "refs/tags/*"
