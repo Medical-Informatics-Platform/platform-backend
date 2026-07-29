@@ -37,7 +37,7 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 # --- Flag parsing -----------------------------------------------------
-INSTALL_TOOL="all"
+INSTALL_TOOL="none"
 SBOM_ECOSYSTEM="none"
 
 while [[ $# -gt 0 ]]; do
