@@ -66,7 +66,6 @@ ENV DISABLED_ALGORITHMS_CONFIG_PATH="/opt/platform/algorithms/disabledAlgorithms
 COPY config/disabledAlgorithms.json $DISABLED_ALGORITHMS_CONFIG_PATH
 VOLUME /opt/platform/api
 
-# missing-user-entrypoint finding. Needs verification that
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
     && mkdir -p /opt/config /opt/platform/api \
     && chown -R appuser:appgroup /opt/config /opt/platform/api /usr/share/jars
