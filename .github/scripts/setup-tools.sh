@@ -43,10 +43,12 @@ SBOM_ECOSYSTEM="none"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --install-tool)
+      [[ $# -ge 2 ]] || { echo "[setup-tools] --install-tool requires a value (e.g. trivy,osv-scanner|all)" >&2; exit 1; }
       INSTALL_TOOL="$2"
       shift 2
       ;;
     --sbom-ecosystem)
+      [[ $# -ge 2 ]] || { echo "[setup-tools] --sbom-ecosystem requires a value (e.g. maven|npm|none)" >&2; exit 1; }
       SBOM_ECOSYSTEM="$2"
       shift 2
       ;;

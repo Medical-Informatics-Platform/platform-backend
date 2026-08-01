@@ -147,13 +147,15 @@ def run_opengrep():
 def handle_sast():
     tools = {
         "hadolint": run_hadolint,
-        "semgrep": run_opengrep,
+        "opengrep": run_opengrep,
     }
 
     tool_status = {}
+    exit_codes = {}
 
     for name, run_fn in tools.items():
         exit_code = run_fn()
+        exit_codes[name] = exit_code
         if exit_code == 0:
             tool_status[name] = "PASSED"
         elif exit_code == 1:
@@ -168,7 +170,7 @@ def handle_sast():
         elif status == "FAILED":
             logger.error(f"[{name}]: {RED}FAILED (exit code 1 - error-severity findings){RESET}")
         else:
-            logger.error(f"[{name}]: {RED}ERROR (exit code {exit_code}, tool did not run correctly){RESET}")
+            logger.error(f"[{name}]: {RED}ERROR (exit code {exit_codes[name]}, tool did not run correctly){RESET}")
     logger.info(f"{BOLD}==========================================={RESET}\n")
 
     if any(status != "PASSED" for status in tool_status.values()):
