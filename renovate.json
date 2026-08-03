@@ -44,12 +44,14 @@
       ]
     },
     {
-      "description": "Cooldown: only propose releases at least 72h old, so yanked or compromised releases never reach a PR",
+      "description": "Cooldown: only propose releases at least 7 days old, so yanked or compromised releases never reach a PR",
       "matchDatasources": [
         "github-release-attachments",
-        "npm"
+        "github-tags",
+        "npm",
+        "python-version"
       ],
-      "minimumReleaseAge": "3 days"
+      "minimumReleaseAge": "7 days"
     }
   ]
 }

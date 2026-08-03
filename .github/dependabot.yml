@@ -12,9 +12,9 @@ updates:
       github-actions:
         patterns:
           - "*"
-    # Same 72h cooldown as the scanners: never propose a release younger
-    # than 3 days, so yanked or compromised releases never reach a PR
+    # 7-day cooldown, matching the scanners: never propose a release younger
+    # than 7 days, so yanked or compromised releases never reach a PR
     cooldown:
-      default-days: 3
+      default-days: 7
     labels:
       - "dependencies"
