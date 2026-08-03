@@ -46,7 +46,7 @@ RUN apk add --no-cache curl
 #######################################################
 # Install dockerize
 #######################################################
-ENV DOCKERIZE_VERSION=v0.13.0
+ENV DOCKERIZE_VERSION=v0.14.0
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
@@ -66,7 +66,11 @@ ENV DISABLED_ALGORITHMS_CONFIG_PATH="/opt/platform/algorithms/disabledAlgorithms
 COPY config/disabledAlgorithms.json $DISABLED_ALGORITHMS_CONFIG_PATH
 VOLUME /opt/platform/api
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /opt/config /opt/platform/api \
+    && chown -R appuser:appgroup /opt/config /opt/platform/api /usr/share/jars
 
+USER appuser
 ENTRYPOINT ["sh", "-ec", "exec dockerize -template ${APP_CONFIG_TEMPLATE}:${APP_CONFIG_LOCATION} java --add-opens java.base/java.io=ALL-UNNAMED -Daeron.term.buffer.length -jar /usr/share/jars/platform-backend.jar"]
 EXPOSE 8080
 HEALTHCHECK --start-period=60s CMD curl --fail --silent --show-error http://localhost:8080/services/actuator/health | grep -q '"status":"UP"'

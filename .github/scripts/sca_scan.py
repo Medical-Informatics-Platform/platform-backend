@@ -17,18 +17,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sca-orchestrator")
 
-# --- Configurable values
-IMAGE_NAME = os.getenv("IMAGE_NAME", "platform-backend:local")
+# Configurable values
+SBOM_PATH = os.getenv("SBOM_PATH", "target/bom.json")
 TRIVY_IGNOREFILE = os.getenv("TRIVY_IGNOREFILE", ".github/scripts/suppress_trivy.yaml")
 OSV_IGNOREFILE = os.getenv("OSV_IGNOREFILE", ".github/scripts/suppress_osv_scanner.toml")
-TRIVY_SARIF_OUTPUT = os.getenv("TRIVY_SARIF_OUTPUT", "trivy-image.sarif")
-OSV_SARIF_OUTPUT = os.getenv("OSV_SARIF_OUTPUT", "osv-scanner-image.sarif")
-MERGED_SARIF_OUTPUT = os.getenv("MERGED_SARIF_OUTPUT", "merged-SCA-platform-backend-image.sarif")
+TRIVY_SARIF_OUTPUT = os.getenv("TRIVY_SARIF_OUTPUT", "trivy-platform-backend.sarif")
+OSV_SARIF_OUTPUT = os.getenv("OSV_SARIF_OUTPUT", "osv-scanner-platform-backend.sarif")
+SCA_MERGED_SARIF_OUTPUT = os.getenv("SCA_MERGED_SARIF_OUTPUT", "SCA-platform-backend-merged.sarif")
 
 def run_trivy():
     cmd = [
-        "trivy", "image",
-        IMAGE_NAME,
+        "trivy", "sbom", SBOM_PATH,
         "--format", "sarif",
         "--ignorefile", TRIVY_IGNOREFILE,
         "--output", TRIVY_SARIF_OUTPUT
@@ -37,8 +36,8 @@ def run_trivy():
 
 def run_osv_scanner():
     cmd = [
-        "osv-scanner", "scan", "image",
-        IMAGE_NAME,
+        "osv-scanner", "scan", "source", 
+        "--lockfile", SBOM_PATH,
         "--config", OSV_IGNOREFILE,
         "--format", "sarif",
         "--output-file", OSV_SARIF_OUTPUT
@@ -63,7 +62,7 @@ def merge_sarifs():
             sarif = json.load(f, strict=False)
         merged["runs"].extend(sarif.get("runs", []))
 
-    with open(MERGED_SARIF_OUTPUT, "w") as f:
+    with open(SCA_MERGED_SARIF_OUTPUT, "w") as f:
         json.dump(merged, f)
 
     logger.info("SARIF files merged successfully.")
@@ -86,9 +85,8 @@ def main():
             tool_status[name] = "ERROR"
             gate_failed = True
  
-
     merge_sarifs()  # combined artifact only, not used for the gate decision
-    
+
     # Evaluate each SARIF file for gate decision
     for name, path in sarif_files.items():
         if name in tool_status:
