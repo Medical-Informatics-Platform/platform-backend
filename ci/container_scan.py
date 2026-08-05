@@ -23,8 +23,8 @@ logger = logging.getLogger("container-scan-orchestrator")
 IMAGE_NAME = os.getenv("IMAGE_NAME", "platform-backend:local")
 
 # --- SCA / CVE (Trivy + OSV) ---
-TRIVY_IGNOREFILE = os.getenv("TRIVY_IGNOREFILE", ".github/scripts/suppress_trivy.yaml")
-OSV_IGNOREFILE = os.getenv("OSV_IGNOREFILE", ".github/scripts/suppress_osv_scanner.toml")
+TRIVY_IGNOREFILE = os.getenv("TRIVY_IGNOREFILE", "ci/suppress_trivy.yaml")
+OSV_IGNOREFILE = os.getenv("OSV_IGNOREFILE", "ci/suppress_osv_scanner.toml")
 TRIVY_SCA_SARIF_OUTPUT = os.getenv("TRIVY_SCA_SARIF_OUTPUT", "sca-trivy-container.sarif")
 OSV_SCA_SARIF_OUTPUT = os.getenv("OSV_SCA_SARIF_OUTPUT", "sca-osv-container.sarif")
 

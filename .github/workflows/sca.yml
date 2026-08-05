@@ -15,8 +15,8 @@ jobs:
       security-events: write # required for uploading SCA results to github security
     env:
       SBOM_PATH: target/bom.json
-      TRIVY_IGNOREFILE: .github/scripts/suppress_trivy.yaml
-      OSV_IGNOREFILE: .github/scripts/suppress_osv_scanner.toml
+      TRIVY_IGNOREFILE: ci/suppress_trivy.yaml
+      OSV_IGNOREFILE: ci/suppress_osv_scanner.toml
       TRIVY_SARIF_OUTPUT: trivy-platform-backend.sarif
       OSV_SARIF_OUTPUT: osv-scanner-platform-backend.sarif
       SCA_MERGED_SARIF_OUTPUT: SCA-platform-backend-merged.sarif
@@ -42,10 +42,10 @@ jobs:
         run: mvn dependency:resolve -q
 
       - name: Setup tools
-        run: bash .github/scripts/setup-tools.sh --install-tool trivy,osv-scanner --sbom-ecosystem maven
+        run: bash ci/setup-tools.sh --install-tool trivy,osv-scanner --sbom-ecosystem maven
 
       - name: Run SCA tools
-        run: python .github/scripts/sca_scan.py
+        run: python ci/sca_scan.py
 
       - name: Upload Trivy SARIF to GitHub Security tab
         id: upload_trivy
