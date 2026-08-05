@@ -57,7 +57,7 @@ All three trigger independently and run in parallel; each uploads its own SARIF 
 ## 3. Tool installation (`setup-tools.sh`)
 
 ```bash
-bash .github/scripts/setup-tools.sh --install-tool <tool1,tool2,...|all> [--sbom-ecosystem maven|npm|none]
+bash ci/setup-tools.sh --install-tool <tool1,tool2,...|all> [--sbom-ecosystem maven|npm|none]
 ```
 
 `--install-tool` accepts a comma-separated list (or `all`):
@@ -88,7 +88,7 @@ Both steps run regardless of each other (`if: always()`), all four SARIF files a
 `container_scan.py` is a single CLI shared by both scan types:
 
 ```
-$ python3 .github/scripts/container_scan.py --help
+$ python3 ci/container_scan.py --help
 usage: sec-orchestrator [-h] [-s {sast,sca}] [-i IMAGE] [--merge-sarif SARIF_FILE [SARIF_FILE ...]] [--merge-output MERGE_OUTPUT]
 
 Agnostic DevSecOps Container scanning Pipeline Orchestrator
@@ -107,9 +107,9 @@ options:
 **Running it locally:**
 ```bash
 docker build -t app:local .
-bash .github/scripts/setup-tools.sh --install-tool trivy,osv-scanner,opengrep,hadolint,semgrep-rules
-python .github/scripts/container_scan.py --scan-type sast
-python .github/scripts/container_scan.py --scan-type sca --image app:local
+bash ci/setup-tools.sh --install-tool trivy,osv-scanner,opengrep,hadolint,semgrep-rules
+python ci/container_scan.py --scan-type sast
+python ci/container_scan.py --scan-type sca --image app:local
 ```
 
 ## 5. Pipeline: Software Composition Analysis (SCA)
@@ -121,8 +121,8 @@ Both tools need to be installed first, same as Container Scanning, via `setup-to
 **Running it locally:**
 ```bash
 mvn dependency:resolve -q
-bash .github/scripts/setup-tools.sh --install-tool trivy,osv-scanner --sbom-ecosystem maven   # -> mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -> target/bom.json
-python .github/scripts/sca_scan.py
+bash ci/setup-tools.sh --install-tool trivy,osv-scanner --sbom-ecosystem maven   # -> mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -> target/bom.json
+python ci/sca_scan.py
 ```
 
 `mvn dependency:resolve` pulls the full dependency tree into `.m2` first, so the CycloneDX plugin has something resolved to build the SBOM from.
@@ -137,8 +137,8 @@ Trivy and OSV-Scanner both run against the SBOM, findings are evaluated by `pars
 
 **Running it locally:**
 ```bash
-bash .github/scripts/setup-tools.sh --install-tool opengrep,semgrep-rules
-python .github/scripts/sast_scan.py
+bash ci/setup-tools.sh --install-tool opengrep,semgrep-rules
+python ci/sast_scan.py
 ```
 
 ---
