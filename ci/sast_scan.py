@@ -23,7 +23,7 @@ SEMGREP_CONFIG_RULESETS = os.getenv(
 ).split()
 OPENGREP_EXCLUDE = os.getenv(
     "OPENGREP_EXCLUDE",
-    "*.sarif .github/scripts Dockerfile* .pre-commit-config.yaml docs/** README.md AGENTS.md"
+    "*.sarif ci/ Dockerfile* .pre-commit-config.yaml docs/** README.md AGENTS.md"
 ).split()
 OPENGREP_SARIF_OUTPUT = os.getenv("OPENGREP_SARIF_OUTPUT", "sast-opengrep-app.sarif")
 
