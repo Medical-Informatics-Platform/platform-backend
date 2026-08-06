@@ -181,20 +181,46 @@ Suppression applies to the **CVSS-score tools** (Trivy, OSV-Scanner) and is shar
 **Trivy** (`suppress_trivy.yaml`):
 ```yaml
 vulnerabilities:
+  # Example 1: non-reachable code path
   - id: CVE-2026-54515
-    statement: "The proposed fix version 2.21.5 not yet released"
+    statement: "Vulnerable code path is not reachable: affected function is dead code in our build (compiled out via CGO_ENABLED=0), confirmed by static analysis."
+    expires: 2026-09-30 # The expiration date of the ignore finding
+
+  # Example 2: low severity, accepted risk with an owner and a ticket
+  - id: CVE-2025-11111
+    statement: "Low severity; affects an optional dev-only dependency not shipped in production images. Risk accepted, see SEC-5678."
+    expires: 2026-10-15
+
+ # Example 3: scope the ignore instead of ignoring everywhere. paths limits it
+  # to specific files, purls limits it to specific packages (by PURL). Without
+  # either, the ignore applies to every file/package where this id shows up.
+  - id: CVE-2024-33333
+    paths:
+      - "test/fixtures/legacy-bundle.jar"
+    purls:
+      - "pkg:maven/org.example/legacy-lib"
+    statement: "Only present in test fixtures; not part of the shipped artifact."
+    expires: 2026-11-01
 ```
 
 **OSV-Scanner** (`suppress_osv_scanner.toml`):
 ```toml
+# Example 1: vulnerable code path is not reachable in how we use the library.
 [[IgnoredVulns]]
-id = "GHSA-5jmj-h7xm-6q6v" # or CVE-2026-54515, GO-2022-0968 ...
+id = "GHSA-5jmj-h7xm-6q6v"
 ignoreUntil = 2026-09-30
-reason = "The proposed fix version 2.21.5 not yet released"
+reason = "Vulnerable function is never called."
+
+# Example 2: low-severity, accepted as risk.
+# Only use this pattern for LOW/MEDIUM severity findings with limited impact,
+[[IgnoredVulns]]
+id = "GHSA-9jx5-6pgf-crrp"
+ignoreUntil = 2026-10-15
+reason = "Low severity DoS in a dev-only tool, not present in production build. Risk accepted by security team."
 ```
 
 Refer to the official docs for complete suppression options:
 - **Trivy**: [Filtering and ignore files](https://trivy.dev/docs/latest/configuration/filtering/#trivyignoreyaml)
 - **OSV-Scanner**: [Ignore vulnerabilities by ID](https://google.github.io/osv-scanner/configuration/#ignore-vulnerabilities-by-id)
 
-OpenGrep/Hadolint findings (SAST) aren't suppressed through a shared ignore file in this setup; handle those at the rule/finding level instead.
+OpenGrep/Hadolint findings (SAST) aren't suppressed through a shared ignore file in this setup, handle those at the rule/finding level instead.
