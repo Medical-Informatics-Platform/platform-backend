@@ -13,3 +13,8 @@ repos:
     - id: pretty-format-json
       args: ["--autofix"]
       exclude: slack.json
+
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.21.2
+  hooks:
+    - id: gitleaks
