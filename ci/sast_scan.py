@@ -19,7 +19,7 @@ logger = logging.getLogger("sast-orchestrator")
 SEMGREP_CONFIG_RULESETS = os.getenv(
     "SEMGREP_CONFIG_RULESETS",
     " semgrep-rules/generic semgrep-rules/problem-based-packs semgrep-rules/bash "
-    " semgrep-rules/java auto semgrep-rules/yaml semgrep-rules/package_managers p/default "
+    " semgrep-rules/java auto semgrep-rules/yaml semgrep-rules/package_managers p/default p/gitleaks "
 ).split()
 OPENGREP_EXCLUDE = os.getenv(
     "OPENGREP_EXCLUDE",

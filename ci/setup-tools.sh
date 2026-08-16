@@ -30,6 +30,10 @@ SEMGREP_RULES_DIR="semgrep-rules"
 HADOLINT_VERSION="${HADOLINT_VERSION:-v2.14.0}"
 HADOLINT_SHA256="${HADOLINT_SHA256:-6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47}"
 
+# renovate: datasource=github-release-attachments depName=gitleaks/gitleaks
+GITLEAKS_VERSION="${GITLEAKS_VERSION:-v8.30.1}"
+GITLEAKS_SHA256="${GITLEAKS_SHA256:-551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb}"
+
 # renovate: datasource=npm depName=@cyclonedx/cyclonedx-npm
 CYCLONEDX_NPM_VERSION="${CYCLONEDX_NPM_VERSION:-6.0.0}"
 
@@ -126,6 +130,19 @@ if should_install "hadolint"; then
   sudo install -m 0755 "${TMP_DIR}/hadolint" /usr/local/bin/hadolint
   hadolint --version
   echo "Hadolint installed OK"
+fi
+
+# --- Gitleaks -----------------------------------------------------------
+if should_install "gitleaks"; then
+  echo "[setup-tools] Installing Gitleaks ${GITLEAKS_VERSION}"
+  GITLEAKS_TARBALL="gitleaks_${GITLEAKS_VERSION#v}_linux_x64.tar.gz"
+  download_and_verify \
+    "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/${GITLEAKS_TARBALL}" \
+    "${TMP_DIR}/${GITLEAKS_TARBALL}" \
+    "${GITLEAKS_SHA256}"
+  sudo tar -xzf "${TMP_DIR}/${GITLEAKS_TARBALL}" -C /usr/local/bin gitleaks
+  gitleaks version
+  echo "Gitleaks installed OK"
 fi
 
 # --- SBOM generation ----------------------------------------------------
