@@ -4,7 +4,7 @@ import sys
 import logging
 import json
 import argparse
-from parse_sarif import evaluate
+from parse_sarif import evaluate, GATE_FAIL_THRESHOLD, GATE_WARN_THRESHOLD
 
 
 GREEN = '\033[92m'
@@ -92,12 +92,12 @@ def handle_sca():
         eval_result = evaluate(path)
 
         if eval_result.gate_failed:
-            tool_status[name] = "FAILED"          # this tool found CVSS >= 8.0
+            tool_status[name] = "FAILED"
             gate_failed = True
         elif eval_result.gate_warn:
-            tool_status[name] = "WARNING"         # this tool found 5.0 <= CVSS < 8.0
+            tool_status[name] = "WARNING"
         else:
-            tool_status[name] = "PASSED"          # this tool found nothing >= 5.0
+            tool_status[name] = "PASSED"
 
     # Print summary of results
     logger.info(f"\n{BOLD}========== SCA PIPELINE SUMMARY =========={RESET}")
@@ -105,12 +105,11 @@ def handle_sca():
         if status == "PASSED":
             logger.info(f"[{name}]: {GREEN}PASSED{RESET}")
         elif status == "WARNING":
-            logger.warning(f"[{name}]: {YELLOW}WARNING (findings between 5.0 and 8.0){RESET}")
+            logger.warning(f"[{name}]: {YELLOW}WARNING (findings between {GATE_WARN_THRESHOLD} and {GATE_FAIL_THRESHOLD}){RESET}")
         elif status == "ERROR":
             logger.error(f"[{name}]: {RED}ERROR (tool did not run correctly){RESET}")
         else:
-            logger.error(f"[{name}]: {RED}FAILED (CVSS >= 8.0 found){RESET}")
-    logger.info(f"{BOLD}=========================================={RESET}\n")
+            logger.error(f"[{name}]: {RED}FAILED (CVSS >= {GATE_FAIL_THRESHOLD} found){RESET}")
 
     # Exit with non-zero code if any tool failed the gate
     if gate_failed:
