@@ -57,7 +57,7 @@ jobs:
       - name: Upload Trivy SARIF to GitHub Security tab
         id: upload_trivy
         if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
         with:
           sarif_file: ${{ env.TRIVY_SCA_SARIF_OUTPUT }}
           category: trivy-container-scanning
@@ -65,7 +65,7 @@ jobs:
       - name: Upload OSV Scanner SARIF to GitHub Security tab
         id: upload_osv
         if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
         with:
           sarif_file: ${{ env.OSV_SCA_SARIF_OUTPUT }}
           category: osv-scanner-container-scanning
@@ -73,7 +73,7 @@ jobs:
       - name: Upload OpenGrep SARIF to GitHub Security tab
         id: upload_opengrep
         if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
         with:
           sarif_file: ${{ env.OPENGREP_SAST_SARIF_OUTPUT }}
           category: opengrep-sast
@@ -81,7 +81,7 @@ jobs:
       - name: Upload Hadolint SARIF to GitHub Security tab
         id: upload_hadolint
         if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 #v2.25.6
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
         with:
           sarif_file: ${{ env.HADOLINT_SAST_SARIF_OUTPUT }}
           category: hadolint-sast

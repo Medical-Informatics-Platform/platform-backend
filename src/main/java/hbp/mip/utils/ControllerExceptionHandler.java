@@ -27,7 +27,7 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
         return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
     }
-    
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Object> handleBadRequestException(BadRequestException ex, WebRequest request) {
         ErrorMessage message = new ErrorMessage(
