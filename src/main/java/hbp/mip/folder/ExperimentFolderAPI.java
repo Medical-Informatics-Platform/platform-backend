@@ -97,11 +97,11 @@ public class ExperimentFolderAPI {
     @PostMapping(value = "/{folderId}/members")
     public ResponseEntity<ExperimentFolderDTO> addExperiment(Authentication authentication,
             @PathVariable("folderId") String folderId,
-            @RequestBody AddExperimentFoldersMemberDTO addExperimentFoldersMemberDTO) {
+            @RequestBody AddExperimentFolderMemberDTO addExperimentFolderMemberDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders/" + folderId + "/members");
         logger.info("Request for experiment addition to a folder. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(addExperimentFoldersMemberDTO));
-        var folder = experimentFolderService.addExperiment(authentication, folderId, addExperimentFoldersMemberDTO,
+                + JsonConverters.convertObjectToJsonString(addExperimentFolderMemberDTO));
+        var folder = experimentFolderService.addExperiment(authentication, folderId, addExperimentFolderMemberDTO,
                 logger);
         logger.info("Experiment added to the folder.");
         return new ResponseEntity<>(folder, HttpStatus.OK);

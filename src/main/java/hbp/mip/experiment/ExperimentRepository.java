@@ -20,7 +20,7 @@ public interface ExperimentRepository
         UUID experimentUuid;
 
         try {
-            experimentUuid = UUID.fromString(uuid);
+            experimentUuid = UUID.fromString(uuid.trim());
         } catch (IllegalArgumentException e) {
             logger.error("Conversion of string to UUID failed:" + e.getMessage());
             throw new BadRequestException(e.getMessage());

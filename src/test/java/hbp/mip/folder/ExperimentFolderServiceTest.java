@@ -168,7 +168,7 @@ class ExperimentFolderServiceTest {
         givenReadableExperiment(experiment);
 
         var updated = service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(experiment.getUuid().toString()), logger);
+                new AddExperimentFolderMemberDTO(experiment.getUuid().toString()), logger);
 
         verify(experimentService).assertExperimentAccessible(eq(authentication), eq(experiment.getUuid().toString()),
                 any(Logger.class));
@@ -189,7 +189,7 @@ class ExperimentFolderServiceTest {
         folder.getMembers().add(new ExperimentFolderMemberDAO(folder, experiment, 1));
 
         var again = service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(experiment.getUuid().toString()), logger);
+                new AddExperimentFolderMemberDTO(experiment.getUuid().toString()), logger);
 
         assertThat(again.experimentIds()).containsExactly(experiment.getUuid().toString());
         assertThat(folder.getMembers()).hasSize(1);
@@ -206,7 +206,7 @@ class ExperimentFolderServiceTest {
                 .thenThrow(new UnauthorizedException("You don't have access to that experiment."));
 
         assertThatThrownBy(() -> service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(hidden.getUuid().toString()), logger))
+                new AddExperimentFolderMemberDTO(hidden.getUuid().toString()), logger))
                 .isInstanceOf(UnauthorizedException.class);
 
         verify(folderRepository, never()).saveAndFlush(any(ExperimentFolderDAO.class));
@@ -218,7 +218,7 @@ class ExperimentFolderServiceTest {
         givenFolder(folderId, "My Set", USERNAME);
 
         assertThatThrownBy(() -> service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO("  "), logger))
+                new AddExperimentFolderMemberDTO("  "), logger))
                 .isInstanceOf(BadRequestException.class);
     }
 
@@ -454,7 +454,7 @@ class ExperimentFolderServiceTest {
         folder.getMembers().add(firstMember);
 
         service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(second.getUuid().toString()), logger);
+                new AddExperimentFolderMemberDTO(second.getUuid().toString()), logger);
         service.updateSetMembership(authentication, folderId.toString(), third.getUuid().toString(),
                 new UpdateExperimentSetMembershipDTO(armA.getId().toString()), logger);
 
@@ -572,9 +572,14 @@ class ExperimentFolderServiceTest {
         ExperimentDAO first = experiment();
         ExperimentDAO second = experiment();
         givenReadableExperiment(first, second);
+        givenOwnedFolders(folder);
 
+        service.renameFolder(authentication, folderId.toString(),
+                new RenameExperimentFolderDTO("Renamed set"), logger);
+        service.renameSet(authentication, folderId.toString(), set.getId().toString(),
+                new RenameExperimentSetDTO("Renamed arm"), logger);
         service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(first.getUuid().toString()), logger);
+                new AddExperimentFolderMemberDTO(first.getUuid().toString()), logger);
         service.updateSetMembership(authentication, folderId.toString(), first.getUuid().toString(),
                 new UpdateExperimentSetMembershipDTO(set.getId().toString()), logger);
         service.updateSetMembership(authentication, folderId.toString(), first.getUuid().toString(),
@@ -583,8 +588,9 @@ class ExperimentFolderServiceTest {
                 new CreateExperimentSetDTO("Arm B", second.getUuid().toString()), logger);
         service.removeExperiment(authentication, folderId.toString(), second.getUuid().toString(), logger);
         service.deleteSet(authentication, folderId.toString(), set.getId().toString(), logger);
+        service.deleteFolder(authentication, folderId.toString(), logger);
 
-        verify(folderRepository, times(6)).findByIdForUpdate(folderId);
+        verify(folderRepository, times(9)).findByIdForUpdate(folderId);
         verify(folderRepository, never()).findById(folderId);
     }
 
@@ -612,7 +618,7 @@ class ExperimentFolderServiceTest {
         folder.getMembers().add(new ExperimentFolderMemberDAO(folder, experiment, 1));
 
         var updated = service.addExperiment(authentication, folderId.toString(),
-                new AddExperimentFoldersMemberDTO(experiment.getUuid().toString()), logger);
+                new AddExperimentFolderMemberDTO(experiment.getUuid().toString()), logger);
 
         verify(folderRepository).findByIdForUpdate(folderId);
         assertThat(updated.experimentIds()).containsExactly(experiment.getUuid().toString());

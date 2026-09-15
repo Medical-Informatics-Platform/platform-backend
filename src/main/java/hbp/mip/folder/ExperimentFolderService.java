@@ -99,7 +99,7 @@ public class ExperimentFolderService {
     public ExperimentFolderDTO renameFolder(Authentication authentication, String folderId,
             RenameExperimentFolderDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
         String name = requireName(request == null ? null : request.name(), "Folder name", logger);
         rejectDuplicateFolderName(name, folderRepository.findOwnedFolders(user.username()), folder, logger);
@@ -115,7 +115,7 @@ public class ExperimentFolderService {
     @Transactional
     public void deleteFolder(Authentication authentication, String folderId, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
         folderRepository.delete(folder);
         logger.info("Experiment folder deleted. Id: " + folder.getId());
@@ -131,7 +131,7 @@ public class ExperimentFolderService {
      */
     @Transactional
     public ExperimentFolderDTO addExperiment(Authentication authentication, String folderId,
-            AddExperimentFoldersMemberDTO request, Logger logger) {
+            AddExperimentFolderMemberDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
@@ -171,7 +171,7 @@ public class ExperimentFolderService {
         }
 
         folder.getMembers().remove(member);
-        ExperimentFolderDAO saved = save(folder, "That experiment already belongs to this folder.", logger);
+        ExperimentFolderDAO saved = folderRepository.saveAndFlush(folder);
         logger.info("Experiment removed from folder. Experiment id: " + experimentUuid);
         return ExperimentFolderDTO.from(saved);
     }
@@ -206,7 +206,7 @@ public class ExperimentFolderService {
     public ExperimentFolderDTO renameSet(Authentication authentication, String folderId, String setId,
             RenameExperimentSetDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
         ExperimentSetDAO set = ownedSet(folder, setId, logger);
 
         String name = requireName(request == null ? null : request.name(), "Set name", logger);
@@ -235,7 +235,7 @@ public class ExperimentFolderService {
                 .forEach(this::ungroup);
 
         folder.getSets().remove(set);
-        ExperimentFolderDAO saved = save(folder, "An experiment set with that name already exists in this folder.", logger);
+        ExperimentFolderDAO saved = folderRepository.saveAndFlush(folder);
         logger.info("Experiment set deleted. Runs were left in the folder, ungrouped. Set id: " + setId);
         return ExperimentFolderDTO.from(saved);
     }
@@ -265,7 +265,7 @@ public class ExperimentFolderService {
             }
 
             ungroup(existingMember);
-            ExperimentFolderDAO ungrouped = save(folder, "That experiment already belongs to this folder.", logger);
+            ExperimentFolderDAO ungrouped = folderRepository.saveAndFlush(folder);
             logger.info("Experiment left its set and stayed in the folder. Id: " + experimentUuid);
             return ExperimentFolderDTO.from(ungrouped);
         }
@@ -339,7 +339,7 @@ public class ExperimentFolderService {
                 throw failure;
             }
             logger.warn(duplicateMessage);
-            throw new ConflictException(duplicateMessage);
+            throw new ConflictException(duplicateMessage, failure);
         }
     }
 

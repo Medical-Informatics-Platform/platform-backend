@@ -2,6 +2,9 @@ package hbp.mip.folder;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Response shape of a folder. Matches the frontend ExperimentFolder model exactly, so swapping the
@@ -23,10 +26,14 @@ public record ExperimentFolderDTO(
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
 
+        Map<UUID, List<ExperimentFolderMemberDAO>> membersBySet = members.stream()
+                .filter(member -> member.getExperimentSet() != null && member.getExperimentSet().getId() != null)
+                .collect(Collectors.groupingBy(member -> member.getExperimentSet().getId()));
+
         List<ExperimentSetDTO> sets = folder.getSets().stream()
                 .sorted(Comparator.comparing(ExperimentSetDAO::getSortOrder,
                         Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(set -> ExperimentSetDTO.from(set, members))
+                .map(set -> ExperimentSetDTO.from(set, membersBySet.getOrDefault(set.getId(), List.of())))
                 .toList();
 
         return new ExperimentFolderDTO(

@@ -118,7 +118,7 @@ class ExperimentFolderAPITest {
 
     @Test
     void addMemberCarriesTheRunUnderTheContractFieldName() throws Exception {
-        when(service.addExperiment(any(), eq(FOLDER_ID), any(AddExperimentFoldersMemberDTO.class), any(Logger.class)))
+        when(service.addExperiment(any(), eq(FOLDER_ID), any(AddExperimentFolderMemberDTO.class), any(Logger.class)))
                 .thenReturn(folderDto());
 
         mvc.perform(post("/experiment-folders/" + FOLDER_ID + "/members").contentType("application/json")
@@ -126,7 +126,7 @@ class ExperimentFolderAPITest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(FOLDER_ID));
 
-        ArgumentCaptor<AddExperimentFoldersMemberDTO> body = ArgumentCaptor.forClass(AddExperimentFoldersMemberDTO.class);
+        ArgumentCaptor<AddExperimentFolderMemberDTO> body = ArgumentCaptor.forClass(AddExperimentFolderMemberDTO.class);
         verify(service).addExperiment(eq(principal), eq(FOLDER_ID), body.capture(), any(Logger.class));
         assertThat(body.getValue().experimentUuid()).isEqualTo(RUN_ID);
     }
@@ -274,7 +274,7 @@ class ExperimentFolderAPITest {
     /** A run the caller may not read must not become a folder membership, and must not say 404 either. */
     @Test
     void unreadableRunIsUnauthorized() throws Exception {
-        when(service.addExperiment(any(), eq(FOLDER_ID), any(AddExperimentFoldersMemberDTO.class), any(Logger.class)))
+        when(service.addExperiment(any(), eq(FOLDER_ID), any(AddExperimentFolderMemberDTO.class), any(Logger.class)))
                 .thenThrow(new UnauthorizedException("You don't have access to that experiment."));
 
         mvc.perform(post("/experiment-folders/" + FOLDER_ID + "/members").contentType("application/json")
