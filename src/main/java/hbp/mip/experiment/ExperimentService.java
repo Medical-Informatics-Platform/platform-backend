@@ -152,7 +152,14 @@ public class ExperimentService {
     }
 
     private void requireAnalysisPayload(ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        if (experimentExecutionDTO.analysis() == null) {
+        AnalysisRequestDTO analysis = experimentExecutionDTO.analysis();
+        boolean missingPayload = analysis == null
+                || analysis.algorithm() == null
+                || analysis.algorithm().name() == null
+                || analysis.algorithm().name().isBlank()
+                || analysis.inputdata() == null;
+
+        if (missingPayload) {
             String errorMessage = "Missing required analysis payload.";
             logger.warn(errorMessage);
             throw new BadRequestException(errorMessage);
@@ -161,9 +168,15 @@ public class ExperimentService {
 
     private void validateDatasetAccess(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
             Logger logger) {
-        if (authenticationIsEnabled) {
-            claimUtils.validateAccessRightsOnDatasets(authentication,
-                    experimentExecutionDTO.analysis().inputdata().datasets(), logger);
+        if (!authenticationIsEnabled) {
+            return;
+        }
+
+        AnalysisRequestDTO.AnalysisInputDataDTO inputdata = experimentExecutionDTO.analysis().inputdata();
+        claimUtils.validateAccessRightsOnDatasets(authentication, inputdata.datasets(), logger);
+
+        if (inputdata.validation_datasets() != null && !inputdata.validation_datasets().isEmpty()) {
+            claimUtils.validateAccessRightsOnDatasets(authentication, inputdata.validation_datasets(), logger);
         }
     }
 

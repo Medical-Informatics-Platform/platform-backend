@@ -44,6 +44,14 @@ public class AnalysisAPI {
                     authentication,
                     analysisRequest.inputdata().datasets(),
                     logger);
+
+            var validationDatasets = analysisRequest.inputdata().validation_datasets();
+            if (validationDatasets != null && !validationDatasets.isEmpty()) {
+                claimUtils.validateAccessRightsOnDatasets(
+                        authentication,
+                        validationDatasets,
+                        logger);
+            }
         }
         AnalysisService.AnalysisResultDTO result = analysisService.runAnalysis(analysisRequest, logger);
         return ResponseEntity.status(result.code()).body(result.body());
