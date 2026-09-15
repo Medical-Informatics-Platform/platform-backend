@@ -105,10 +105,23 @@ public class ExperimentService {
     }
 
     public ExperimentDTO getExperiment(Authentication authentication, String uuid, Logger logger) {
+        ExperimentDAO experimentDAO = assertExperimentAccessible(authentication, uuid, logger);
+
+        return new ExperimentDTO(experimentDAO, true);
+    }
+
+    /**
+     * Loads an experiment and refuses it when the active user may not read it, returning the entity so
+     * other features can reference a run they are allowed to see.
+     *
+     * Feature code that only needs to know "is this run usable by this user" should call this instead
+     * of reopening the access rules, which live in one place on purpose.
+     */
+    public ExperimentDAO assertExperimentAccessible(Authentication authentication, String uuid, Logger logger) {
         ExperimentDAO experimentDAO = experimentRepository.loadExperiment(uuid, logger);
         validateExperimentAccess(authentication, experimentDAO, uuid, logger);
 
-        return new ExperimentDTO(experimentDAO, true);
+        return experimentDAO;
     }
 
     private void validateExperimentAccess(Authentication authentication, ExperimentDAO experimentDAO, String uuid,
