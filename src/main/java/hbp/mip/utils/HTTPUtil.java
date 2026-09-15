@@ -16,22 +16,18 @@ public class HTTPUtil {
     }
 
     public static void sendGet(String url, StringBuilder resp) throws IOException {
-        sendHTTP(url, "", resp, "GET", null);
+        sendHTTP(url, "", resp, "GET");
     }
 
     public static int sendPost(String url, String query, StringBuilder resp) throws IOException {
-        return sendHTTP(url, query, resp, "POST", null);
+        return sendHTTP(url, query, resp, "POST");
     }
 
-    private static int sendHTTP(String url, String query, StringBuilder resp, String httpVerb, String authorization)
+    private static int sendHTTP(String url, String query, StringBuilder resp, String httpVerb)
             throws IOException {
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-
-        if (authorization != null) {
-            con.setRequestProperty("Authorization", authorization);
-        }
 
         if (!"GET".equals(httpVerb)) {
             con.setRequestMethod(httpVerb);

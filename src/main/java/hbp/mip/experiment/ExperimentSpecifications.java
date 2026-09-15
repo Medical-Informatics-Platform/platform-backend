@@ -13,32 +13,19 @@ public class ExperimentSpecifications {
     public static class ExperimentWithName implements Specification<ExperimentDAO> {
 
         private final String name;
-        private String regExp;
 
         public ExperimentWithName(String name) {
             this.name = name;
-            this.regExp = name;
         }
 
         public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
                 @NonNull CriteriaBuilder cb) {
             if (name == null) {
                 return cb.isTrue(cb.literal(true));
-            } else {
-                regExp = (name.contains("%") ? name : name + "%");
             }
 
-            return cb.like(cb.lower(root.get("name")), this.regExp.toLowerCase());
-        }
-
-        @Override
-        public @NonNull Specification<ExperimentDAO> and(Specification<ExperimentDAO> other) {
-            return Specification.super.and(other);
-        }
-
-        @Override
-        public @NonNull Specification<ExperimentDAO> or(Specification<ExperimentDAO> other) {
-            return Specification.super.or(other);
+            String regExp = (name.contains("%") ? name : name + "%");
+            return cb.like(cb.lower(root.get("name")), regExp.toLowerCase());
         }
     }
 
