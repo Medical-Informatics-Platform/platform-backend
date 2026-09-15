@@ -16,7 +16,7 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 * LOG_LEVEL_FRAMEWORK: log level for all the framework logs. Default is "ERROR".
 
 #### AUTHENTICATION ###
-* AUTHENTICATION: true for production, false for development.
+* AUTHENTICATION: 1 for production, 0 for development.
 
 #### DATABASE CONFIGURATION ###
 * PLATFORM_DB_URL: JDBC URL to connect to the platform database, default value is "jdbc:postgresql://127.0.0.1:5432/platform".
@@ -28,7 +28,8 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 * EXAFLOW_URL: URL to Exaflow server. Default is "http://localhost:5000" .
 
 #### KEYCLOAK ###
-* KEYCLOAK_AUTH_URL: Keycloak authentication URL.
+* KEYCLOAK_ISSUER_URI: Full OIDC issuer URI. Overrides the KEYCLOAK_AUTH_URL/KEYCLOAK_REALM pair when set.
+* KEYCLOAK_AUTH_URL: Keycloak authentication base URL, including the trailing slash (for example "https://iam.ebrains.eu/auth/").
 * KEYCLOAK_REALM: Keycloak realm user for authentication.
 * KEYCLOAK_CLIENT_ID: The keycloak client id.
 * KEYCLOAK_CLIENT_SECRET: The keycloak secret to be able to authenticate.

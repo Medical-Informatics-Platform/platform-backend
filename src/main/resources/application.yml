@@ -39,12 +39,13 @@ spring:
         provider:
           keycloak:
             user-name-attribute: preferred_username
-            issuer-uri: ${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}}
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}}
 
 ### AUTHENTICATION ###
+# 1 enables Keycloak/OIDC authentication; 0 disables it and uses the dummy client registration.
 authentication:
   enabled: ${AUTHENTICATION:1}
   all_datasets_allowed_claim: research_dataset_all

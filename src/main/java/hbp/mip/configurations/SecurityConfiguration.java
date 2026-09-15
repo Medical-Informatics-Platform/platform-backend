@@ -50,6 +50,9 @@ public class SecurityConfiguration {
     @Value("${frontend.base-url:}")
     private String frontendBaseUrl;
 
+    @Value("${spring.security.oauth2.client.provider.keycloak.user-name-attribute:sub}")
+    private String oidcUserNameAttribute;
+
     public SecurityConfiguration(SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler,
             FrontendRedirectCaptureFilter frontendRedirectCaptureFilter) {
         this.spaRedirectAuthenticationSuccessHandler = spaRedirectAuthenticationSuccessHandler;
@@ -87,11 +90,14 @@ public class SecurityConfiguration {
         return userRequest -> {
             OidcIdToken idToken = userRequest.getIdToken();
             OidcUserInfo userInfo = new OidcUserInfo(idToken.getClaims());
+            String nameAttribute = idToken.getClaims().containsKey(oidcUserNameAttribute)
+                    ? oidcUserNameAttribute
+                    : "sub";
             return new DefaultOidcUser(
                     List.of(new OidcUserAuthority(idToken, userInfo)),
                     idToken,
                     userInfo,
-                    "preferred_username");
+                    nameAttribute);
         };
     }
 
