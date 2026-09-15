@@ -572,7 +572,12 @@ class ExperimentFolderServiceTest {
         ExperimentDAO first = experiment();
         ExperimentDAO second = experiment();
         givenReadableExperiment(first, second);
+        givenOwnedFolders(folder);
 
+        service.renameFolder(authentication, folderId.toString(),
+                new RenameExperimentFolderDTO("Renamed set"), logger);
+        service.renameSet(authentication, folderId.toString(), set.getId().toString(),
+                new RenameExperimentSetDTO("Renamed arm"), logger);
         service.addExperiment(authentication, folderId.toString(),
                 new AddExperimentFoldersMemberDTO(first.getUuid().toString()), logger);
         service.updateSetMembership(authentication, folderId.toString(), first.getUuid().toString(),
@@ -583,8 +588,9 @@ class ExperimentFolderServiceTest {
                 new CreateExperimentSetDTO("Arm B", second.getUuid().toString()), logger);
         service.removeExperiment(authentication, folderId.toString(), second.getUuid().toString(), logger);
         service.deleteSet(authentication, folderId.toString(), set.getId().toString(), logger);
+        service.deleteFolder(authentication, folderId.toString(), logger);
 
-        verify(folderRepository, times(6)).findByIdForUpdate(folderId);
+        verify(folderRepository, times(9)).findByIdForUpdate(folderId);
         verify(folderRepository, never()).findById(folderId);
     }
 
