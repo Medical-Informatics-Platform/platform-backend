@@ -11,27 +11,27 @@ trap 'echo "[setup-tools] ERROR: command failed (exit $?) at line $LINENO: $BASH
 # *_SHA256 must be overridden as well or verification will fail.
 
 # renovate: datasource=github-release-attachments depName=aquasecurity/trivy
-TRIVY_VERSION="${TRIVY_VERSION:-v0.71.1}"
-TRIVY_SHA256="${TRIVY_SHA256:-3cbae37cd440cd8676e5ce9207fe460b5641c7579a17e9d00f8894928c41a88d}"
+TRIVY_VERSION="${TRIVY_VERSION:-v0.74.0}"
+TRIVY_SHA256="${TRIVY_SHA256:-2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a}"
 
 # renovate: datasource=github-release-attachments depName=google/osv-scanner
-OSV_SCANNER_VERSION="${OSV_SCANNER_VERSION:-v2.4.0}"
-OSV_SCANNER_SHA256="${OSV_SCANNER_SHA256:-15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0}"
+OSV_SCANNER_VERSION="${OSV_SCANNER_VERSION:-v2.5.1}"
+OSV_SCANNER_SHA256="${OSV_SCANNER_SHA256:-f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be}"
 
 # renovate: datasource=github-release-attachments depName=opengrep/opengrep
-OPENGREP_VERSION="${OPENGREP_VERSION:-v1.25.0}"
-OPENGREP_SHA256="${OPENGREP_SHA256:-9ac4aebb47ba3f7b0d8fc641ac8749cb6c2f253f616131a67d9631e00d4bea33}"
+OPENGREP_VERSION="${OPENGREP_VERSION:-v1.30.0}"
+OPENGREP_SHA256="${OPENGREP_SHA256:-35779bdd72e92129c8df2a77f0c55e8c08356801ea92591ef32108d6b28d564c}"
 
 # renovate: datasource=github-tags depName=semgrep/semgrep-rules
 SEMGREP_RULES_REF="${SEMGREP_RULES_REF:-40b8c63f75dc7c22c8a77482d73bfb864b146f7e}"
 SEMGREP_RULES_DIR="semgrep-rules"
 
 # renovate: datasource=github-release-attachments depName=hadolint/hadolint
-HADOLINT_VERSION="${HADOLINT_VERSION:-v2.14.0}"
-HADOLINT_SHA256="${HADOLINT_SHA256:-6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47}"
+HADOLINT_VERSION="${HADOLINT_VERSION:-v2.15.1}"
+HADOLINT_SHA256="${HADOLINT_SHA256:-c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507}"
 
 # renovate: datasource=npm depName=@cyclonedx/cyclonedx-npm
-CYCLONEDX_NPM_VERSION="${CYCLONEDX_NPM_VERSION:-6.0.0}"
+CYCLONEDX_NPM_VERSION="${CYCLONEDX_NPM_VERSION:-6.0.1}"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
