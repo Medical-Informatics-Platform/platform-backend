@@ -1,5 +1,6 @@
 package hbp.mip.algorithm;
 
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import hbp.mip.utils.Exceptions.InternalServerError;
 import hbp.mip.utils.HTTPUtil;
@@ -8,6 +9,7 @@ import hbp.mip.utils.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -44,13 +46,18 @@ public class SpecificationsService {
     private <T> T fetch(String url, Type typeOfT, String what, Logger logger) {
         StringBuilder response = new StringBuilder();
         try {
-            HTTPUtil.sendGet(url, response);
+            int responseCode = HTTPUtil.sendGet(url, response);
+            if (responseCode != 200) {
+                throw new InternalServerError(
+                        "Exaflow " + what + " endpoint responded with status " + responseCode + ".");
+            }
+
             T specification = JsonConverters.convertJsonStringToObject(response.toString(), typeOfT);
             if (specification == null || (specification instanceof List<?> list && list.isEmpty())) {
                 throw new InternalServerError("Exaflow " + what + " response was empty.");
             }
             return specification;
-        } catch (Exception e) {
+        } catch (IOException | JsonSyntaxException e) {
             logger.error("Could not fetch exaflow " + what + ": " + e.getMessage());
             throw new InternalServerError("Could not fetch exaflow " + what + ".");
         }

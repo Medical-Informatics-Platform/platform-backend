@@ -99,7 +99,7 @@ public class ExperimentFolderService {
     public ExperimentFolderDTO renameFolder(Authentication authentication, String folderId,
             RenameExperimentFolderDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
         String name = requireName(request == null ? null : request.name(), "Folder name", logger);
         rejectDuplicateFolderName(name, folderRepository.findOwnedFolders(user.username()), folder, logger);
@@ -115,7 +115,7 @@ public class ExperimentFolderService {
     @Transactional
     public void deleteFolder(Authentication authentication, String folderId, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
         folderRepository.delete(folder);
         logger.info("Experiment folder deleted. Id: " + folder.getId());
@@ -206,7 +206,7 @@ public class ExperimentFolderService {
     public ExperimentFolderDTO renameSet(Authentication authentication, String folderId, String setId,
             RenameExperimentSetDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
+        ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
         ExperimentSetDAO set = ownedSet(folder, setId, logger);
 
         String name = requireName(request == null ? null : request.name(), "Set name", logger);
