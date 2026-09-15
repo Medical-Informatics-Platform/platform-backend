@@ -1,6 +1,5 @@
 package hbp.mip.utils;
 
-import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
 import hbp.mip.utils.Exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,51 +16,24 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     public record ErrorMessage (int statusCode, Date timestamp, String message, String description) {}
 
-    @ExceptionHandler(ExperimentNotFoundException.class)
-    public ResponseEntity<Object> handleExperimentNotFoundException(ExperimentNotFoundException ex, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.NOT_FOUND.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Object> handleNotFoundException(NotFoundException ex, WebRequest request) {
+        return respond(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
-    
-    // ExperimentFolderNotFoundException and ExperimentSetNotFoundException extend
-    // ExperimentNotFoundException, so the 404 handler above already covers them.
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<Object> handleConflictException(ConflictException ex, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.CONFLICT.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.CONFLICT);
+        return respond(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Object> handleBadRequestException(BadRequestException ex, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.BAD_REQUEST.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
+        return respond(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException ex, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.UNAUTHORIZED.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.UNAUTHORIZED);
+        return respond(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
     @ExceptionHandler(NoAuthorizedPathologiesException.class)
@@ -69,13 +41,7 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
             NoAuthorizedPathologiesException ex,
             WebRequest request
     ) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.FORBIDDEN.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.FORBIDDEN);
+        return respond(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
     @ExceptionHandler(NoPathologiesAvailableException.class)
@@ -83,13 +49,7 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
             NoPathologiesAvailableException ex,
             WebRequest request
     ) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.NOT_FOUND.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
+        return respond(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(NoContent.class)
@@ -98,17 +58,21 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({InternalServerError.class, Exception.class})
-    public ResponseEntity<ErrorMessage> globalExceptionHandler(Exception ex, WebRequest request) {
+    public ResponseEntity<Object> globalExceptionHandler(Exception ex, WebRequest request) {
         logger.error("An unexpected exception occurred: " + ex.getClass() +
                 " Message: " + ex.getMessage() +
                 " Stacktrace: " + Arrays.toString(ex.getStackTrace())
         );
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        return respond(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    }
+
+    private static ResponseEntity<Object> respond(HttpStatus status, String message, WebRequest request) {
+        ErrorMessage body = new ErrorMessage(
+                status.value(),
                 new Date(),
-                ex.getMessage(),
+                message,
                 request.getDescription(false));
 
-        return new ResponseEntity<>(message, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(body, status);
     }
 }

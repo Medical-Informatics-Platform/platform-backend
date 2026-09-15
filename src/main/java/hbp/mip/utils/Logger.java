@@ -13,23 +13,19 @@ public class Logger {
         this.endpoint = endpoint;
     }
 
-    private String formatMessage(String message) {
-        return "User -> " + username + " , Endpoint -> " + endpoint + " , Info -> " + message;
-    }
-
     public void error(String message) {
-        logger.error(formatMessage(message));
+        logger.error("User -> {} , Endpoint -> {} , Info -> {}", username, endpoint, message);
     }
 
     public void warn(String message) {
-        logger.warn(formatMessage(message));
+        logger.warn("User -> {} , Endpoint -> {} , Info -> {}", username, endpoint, message);
     }
 
     public void info(String message) {
-        logger.info(formatMessage(message));
+        logger.info("User -> {} , Endpoint -> {} , Info -> {}", username, endpoint, message);
     }
 
     public void debug(String message) {
-        logger.debug(formatMessage(message));
+        logger.debug("User -> {} , Endpoint -> {} , Info -> {}", username, endpoint, message);
     }
 }
