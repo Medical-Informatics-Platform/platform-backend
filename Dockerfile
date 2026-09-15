@@ -1,7 +1,7 @@
 #######################################################
 # Build the spring boot maven project
 #######################################################
-FROM maven:3.9.11-amazoncorretto-21 AS mvn-build-env
+FROM maven:3.9.16-amazoncorretto-21 AS mvn-build-env
 LABEL maintainer="Thanasis Karampatsis <tkarabatsis@athenarc.gr>"
 
 ENV CODE_PATH="/opt/code"
@@ -19,7 +19,7 @@ RUN mvn -B -ntp clean package
 #######################################################
 # Setup the running container
 #######################################################
-FROM amazoncorretto:21-alpine3.21
+FROM amazoncorretto:21-alpine3.24
 
 #######################################################
 # Setting up timezone
@@ -30,10 +30,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 #######################################################
 # Setting up environment
 #######################################################
-ENV APP_CONFIG_TEMPLATE="/opt/config/application.tmpl"
-ENV APP_CONFIG_LOCATION="/opt/config/application.yml"
-ENV SPRING_CONFIG_LOCATION="file:/opt/config/application.yml"
-
 ENV SERVICE="platform-backend"
 ENV FEDERATION="default"
 ENV LOG_LEVEL="INFO"
@@ -41,29 +37,17 @@ ENV FRAMEWORK_LOG_LEVEL="INFO"
 
 WORKDIR /opt
 
-RUN apk add --no-cache curl
-
-#######################################################
-# Install dockerize
-#######################################################
-ENV DOCKERIZE_VERSION=v0.14.0
-RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-
+# libcrypto3/libssl3 are refreshed because the amazoncorretto base image ships
+# openssl 3.5.7-r0, which carries CVE-2026-14456, CVE-2026-63073 and
+# CVE-2026-75803 (CVSS >= 8.0, blocks the container SCA gate). Alpine 3.24
+# fixes them in openssl 3.5.8-r0.
+RUN apk add --no-cache --upgrade libcrypto3 libssl3 curl
 
 #######################################################
 # Prepare the spring boot application files
 #######################################################
-COPY config/application.tmpl $APP_CONFIG_TEMPLATE
 COPY --from=mvn-build-env /opt/code/target/platform-backend.jar /usr/share/jars/
 
-
-#######################################################
-# Configuration for the backend config files
-#######################################################
-ENV DISABLED_ALGORITHMS_CONFIG_PATH="/opt/platform/algorithms/disabledAlgorithms.json"
-COPY config/disabledAlgorithms.json $DISABLED_ALGORITHMS_CONFIG_PATH
 VOLUME /opt/platform/api
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
@@ -71,6 +55,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
     && chown -R appuser:appgroup /opt/config /opt/platform/api /usr/share/jars
 
 USER appuser
-ENTRYPOINT ["sh", "-ec", "exec dockerize -template ${APP_CONFIG_TEMPLATE}:${APP_CONFIG_LOCATION} java --add-opens java.base/java.io=ALL-UNNAMED -Daeron.term.buffer.length -jar /usr/share/jars/platform-backend.jar"]
+ENTRYPOINT ["java", "--add-opens", "java.base/java.io=ALL-UNNAMED", "-Daeron.term.buffer.length", "-jar", "/usr/share/jars/platform-backend.jar"]
 EXPOSE 8080
 HEALTHCHECK --start-period=60s CMD curl --fail --silent --show-error http://localhost:8080/services/actuator/health | grep -q '"status":"UP"'
