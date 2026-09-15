@@ -1,5 +1,6 @@
 package hbp.mip.algorithm;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
@@ -10,7 +11,9 @@ public record ParameterSpecificationDTO(
         List<String> types,
         Boolean required,
         Boolean multiple,
-        @SerializedName("default") Object default_value,
+        @SerializedName("default")
+        @JsonProperty("default")
+        Object default_value,
         ParameterEnumSpecificationDTO enums,
         ParameterEnumSpecificationDTO dict_keys_enums,
         ParameterEnumSpecificationDTO dict_values_enums,

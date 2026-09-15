@@ -3,6 +3,7 @@ package hbp.mip.utils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,8 +16,8 @@ public class HTTPUtil {
         throw new IllegalAccessError("HTTPUtil class");
     }
 
-    public static void sendGet(String url, StringBuilder resp) throws IOException {
-        sendHTTP(url, "", resp, "GET");
+    public static int sendGet(String url, StringBuilder resp) throws IOException {
+        return sendHTTP(url, "", resp, "GET");
     }
 
     public static int sendPost(String url, String query, StringBuilder resp) throws IOException {
@@ -45,20 +46,18 @@ public class HTTPUtil {
 
         int respCode = con.getResponseCode();
 
-        BufferedReader in;
-        if (respCode == 200) {
-            in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        } else {
-            in = new BufferedReader(new InputStreamReader(con.getErrorStream()));
-        }
-        String inputLine;
-        StringBuilder response = new StringBuilder();
+        InputStream stream = respCode == 200 ? con.getInputStream() : con.getErrorStream();
+        if (stream != null) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
 
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            resp.append(response);
         }
-        in.close();
-        resp.append(response);
 
         return respCode;
     }
