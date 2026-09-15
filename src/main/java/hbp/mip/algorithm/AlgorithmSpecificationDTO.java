@@ -14,12 +14,22 @@ public record AlgorithmSpecificationDTO(
         List<String> flags,
         InputDataSpecificationDTO y,
         InputDataSpecificationDTO x,
-        boolean requires_validation_datasets,
+        Boolean requires_validation_datasets,
         Map<String, ParameterSpecificationDTO> parameters,
         List<String> required_preprocessing) {
     @Override
     public Map<String, ParameterSpecificationDTO> parameters() {
         return Objects.requireNonNullElse(parameters, Collections.emptyMap());
+    }
+
+    @Override
+    public List<String> flags() {
+        return Objects.requireNonNullElse(flags, Collections.emptyList());
+    }
+
+    @Override
+    public Boolean requires_validation_datasets() {
+        return Objects.requireNonNullElse(requires_validation_datasets, false);
     }
 
     @Override

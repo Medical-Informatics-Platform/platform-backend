@@ -38,6 +38,7 @@ class AlgorithmSpecificationDTOTest {
                         "types": ["dict"],
                         "required": false,
                         "multiple": false,
+                        "default": 5,
                         "min": 0,
                         "max": 10,
                         "dict_keys_enums": {
@@ -68,13 +69,32 @@ class AlgorithmSpecificationDTOTest {
         assertThat(algorithm.y().min_count()).isEqualTo(1);
         assertThat(algorithm.y().max_count()).isEqualTo(1);
         assertThat(algorithm.requires_validation_datasets()).isFalse();
+        assertThat(folds.default_value()).isEqualTo(5.0);
         assertThat(folds.min()).isEqualTo(0.0);
         assertThat(folds.max()).isEqualTo(10.0);
 
         JsonNode serialized = objectMapper.readTree(objectMapper.writeValueAsString(algorithm));
         assertThat(serialized.at("/documentation").asText()).isEqualTo("Long algorithm documentation.");
         assertThat(serialized.at("/parameters/folds/dict_values_type").asText()).isEqualTo("real");
+        assertThat(serialized.at("/parameters/folds/default").asDouble()).isEqualTo(5.0);
         assertThat(serialized.at("/requires_validation_datasets").asBoolean()).isFalse();
+    }
+
+    @Test
+    void defaultsMissingOptionalCollections() {
+        String payload = """
+                [ { "name": "minimal" } ]
+                """;
+
+        Type algorithmListType = new TypeToken<List<AlgorithmSpecificationDTO>>() {
+        }.getType();
+        List<AlgorithmSpecificationDTO> algorithms = gson.fromJson(payload, algorithmListType);
+        AlgorithmSpecificationDTO algorithm = algorithms.getFirst();
+
+        assertThat(algorithm.flags()).isEmpty();
+        assertThat(algorithm.parameters()).isEmpty();
+        assertThat(algorithm.required_preprocessing()).isEmpty();
+        assertThat(algorithm.requires_validation_datasets()).isFalse();
     }
 
     @Test
