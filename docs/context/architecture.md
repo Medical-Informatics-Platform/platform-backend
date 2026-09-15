@@ -74,15 +74,14 @@ OpenAPI is configured by `OpenApiConfig` and springdoc dependencies.
 Authorization-sensitive logic appears in `ClaimUtils`, `ExperimentService`, `DataModelService`, and active user handling.
 
 ## Background Work and External Services
-- `AlgorithmService.AlgorithmAggregator` schedules asynchronous algorithm metadata refreshes from Exaflow.
+- `SpecificationsService` fetches inputdata, preprocessing, and algorithm specifications from Exaflow per request.
 - `ExperimentService` starts a background `Thread` for persisted experiment execution.
 - Data model and algorithm metadata are fetched through `HTTPUtil` using configured Exaflow URLs.
-- Disabled algorithms are loaded from `files.disabledAlgorithms_json`.
 
 ## Config and Environment Model
-- Local config is in `src/main/resources/application.yml`.
-- Container config is rendered from `config/application.tmpl` by `dockerize`.
-- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, disabled algorithms path, frontend base URL, and logging.
+- All runtime config is in `src/main/resources/application.yml` with `${ENV:default}` placeholders.
+- Containers pass environment variables (see `mip/deployment`); no separate config template is rendered at startup.
+- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, and logging.
 - Do not introduce direct environment reads in business logic; route configuration through Spring properties.
 
 ## Known Gaps
