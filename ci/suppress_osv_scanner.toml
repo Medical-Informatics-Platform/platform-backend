@@ -1,4 +1,5 @@
-[[IgnoredVulns]]
-id = "GHSA-5jmj-h7xm-6q6v"
-ignoreUntil = 2026-09-30
-reason = "The proposed fix version 2.21.5 not yet released"
+# No active suppressions.
+# GHSA-5jmj-h7xm-6q6v was suppressed while the fixed Jackson release did not
+# exist; it is fixed upstream and pom.xml now pins Jackson 2.22.2 / 3.2.2, so
+# the suppression is gone. Add entries here only with an id, reason and an
+# ignoreUntil date.
