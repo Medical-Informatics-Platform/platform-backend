@@ -9,6 +9,7 @@ WORKDIR $CODE_PATH
 
 COPY pom.xml $CODE_PATH/
 
+# Pre-fetch dependencies first to improve build cache efficiency.
 RUN mvn -B -ntp dependency:go-offline
 
 COPY src/ $CODE_PATH/src
@@ -20,9 +21,15 @@ RUN mvn -B -ntp clean package
 #######################################################
 FROM amazoncorretto:21-alpine3.21@sha256:392b286e53c7f4cd366bd2f752f509b7e24de9f414564bccd7d152a58214a8b6
 
+#######################################################
+# Setting up timezone
+#######################################################
 ENV TZ=Etc/GMT
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
+#######################################################
+# Setting up environment
+#######################################################
 ENV APP_CONFIG_TEMPLATE="/opt/config/application.tmpl"
 ENV APP_CONFIG_LOCATION="/opt/config/application.yml"
 ENV SPRING_CONFIG_LOCATION="file:/opt/config/application.yml"
@@ -36,15 +43,23 @@ WORKDIR /opt
 
 RUN apk add --no-cache curl
 
-# renovate: datasource=github-releases depName=jwilder/dockerize
-ENV DOCKERIZE_VERSION=v0.15.0
+#######################################################
+# Install dockerize
+#######################################################
+ENV DOCKERIZE_VERSION=v0.14.0
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
+#######################################################
+# Prepare the spring boot application files
+#######################################################
 COPY config/application.tmpl $APP_CONFIG_TEMPLATE
 COPY --from=mvn-build-env /opt/code/target/platform-backend.jar /usr/share/jars/
 
+#######################################################
+# Configuration for the backend config files
+#######################################################
 ENV DISABLED_ALGORITHMS_CONFIG_PATH="/opt/platform/algorithms/disabledAlgorithms.json"
 COPY config/disabledAlgorithms.json $DISABLED_ALGORITHMS_CONFIG_PATH
 VOLUME /opt/platform/api
