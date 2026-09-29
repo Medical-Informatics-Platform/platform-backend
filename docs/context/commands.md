@@ -81,7 +81,7 @@ Build the container image:
 docker build -t hbpmip/platform-backend:testing .
 ```
 
-The Dockerfile performs a Maven build, copies `target/platform-backend.jar`, renders `config/application.tmpl` with `dockerize`, exposes port `8080`, and defines a healthcheck at `/services/actuator/health`.
+The Dockerfile performs a Maven build, copies `target/platform-backend.jar`, exposes port `8080`, and defines a healthcheck at `/services/actuator/health`. Configuration is read from classpath `application.yml`; set container environment variables to override defaults.
 
 ## CI
 Detected workflows:

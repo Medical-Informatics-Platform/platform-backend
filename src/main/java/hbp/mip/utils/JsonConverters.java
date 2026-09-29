@@ -8,12 +8,11 @@ import java.lang.reflect.Type;
 
 public class JsonConverters {
     private static final Gson gson = new Gson();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static String convertObjectToJsonString(Object object)  {
-        ObjectMapper mapper = new ObjectMapper();
-        //Converting the Object to JSONString
+    public static String convertObjectToJsonString(Object object) {
         try {
-            return mapper.writeValueAsString(object);
+            return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
             return e.getMessage();
         }

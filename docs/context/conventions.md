@@ -30,9 +30,9 @@
 
 ### Configuration
 - Spring properties are defined in `src/main/resources/application.yml`.
-- Container properties are rendered from `config/application.tmpl`.
+- Local defaults use `${ENV:default}` placeholders; containers override the same properties via environment variables.
 - Feature code uses Spring `@Value` for configured URLs and flags.
-- Environment variables should be routed through Spring config/templates, not read directly.
+- Environment variables should be routed through Spring config, not read directly.
 
 ### API Patterns
 - Routes are relative to servlet context `/services`.

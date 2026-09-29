@@ -8,12 +8,10 @@ import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.rest.core.annotation.RestResource;
 
 import java.util.Date;
 import java.util.UUID;
 
-@RestResource(exported = false)
 public interface ExperimentRepository
         extends CrudRepository<ExperimentDAO, UUID>, JpaSpecificationExecutor<ExperimentDAO> {
     ExperimentDAO findByUuid(UUID experimentUuid);
@@ -39,16 +37,16 @@ public interface ExperimentRepository
     }
 
     default ExperimentDAO createExperimentInTheDatabase(ExperimentExecutionDTO experimentExecutionDTO, UserDTO user,
-            Logger logger) {
+            String mipVersion, Logger logger) {
         ExperimentDAO experimentDAO = new ExperimentDAO();
         UUID experimentUuid = UUID.randomUUID();
 
         experimentDAO.setUuid(experimentUuid);
         experimentDAO.setCreatedBy(new UserDAO(user));
-        experimentDAO.setAlgorithm(JsonConverters.convertObjectToJsonString(experimentExecutionDTO.algorithm()));
-        experimentDAO.setAlgorithmId(experimentExecutionDTO.algorithm().name());
+        experimentDAO.setAlgorithm(JsonConverters.convertObjectToJsonString(experimentExecutionDTO.analysis()));
+        experimentDAO.setAlgorithmId(experimentExecutionDTO.analysis().algorithm().name());
         experimentDAO.setName(experimentExecutionDTO.name());
-        experimentDAO.setMipVersion(experimentExecutionDTO.mipVersion());
+        experimentDAO.setMipVersion(mipVersion);
         experimentDAO.setStatus(ExperimentDAO.Status.pending);
 
         try {

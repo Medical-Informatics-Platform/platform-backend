@@ -1,8 +1,6 @@
 package hbp.mip.utils;
 
-import org.apache.logging.log4j.LoggingException;
 import org.slf4j.LoggerFactory;
-
 
 public class Logger {
 
@@ -15,31 +13,23 @@ public class Logger {
         this.endpoint = endpoint;
     }
 
-    private void logUserAction(String message, String logLevel){
-        String logMessage = "User -> " + username + " , Endpoint -> " + endpoint + " , Info -> " + message;
-
-        switch (logLevel) {
-            case "ERROR" -> logger.error(logMessage);
-            case "WARNING" -> logger.warn(logMessage);
-            case "INFO" -> logger.info(logMessage);
-            case "DEBUG" -> logger.debug(logMessage);
-            default -> throw new LoggingException("Not supported loglevel: " + logLevel);
-        }
+    private String formatMessage(String message) {
+        return "User -> " + username + " , Endpoint -> " + endpoint + " , Info -> " + message;
     }
 
     public void error(String message) {
-        logUserAction(message, "ERROR");
+        logger.error(formatMessage(message));
     }
 
     public void warn(String message) {
-        logUserAction(message, "WARNING");
+        logger.warn(formatMessage(message));
     }
 
     public void info(String message) {
-        logUserAction(message, "INFO");
+        logger.info(formatMessage(message));
     }
 
     public void debug(String message) {
-        logUserAction(message, "DEBUG");
+        logger.debug(formatMessage(message));
     }
 }

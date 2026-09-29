@@ -40,7 +40,6 @@ Rules: Keep Exaflow metadata fetching and disabled algorithm filtering in the se
 
 Tests: Mock Exaflow responses and disabled algorithm resources for service tests.
 
-Notes: A scheduled async refresh exists in `AlgorithmService.AlgorithmAggregator`.
 
 ## `src/main/java/hbp/mip/datamodel`
 
@@ -69,6 +68,38 @@ Rules: Preserve ownership/shared access checks, max page size behavior, immutabl
 Tests: Add service/repository tests for behavior changes and migration checks for schema changes.
 
 Notes: Persisted experiment execution starts a background thread and then updates status/result.
+
+## `src/main/java/hbp/mip/folder`
+
+Purpose: Experiment folders ("analysis sets") and the named subsets ("sets") inside them: what the experiments dashboard curates.
+
+Key files: `ExperimentFolderAPI.java`, `ExperimentFolderService.java`, `ExperimentFolderRepository.java`, `ExperimentFolderDAO.java`, `ExperimentSetDAO.java`, `ExperimentFolderMemberDAO.java`, and the folder `*DTO` records.
+
+Used by: the frozen frontend contract, all under the `/services` context:
+
+```text
+GET    /experiment-folders                              -> 200 { folders: [folder] }
+POST   /experiment-folders                              -> 201 folder        { name, experimentUuid? }
+GET    /experiment-folders/{folderId}                    -> 200 folder
+PATCH  /experiment-folders/{folderId}                    -> 200 folder        { name }
+DELETE /experiment-folders/{folderId}                    -> 204
+POST   /experiment-folders/{folderId}/members            -> 200 folder        { experimentUuid }
+DELETE /experiment-folders/{folderId}/members/{uuid}     -> 200 folder
+POST   /experiment-folders/{folderId}/sets               -> 201 folder        { name, experimentUuid? }
+PATCH  /experiment-folders/{folderId}/sets/{setId}       -> 200 folder        { name }
+DELETE /experiment-folders/{folderId}/sets/{setId}       -> 200 folder
+PATCH  /experiment-folders/{folderId}/members/{uuid}/set -> 200 folder        { setId: "uuid" | null }
+
+folder = { id, name, experimentIds: [uuid], sets: [ { id, name, experimentIds: [uuid] } ] }
+```
+
+A null `setId` ungroups without leaving the folder. Everything but `DELETE /{folderId}` answers with the updated folder, so the caller never rebuilds ordering or partitioning locally.
+
+Rules: Scope every read and write to the user resolved from the token; a folder owned by somebody else answers 404, never 403. Member and set writes load the folder with `findByIdForUpdate` (`PESSIMISTIC_WRITE`) before the membership check, so concurrent adds/moves on one folder serialize and the member unique constraint stays a backstop, not the thing that decides the request. Write through `saveAndFlush` and translate a unique name violation into 409 — the name pre-check alone cannot win a race between two tabs. Keep one member row per (folder, experiment) — that is what makes sets a strict partition. Names follow the frontend rules: collapse whitespace, trim, 60 chars, unique per owner (and per folder, for sets) ignoring case. Preserve the position columns (`sort_order`, `folder_position`, `set_position`); they are the order the dashboard renders. Deleting a folder or a set never deletes the runs.
+
+Tests: `ExperimentFolderServiceTest` (Mockito) covers naming, ownership, membership, ordering, and the lost-race 409; `ExperimentFolderDTOTest` covers the three orderings in the response; `ExperimentFolderAPITest` (standalone MockMvc) pins the wire contract — body field names, response field names, and the status of every failure.
+
+Notes: Folders hold experiment ids, never experiment copies, so nothing here can go stale by carrying a run's data. Statuses: 200 reads and mutations that leave a folder behind, 201 new folder or set, 204 only `DELETE /{folderId}`, 400 blank name or malformed id, 404 folder/set not the caller's or run not readable, 401 run not readable, 409 duplicate name (pre-check or lost database race).
 
 ## `src/main/java/hbp/mip/user`
 
@@ -102,7 +133,7 @@ Notes: `HTTPUtil` uses `HttpURLConnection`; no dedicated HTTP client abstraction
 
 Purpose: Local runtime config, logging config, and database migrations.
 
-Key files: `application.yml`, `log4j2.yml`, `db/migration/V1__InitialSchema.sql`.
+Key files: `application.yml`, `log4j2.yml`, `db/migration/V1__InitialSchema.sql`, `db/migration/V2__ExperimentFolders.sql`.
 
 Used by: Local app runtime and Maven resource packaging.
 
@@ -110,21 +141,7 @@ Rules: Add new migrations instead of editing shipped migrations. Keep secret val
 
 Tests: Run migration validation against PostgreSQL for DB changes.
 
-Notes: `application.yml` contains local defaults and placeholder Keycloak values.
-
-## `config`
-
-Purpose: Container runtime config template and static runtime assets.
-
-Key files: `application.tmpl`, `disabledAlgorithms.json`.
-
-Used by: Docker image entrypoint and production/container runtime.
-
-Rules: Keep template variables aligned with documented environment configuration.
-
-Tests: For config changes, build the Docker image or validate template rendering in the deployment environment.
-
-Notes: `dockerize` renders `application.tmpl` to `/opt/config/application.yml`.
+Notes: `application.yml` contains local defaults (`${ENV:default}`) and placeholder Keycloak values. Export `MIP_VERSION` before local runs.
 
 ## `.github/workflows`
 

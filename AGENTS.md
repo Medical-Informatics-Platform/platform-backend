@@ -6,20 +6,20 @@ This repository contains the Spring Boot backend for the Medical Informatics Pla
 ## Repository Layout
 - `src/main/java/hbp/mip`: application entrypoint and backend code.
 - `src/main/java/hbp/mip/configurations`: security, OAuth2/JWT, persistence, OpenAPI, and redirect/filter configuration.
-- `src/main/java/hbp/mip/algorithm`: algorithm metadata API/service and disabled algorithm filtering.
+- `src/main/java/hbp/mip/algorithm`: algorithm metadata API/service and Exaflow specification passthrough.
 - `src/main/java/hbp/mip/datamodel`: data model API/service backed by Exaflow metadata endpoints.
 - `src/main/java/hbp/mip/experiment`: experiment API, service, repository, JPA entity, specifications, and DTOs.
 - `src/main/java/hbp/mip/user`: active user API/service, user repository, JPA entity, and DTO.
-- `src/main/java/hbp/mip/utils`: shared logging, JSON/HTTP helpers, resource loading, claim validation, and exception handling.
+- `src/main/java/hbp/mip/folder`: experiment folder/set API, service, repository, JPA entities, and DTOs.
+- `src/main/java/hbp/mip/utils`: shared logging, JSON/HTTP helpers, claim validation, and exception handling.
 - `src/main/resources`: local runtime config, Log4j2 config, and Flyway migrations under `db/migration`.
-- `config/`: container config template and static runtime assets such as `disabledAlgorithms.json`.
 - `.github/workflows`: release image publishing and EBRAINS mirror automation.
 - `docs/context`: durable repository context for humans and AI coding agents.
 
 ## Stack
 - Language/runtime: Java 21.
 - Build/package manager: Maven (`pom.xml`); no Maven wrapper is committed.
-- Frameworks/libraries: Spring Boot 4.0.6, Spring Security 7, OAuth2 client/resource server, Spring Data JPA, Hibernate, Flyway, Gson, Log4j2, springdoc OpenAPI.
+- Frameworks/libraries: Spring Boot 4.1.1, Spring Security 7, OAuth2 client/resource server, Spring Data JPA, Hibernate, Flyway, Gson, Log4j2, springdoc OpenAPI.
 - Database: PostgreSQL, configured through Spring datasource properties.
 - Auth: Keycloak/OIDC when `authentication.enabled` is enabled; anonymous development mode exists when disabled.
 - External services: Exaflow endpoints for algorithms, data models, metadata, dataset variables, and algorithm execution.
@@ -32,7 +32,7 @@ Use a local Java 21 JDK and Maven installation.
 mvn -B -ntp dependency:go-offline
 ```
 
-Local development also expects PostgreSQL and reachable Exaflow/Keycloak endpoints based on `src/main/resources/application.yml`. Unknown / TODO: verify the preferred local database bootstrap command; no Docker Compose or Makefile is committed.
+Local development also expects PostgreSQL, reachable Exaflow/Keycloak endpoints, and `MIP_VERSION` set in the environment. Defaults for other settings live in `src/main/resources/application.yml`.
 
 ## Development Commands
 Run locally with the development config in `src/main/resources/application.yml`:
@@ -74,12 +74,12 @@ mvn clean package
 ## Architecture Rules
 - Put HTTP endpoints in `*API` classes under the owning feature package.
 - Put business logic in `*Service` classes; controllers should delegate rather than implement workflows directly.
-- Put persistence in Spring Data repositories and JPA `*DAO` entities. Current JPA packages are `hbp.mip.experiment` and `hbp.mip.user`.
+- Put persistence in Spring Data repositories and JPA `*DAO` entities. Current JPA packages are `hbp.mip.experiment`, `hbp.mip.user`, and `hbp.mip.folder` (list them in `PersistenceConfiguration` when adding another).
 - Put API/request/response shapes in `*DTO` records or DTO classes close to the feature package.
 - Put cross-cutting helpers in `hbp.mip.utils` only when they are genuinely shared.
 - Put security, persistence, OpenAPI, and web filter wiring in `hbp.mip.configurations`.
 - Keep Flyway migrations in `src/main/resources/db/migration` using `V{number}__Description.sql`.
-- Keep runtime/container configuration in `src/main/resources/application.yml` and `config/application.tmpl`; do not read environment variables ad hoc from feature code.
+- Keep runtime configuration in `src/main/resources/application.yml` using `${ENV:default}` placeholders; containers override via environment variables. Do not read environment variables ad hoc from feature code.
 
 ## Coding Conventions
 - Use 4-space Java indentation and existing package style under lowercase `hbp.mip`.
