@@ -16,7 +16,13 @@ import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInit
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -72,6 +78,23 @@ public class SecurityConfiguration {
         return new InMemoryClientRegistrationRepository(dummyRegistration);
     }
 
+    /**
+     * DT4H Keycloak returns UserInfo as {@code application/jwt}, which Spring's default
+     * OidcUserService rejects. Build the user from ID token claims instead.
+     */
+    @Bean
+    OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+        return userRequest -> {
+            OidcIdToken idToken = userRequest.getIdToken();
+            OidcUserInfo userInfo = new OidcUserInfo(idToken.getClaims());
+            return new DefaultOidcUser(
+                    List.of(new OidcUserAuthority(idToken, userInfo)),
+                    idToken,
+                    userInfo,
+                    "preferred_username");
+        };
+    }
+
     @Bean
     SecurityFilterChain clientSecurityFilterChain(HttpSecurity http,
             ClientRegistrationRepository clientRegistrationRepo) throws Exception {
@@ -89,7 +112,9 @@ public class SecurityConfiguration {
                     .permitAll()
                     .requestMatchers("/**").authenticated());
 
-            http.oauth2Login(login -> login.successHandler(spaRedirectAuthenticationSuccessHandler));
+            http.oauth2Login(login -> login
+                    .successHandler(spaRedirectAuthenticationSuccessHandler)
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService())));
 
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.

@@ -1,4 +1,4 @@
-# Configuration for development purposes
+# Platform-backend configuration (local defaults; override via environment variables)
 
 ### EMBEDDED SERVER CONFIGURATION ###
 server:
@@ -10,9 +10,9 @@ server:
 ### DATABASE CONFIGURATION ###
 spring:
   datasource:
-    url: "jdbc:postgresql://127.0.0.1:5433/portal"
-    username: "portal"
-    password: "portalpwd"
+    url: ${PLATFORM_DB_URL:jdbc:postgresql://127.0.0.1:5433/portal}
+    username: ${PLATFORM_DB_USER:portal}
+    password: ${PLATFORM_DB_PASSWORD:portalpwd}
     driver-class-name: org.postgresql.Driver
   data:
     jpa:
@@ -32,38 +32,39 @@ spring:
         registration:
           keycloak:
             authorization-grant-type: authorization_code
-            client-id: replaceme
-            client-secret: replaceme
+            client-id: ${KEYCLOAK_CLIENT_ID:replaceme}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:replaceme}
             provider: keycloak
             scope: openid
         provider:
           keycloak:
             user-name-attribute: preferred_username
-            issuer-uri: https://iam.ebrains.eu/auth/realms/MIP
+            issuer-uri: ${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}
       resourceserver:
         jwt:
-          issuer-uri: https://iam.ebrains.eu/auth/realms/MIP
+          issuer-uri: ${KEYCLOAK_AUTH_URL:https://iam.ebrains.eu/auth/}realms/${KEYCLOAK_REALM:MIP}
 
 ### AUTHENTICATION ###
 authentication:
-  enabled: 1
+  enabled: ${AUTHENTICATION:1}
   all_datasets_allowed_claim: research_dataset_all
   all_experiments_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_
 
 ### EXTERNAL SERVICES ###
 services:
-  algorithmsUpdateInterval: 100
   exaflow:
-    algorithmsUrl: "http://127.0.0.1:5000/algorithms"
-    attributesUrl: "http://127.0.0.1:5000/data_models_attributes"
-    datasets_variables: "http://127.0.0.1:5000/datasets_variables"
-    cdesMetadataUrl: "http://127.0.0.1:5000/cdes_metadata"
-
-### EXTERNAL FILES ###
-# Files are loaded from the resources
-files:
-  disabledAlgorithms_json: "classPath:/disabledAlgorithms.json"
+    analysisUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/analysis
+    inputdataSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/inputdata
+    preprocessingSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/preprocessing
+    algorithmsSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/algorithms
+    attributesUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/data_models_attributes
+    datasets_variables: ${EXAFLOW_URL:http://127.0.0.1:5000}/datasets_variables
+    cdesMetadataUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/cdes_metadata
 
 frontend:
-  base-url: "http://localhost:4200"
+  base-url: ${PLATFORM_UI_BASE_URL:http://localhost:4200}
+
+### PLATFORM VERSION ###
+mip:
+  version: ${MIP_VERSION:dev}

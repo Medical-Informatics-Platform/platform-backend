@@ -47,7 +47,6 @@ public class ClaimUtils {
 
     public void validateAccessRightsOnDatasets(Authentication authentication,
                                                List<String> experimentDatasets, Logger logger) {
-
         if (experimentDatasets == null || experimentDatasets.isEmpty()) {
             String errorMessage = "At least one dataset must be provided.";
             logger.warn(errorMessage);
@@ -75,7 +74,6 @@ public class ClaimUtils {
 
     public List<DataModelDTO> getAuthorizedDataModels(Logger logger, Authentication authentication,
                                                       List<DataModelDTO> allDataModels) {
-
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 
         if (hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
