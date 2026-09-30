@@ -39,7 +39,8 @@ public class AnalysisAPI {
             @RequestBody AnalysisRequestDTO analysisRequest) {
         Logger logger = new Logger(activeUserService.getActiveUser(authentication).username(), "(POST) /analysis");
         logger.info("Request for analysis execution.");
-        if (authenticationIsEnabled && analysisRequest.inputdata() != null) {
+        AnalysisService.requireRunnable(analysisRequest, logger);
+        if (authenticationIsEnabled) {
             claimUtils.validateAccessRightsOnDatasets(
                     authentication,
                     analysisRequest.inputdata().datasets(),

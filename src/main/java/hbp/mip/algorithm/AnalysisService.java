@@ -24,6 +24,19 @@ public class AnalysisService {
         this.analysisUrl = analysisUrl;
     }
 
+    /** Rejects with 400 a payload Exaflow cannot run, before any access check or persistence touches it. */
+    public static void requireRunnable(AnalysisRequestDTO analysisRequest, Logger logger) {
+        String missing = analysisRequest == null ? "analysis"
+                : analysisRequest.algorithm() == null || analysisRequest.algorithm().name() == null ? "algorithm.name"
+                : analysisRequest.inputdata() == null ? "inputdata"
+                : null;
+        if (missing != null) {
+            String errorMessage = "Missing required " + missing + ".";
+            logger.warn(errorMessage);
+            throw new BadRequestException(errorMessage);
+        }
+    }
+
     public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
         AnalysisRequestDTO requestWithId = AnalysisRequestDTO.withRequestId(requestId, analysisRequest);
         String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);

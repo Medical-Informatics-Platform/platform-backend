@@ -139,7 +139,7 @@ public class ExperimentService {
 
     public ExperimentDTO createExperiment(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
             Logger logger) {
-        requireAnalysisPayload(experimentExecutionDTO, logger);
+        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
         validateDatasetAccess(authentication, experimentExecutionDTO, logger);
@@ -149,14 +149,6 @@ public class ExperimentService {
         runAnalysisInBackground(experimentDAO, experimentExecutionDTO, logger);
 
         return new ExperimentDTO(experimentDAO, false);
-    }
-
-    private void requireAnalysisPayload(ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        if (experimentExecutionDTO.analysis() == null) {
-            String errorMessage = "Missing required analysis payload.";
-            logger.warn(errorMessage);
-            throw new BadRequestException(errorMessage);
-        }
     }
 
     private void validateDatasetAccess(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
@@ -190,7 +182,7 @@ public class ExperimentService {
 
     public ExperimentDTO runTransientExperiment(Authentication authentication,
             ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        requireAnalysisPayload(experimentExecutionDTO, logger);
+        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
         validateDatasetAccess(authentication, experimentExecutionDTO, logger);
