@@ -51,8 +51,8 @@ COPY --from=mvn-build-env /opt/code/target/platform-backend.jar /usr/share/jars/
 VOLUME /opt/platform/api
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
-    && mkdir -p /opt/config /opt/platform/api \
-    && chown -R appuser:appgroup /opt/config /opt/platform/api /usr/share/jars
+    && mkdir -p /opt/platform/api \
+    && chown -R appuser:appgroup /opt/platform/api /usr/share/jars
 
 USER appuser
 ENTRYPOINT ["java", "--add-opens", "java.base/java.io=ALL-UNNAMED", "-Daeron.term.buffer.length", "-jar", "/usr/share/jars/platform-backend.jar"]
