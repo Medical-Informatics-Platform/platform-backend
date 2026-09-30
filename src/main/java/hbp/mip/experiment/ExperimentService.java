@@ -176,7 +176,7 @@ public class ExperimentService {
                 experimentDAO.setStatus(ExperimentDAO.Status.error);
             }
             experimentRepository.finishExperiment(experimentDAO, logger);
-            logger.info("Experiment finished: " + experimentDAO);
+            logger.info("Experiment finished. Id: " + experimentDAO.getUuid() + ", status: " + experimentDAO.getStatus());
         }).start();
     }
 
