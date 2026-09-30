@@ -155,7 +155,7 @@ public class ExperimentService {
             Logger logger) {
         if (authenticationIsEnabled) {
             claimUtils.validateAccessRightsOnDatasets(authentication,
-                    experimentExecutionDTO.analysis().inputdata().datasets(), logger);
+                    experimentExecutionDTO.analysis().inputdata().allDatasets(), logger);
         }
     }
 

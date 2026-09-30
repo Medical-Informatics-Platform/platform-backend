@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AnalysisServiceRequestIdTest {
@@ -53,4 +54,11 @@ class AnalysisServiceRequestIdTest {
         AnalysisService.requireRunnable(new AnalysisRequestDTO(null, inputdata, null, algorithm, null), logger);
     }
 
+    @Test
+    void allDatasets_coversValidationDatasetsForAccessChecks() {
+        assertThat(new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of("ds1"), List.of("restricted"), null,
+                List.of("age")).allDatasets()).containsExactly("ds1", "restricted");
+        assertThat(new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of(), List.of("restricted"), null,
+                List.of("age")).allDatasets()).isEmpty();
+    }
 }

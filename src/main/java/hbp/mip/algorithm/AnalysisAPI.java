@@ -43,7 +43,7 @@ public class AnalysisAPI {
         if (authenticationIsEnabled) {
             claimUtils.validateAccessRightsOnDatasets(
                     authentication,
-                    analysisRequest.inputdata().datasets(),
+                    analysisRequest.inputdata().allDatasets(),
                     logger);
         }
         AnalysisService.AnalysisResultDTO result = analysisService.runAnalysis(analysisRequest, logger);
