@@ -43,7 +43,8 @@ public class ExperimentSpecifications {
                 return cb.isTrue(cb.literal(true));
             }
 
-            return cb.equal(cb.lower(root.get("algorithm")), this.algorithm.toLowerCase());
+            // "algorithm" holds the whole analysis JSON; the algorithm name lives in algorithm_id.
+            return cb.equal(cb.lower(root.get("algorithmId")), this.algorithm.toLowerCase());
         }
     }
 
@@ -141,7 +142,8 @@ public class ExperimentSpecifications {
 
         public ExperimentOrderBy(String orderBy, Boolean descending) {
             if (properColumnToBeOrderedBy(orderBy))
-                this.orderBy = orderBy;
+                // Sorting "algorithm" means by name, not by the analysis JSON the column stores.
+                this.orderBy = "algorithm".equals(orderBy) ? "algorithmId" : orderBy;
             else
                 throw new BadRequestException("Please provide proper column to order by.");
             this.descending = Objects.requireNonNullElse(descending, true);
