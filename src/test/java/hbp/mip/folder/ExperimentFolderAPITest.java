@@ -5,8 +5,7 @@ import hbp.mip.user.UserDTO;
 import hbp.mip.utils.ControllerExceptionHandler;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.ConflictException;
-import hbp.mip.utils.Exceptions.ExperimentFolderNotFoundException;
-import hbp.mip.utils.Exceptions.ExperimentSetNotFoundException;
+import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
 import hbp.mip.utils.Exceptions.UnauthorizedException;
 import hbp.mip.utils.Logger;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,7 +90,7 @@ class ExperimentFolderAPITest {
 
     @Test
     void createsAFolderFromNameOnlyAndAnswersCreated() throws Exception {
-        when(service.createFolder(any(), any(CreateExperimentFolderDTO.class), any(Logger.class)))
+        when(service.createFolder(any(), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenReturn(new ExperimentFolderDTO(FOLDER_ID, "My analysis set", List.of(), List.of()));
 
         mvc.perform(post("/experiment-folders").contentType("application/json").content("{\"name\":\"My analysis set\"}").principal(principal))
@@ -103,14 +102,14 @@ class ExperimentFolderAPITest {
 
     @Test
     void createFolderCarriesTheFirstRunUnderTheContractFieldName() throws Exception {
-        when(service.createFolder(any(), any(CreateExperimentFolderDTO.class), any(Logger.class)))
+        when(service.createFolder(any(), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenReturn(folderDto());
 
         mvc.perform(post("/experiment-folders").contentType("application/json")
                 .content("{\"name\":\"My analysis set\",\"experimentUuid\":\"" + RUN_ID + "\"}").principal(principal))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<CreateExperimentFolderDTO> body = ArgumentCaptor.forClass(CreateExperimentFolderDTO.class);
+        ArgumentCaptor<CreateExperimentGroupDTO> body = ArgumentCaptor.forClass(CreateExperimentGroupDTO.class);
         verify(service).createFolder(eq(principal), body.capture(), any(Logger.class));
         assertThat(body.getValue().name()).isEqualTo("My analysis set");
         assertThat(body.getValue().experimentUuid()).isEqualTo(RUN_ID);
@@ -163,14 +162,14 @@ class ExperimentFolderAPITest {
 
     @Test
     void createSetCarriesItsOptionalSeedRun() throws Exception {
-        when(service.createSet(any(), eq(FOLDER_ID), any(CreateExperimentSetDTO.class), any(Logger.class)))
+        when(service.createSet(any(), eq(FOLDER_ID), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenReturn(folderDto());
 
         mvc.perform(post("/experiment-folders/" + FOLDER_ID + "/sets").contentType("application/json")
                 .content("{\"name\":\"Drug arm A\",\"experimentUuid\":\"" + RUN_ID + "\"}").principal(principal))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<CreateExperimentSetDTO> body = ArgumentCaptor.forClass(CreateExperimentSetDTO.class);
+        ArgumentCaptor<CreateExperimentGroupDTO> body = ArgumentCaptor.forClass(CreateExperimentGroupDTO.class);
         verify(service).createSet(eq(principal), eq(FOLDER_ID), body.capture(), any(Logger.class));
         assertThat(body.getValue().name()).isEqualTo("Drug arm A");
         assertThat(body.getValue().experimentUuid()).isEqualTo(RUN_ID);
@@ -178,9 +177,9 @@ class ExperimentFolderAPITest {
 
     @Test
     void renamesAFolderAndASet() throws Exception {
-        when(service.renameFolder(any(), eq(FOLDER_ID), any(RenameExperimentFolderDTO.class), any(Logger.class)))
+        when(service.renameFolder(any(), eq(FOLDER_ID), any(RenameExperimentGroupDTO.class), any(Logger.class)))
                 .thenReturn(folderDto());
-        when(service.renameSet(any(), eq(FOLDER_ID), eq(SET_ID), any(RenameExperimentSetDTO.class), any(Logger.class)))
+        when(service.renameSet(any(), eq(FOLDER_ID), eq(SET_ID), any(RenameExperimentGroupDTO.class), any(Logger.class)))
                 .thenReturn(folderDto());
 
         mvc.perform(patch("/experiment-folders/" + FOLDER_ID).contentType("application/json")
@@ -218,7 +217,7 @@ class ExperimentFolderAPITest {
 
     @Test
     void blankNameIsABadRequest() throws Exception {
-        when(service.createFolder(any(), any(CreateExperimentFolderDTO.class), any(Logger.class)))
+        when(service.createFolder(any(), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenThrow(new BadRequestException("Folder name must not be blank."));
 
         mvc.perform(post("/experiment-folders").contentType("application/json").content("{\"name\":\"   \"}").principal(principal))
@@ -239,9 +238,9 @@ class ExperimentFolderAPITest {
 
     @Test
     void duplicateNamesAreAConflict() throws Exception {
-        when(service.createFolder(any(), any(CreateExperimentFolderDTO.class), any(Logger.class)))
+        when(service.createFolder(any(), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenThrow(new ConflictException("An experiment folder named 'My analysis set' already exists."));
-        when(service.createSet(any(), eq(FOLDER_ID), any(CreateExperimentSetDTO.class), any(Logger.class)))
+        when(service.createSet(any(), eq(FOLDER_ID), any(CreateExperimentGroupDTO.class), any(Logger.class)))
                 .thenThrow(new ConflictException("An experiment set named 'Drug arm A' already exists in this folder."));
 
         mvc.perform(post("/experiment-folders").contentType("application/json").content("{\"name\":\"My analysis set\"}").principal(principal))
@@ -256,10 +255,10 @@ class ExperimentFolderAPITest {
     @Test
     void foreignFoldersAndForeignSetsAreBothNotFound() throws Exception {
         when(service.getFolder(any(), eq(FOLDER_ID), any(Logger.class)))
-                .thenThrow(new ExperimentFolderNotFoundException("Experiment folder with id : " + FOLDER_ID
+                .thenThrow(new ExperimentNotFoundException("Experiment folder with id : " + FOLDER_ID
                         + " was not found for the active user."));
-        when(service.renameSet(any(), eq(FOLDER_ID), eq(SET_ID), any(RenameExperimentSetDTO.class), any(Logger.class)))
-                .thenThrow(new ExperimentSetNotFoundException("Experiment set with id : " + SET_ID
+        when(service.renameSet(any(), eq(FOLDER_ID), eq(SET_ID), any(RenameExperimentGroupDTO.class), any(Logger.class)))
+                .thenThrow(new ExperimentNotFoundException("Experiment set with id : " + SET_ID
                         + " was not found in folder : " + FOLDER_ID));
 
         mvc.perform(get("/experiment-folders/" + FOLDER_ID).principal(principal))

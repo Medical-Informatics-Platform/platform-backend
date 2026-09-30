@@ -7,8 +7,7 @@ import hbp.mip.user.UserDAO;
 import hbp.mip.user.UserDTO;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.ConflictException;
-import hbp.mip.utils.Exceptions.ExperimentFolderNotFoundException;
-import hbp.mip.utils.Exceptions.ExperimentSetNotFoundException;
+import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
 import hbp.mip.utils.Exceptions.UnauthorizedException;
 import hbp.mip.utils.Logger;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +71,7 @@ class ExperimentFolderServiceTest {
     void createFolder_collapsesWhitespaceAndPlacesItLast() {
         givenOwnedFolders(folder("Existing", 7));
 
-        var created = service.createFolder(authentication, new CreateExperimentFolderDTO("  My   Analysis   Set  ", null),
+        var created = service.createFolder(authentication, new CreateExperimentGroupDTO("  My   Analysis   Set  ", null),
                 logger);
 
         ArgumentCaptor<ExperimentFolderDAO> saved = ArgumentCaptor.forClass(ExperimentFolderDAO.class);
@@ -88,14 +87,14 @@ class ExperimentFolderServiceTest {
         givenOwnedFolders();
 
         var created = service.createFolder(authentication,
-                new CreateExperimentFolderDTO("  " + "a".repeat(80) + "  ", null), logger);
+                new CreateExperimentGroupDTO("  " + "a".repeat(80) + "  ", null), logger);
 
         assertThat(created.name()).hasSize(ExperimentFolderService.MAX_NAME_LENGTH);
     }
 
     @Test
     void createFolder_rejectsANameThatIsOnlyWhitespace() {
-        assertThatThrownBy(() -> service.createFolder(authentication, new CreateExperimentFolderDTO("   \t\n ", null), logger))
+        assertThatThrownBy(() -> service.createFolder(authentication, new CreateExperimentGroupDTO("   \t\n ", null), logger))
                 .isInstanceOf(BadRequestException.class);
 
         verify(folderRepository, never()).saveAndFlush(any(ExperimentFolderDAO.class));
@@ -106,7 +105,7 @@ class ExperimentFolderServiceTest {
         givenOwnedFolders(folder("My Analysis Set", 1));
 
         assertThatThrownBy(() -> service.createFolder(authentication,
-                new CreateExperimentFolderDTO("  my   analysis  set ", null), logger))
+                new CreateExperimentGroupDTO("  my   analysis  set ", null), logger))
                 .isInstanceOf(ConflictException.class);
 
         verify(folderRepository, never()).saveAndFlush(any(ExperimentFolderDAO.class));
@@ -118,8 +117,8 @@ class ExperimentFolderServiceTest {
         givenFolder(folderId, "My Set", "somebody-else");
 
         assertThatThrownBy(() -> service.renameFolder(authentication, folderId.toString(),
-                new RenameExperimentFolderDTO("Taken By Me"), logger))
-                .isInstanceOf(ExperimentFolderNotFoundException.class);
+                new RenameExperimentGroupDTO("Taken By Me"), logger))
+                .isInstanceOf(ExperimentNotFoundException.class);
     }
 
     @Test
@@ -129,7 +128,7 @@ class ExperimentFolderServiceTest {
         givenOwnedFolders(owned);
 
         var renamed = service.renameFolder(authentication, folderId.toString(),
-                new RenameExperimentFolderDTO("  my  set "), logger);
+                new RenameExperimentGroupDTO("  my  set "), logger);
 
         assertThat(renamed.name()).isEqualTo("my set");
     }
@@ -149,7 +148,7 @@ class ExperimentFolderServiceTest {
         givenFolder(foreign, "Theirs", "somebody-else");
 
         assertThatThrownBy(() -> service.getFolder(authentication, foreign.toString(), logger))
-                .isInstanceOf(ExperimentFolderNotFoundException.class);
+                .isInstanceOf(ExperimentNotFoundException.class);
     }
 
     @Test
@@ -263,7 +262,7 @@ class ExperimentFolderServiceTest {
         givenReadableExperiment(experiment);
 
         var updated = service.createSet(authentication, folderId.toString(),
-                new CreateExperimentSetDTO("  Drug  arm   A ", experiment.getUuid().toString()), logger);
+                new CreateExperimentGroupDTO("  Drug  arm   A ", experiment.getUuid().toString()), logger);
 
         assertThat(updated.sets()).extracting(ExperimentSetDTO::name).containsExactly("Baseline", "Drug arm A");
         assertThat(updated.sets().get(1).experimentIds()).containsExactly(experiment.getUuid().toString());
@@ -280,7 +279,7 @@ class ExperimentFolderServiceTest {
         folder.getSets().add(new ExperimentSetDAO(folder, "Drug arm A", 1));
 
         assertThatThrownBy(() -> service.createSet(authentication, folderId.toString(),
-                new CreateExperimentSetDTO("  drug   ARM  a ", null), logger))
+                new CreateExperimentGroupDTO("  drug   ARM  a ", null), logger))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -290,7 +289,7 @@ class ExperimentFolderServiceTest {
         givenFolder(folderId, "My Set", USERNAME);
 
         var updated = service.createSet(authentication, folderId.toString(),
-                new CreateExperimentSetDTO("my   set", null), logger);
+                new CreateExperimentGroupDTO("my   set", null), logger);
 
         assertThat(updated.sets()).singleElement().satisfies(set -> assertThat(set.name()).isEqualTo("my set"));
     }
@@ -369,7 +368,7 @@ class ExperimentFolderServiceTest {
         assertThatThrownBy(() -> service.updateSetMembership(authentication, folderId.toString(),
                 experiment().getUuid().toString(), new UpdateExperimentSetMembershipDTO(UUID.randomUUID().toString()),
                 logger))
-                .isInstanceOf(ExperimentSetNotFoundException.class);
+                .isInstanceOf(ExperimentNotFoundException.class);
     }
 
     @Test
@@ -380,7 +379,7 @@ class ExperimentFolderServiceTest {
         folder.getSets().add(armA);
 
         var updated = service.renameSet(authentication, folderId.toString(), armA.getId().toString(),
-                new RenameExperimentSetDTO("  Drug   arm  B "), logger);
+                new RenameExperimentGroupDTO("  Drug   arm  B "), logger);
 
         assertThat(updated.sets()).singleElement().satisfies(set -> assertThat(set.name()).isEqualTo("Drug arm B"));
     }
@@ -394,7 +393,7 @@ class ExperimentFolderServiceTest {
         folder.getSets().add(armB);
 
         assertThatThrownBy(() -> service.renameSet(authentication, folderId.toString(), armB.getId().toString(),
-                new RenameExperimentSetDTO("drug arm a"), logger))
+                new RenameExperimentGroupDTO("drug arm a"), logger))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -494,7 +493,7 @@ class ExperimentFolderServiceTest {
         givenReadableExperiment(experiment);
 
         var created = service.createFolder(authentication,
-                new CreateExperimentFolderDTO("New folder", experiment.getUuid().toString()), logger);
+                new CreateExperimentGroupDTO("New folder", experiment.getUuid().toString()), logger);
 
         verify(experimentService).assertExperimentAccessible(eq(authentication), eq(experiment.getUuid().toString()),
                 any(Logger.class));
@@ -516,7 +515,7 @@ class ExperimentFolderServiceTest {
                 any(Logger.class))).thenThrow(new UnauthorizedException("You don't have access to that experiment."));
 
         assertThatThrownBy(() -> service.createFolder(authentication,
-                new CreateExperimentFolderDTO("New folder", hidden.getUuid().toString()), logger))
+                new CreateExperimentGroupDTO("New folder", hidden.getUuid().toString()), logger))
                 .isInstanceOf(UnauthorizedException.class);
 
         verify(folderRepository, never()).saveAndFlush(any(ExperimentFolderDAO.class));
@@ -532,7 +531,7 @@ class ExperimentFolderServiceTest {
                         new SQLException("duplicate key value violates unique constraint", "23505")));
 
         assertThatThrownBy(() -> service.createFolder(authentication,
-                new CreateExperimentFolderDTO("Nobody saw the other tab", null), logger))
+                new CreateExperimentGroupDTO("Nobody saw the other tab", null), logger))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -545,7 +544,7 @@ class ExperimentFolderServiceTest {
                         new SQLException("duplicate key", "23505")));
 
         assertThatThrownBy(() -> service.createSet(authentication, folderId.toString(),
-                new CreateExperimentSetDTO("Arm A", null), logger))
+                new CreateExperimentGroupDTO("Arm A", null), logger))
                 .isInstanceOf(ConflictException.class);
     }
 
@@ -557,7 +556,7 @@ class ExperimentFolderServiceTest {
                         new SQLException("null value in column \"name\" violates not-null constraint", "23502")));
 
         assertThatThrownBy(() -> service.createFolder(authentication,
-                new CreateExperimentFolderDTO("Broken", null), logger))
+                new CreateExperimentGroupDTO("Broken", null), logger))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -580,7 +579,7 @@ class ExperimentFolderServiceTest {
         service.updateSetMembership(authentication, folderId.toString(), first.getUuid().toString(),
                 new UpdateExperimentSetMembershipDTO(null), logger);
         service.createSet(authentication, folderId.toString(),
-                new CreateExperimentSetDTO("Arm B", second.getUuid().toString()), logger);
+                new CreateExperimentGroupDTO("Arm B", second.getUuid().toString()), logger);
         service.removeExperiment(authentication, folderId.toString(), second.getUuid().toString(), logger);
         service.deleteSet(authentication, folderId.toString(), set.getId().toString(), logger);
 

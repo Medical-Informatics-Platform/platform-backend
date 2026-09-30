@@ -6,8 +6,7 @@ import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDAO;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.ConflictException;
-import hbp.mip.utils.Exceptions.ExperimentFolderNotFoundException;
-import hbp.mip.utils.Exceptions.ExperimentSetNotFoundException;
+import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
 import hbp.mip.utils.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
@@ -71,7 +70,7 @@ public class ExperimentFolderService {
     }
 
     @Transactional
-    public ExperimentFolderDTO createFolder(Authentication authentication, CreateExperimentFolderDTO request,
+    public ExperimentFolderDTO createFolder(Authentication authentication, CreateExperimentGroupDTO request,
             Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         String name = requireName(request == null ? null : request.name(), "Folder name", logger);
@@ -97,7 +96,7 @@ public class ExperimentFolderService {
 
     @Transactional
     public ExperimentFolderDTO renameFolder(Authentication authentication, String folderId,
-            RenameExperimentFolderDTO request, Logger logger) {
+            RenameExperimentGroupDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
 
@@ -180,7 +179,7 @@ public class ExperimentFolderService {
 
     @Transactional
     public ExperimentFolderDTO createSet(Authentication authentication, String folderId,
-            CreateExperimentSetDTO request, Logger logger) {
+            CreateExperimentGroupDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         ExperimentFolderDAO folder = ownedFolderForUpdate(folderId, user.username(), logger);
 
@@ -204,7 +203,7 @@ public class ExperimentFolderService {
 
     @Transactional
     public ExperimentFolderDTO renameSet(Authentication authentication, String folderId, String setId,
-            RenameExperimentSetDTO request, Logger logger) {
+            RenameExperimentGroupDTO request, Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
         ExperimentFolderDAO folder = ownedFolder(folderId, user.username(), logger);
         ExperimentSetDAO set = ownedSet(folder, setId, logger);
@@ -231,7 +230,7 @@ public class ExperimentFolderService {
         // set removal and the member updates is not ours to bet on: null them here so the in-memory
         // state and the row agree either way.
         folder.getMembers().stream()
-                .filter(member -> isInSet(member, set))
+                .filter(member -> member.isIn(set))
                 .forEach(this::ungroup);
 
         folder.getSets().remove(set);
@@ -275,7 +274,7 @@ public class ExperimentFolderService {
                 ? existingMember
                 : memberFor(folder, experimentService.assertExperimentAccessible(authentication, experimentUuid, logger), logger);
 
-        if (isInSet(member, target)) {
+        if (member.isIn(target)) {
             logger.info("Experiment is already in the requested set. Id: " + experimentUuid);
             return ExperimentFolderDTO.from(folder);
         }
@@ -319,7 +318,7 @@ public class ExperimentFolderService {
         if (folder == null) {
             var errorMessage = "Experiment folder with id : " + folderId + " was not found for the active user.";
             logger.warn(errorMessage);
-            throw new ExperimentFolderNotFoundException(errorMessage);
+            throw new ExperimentNotFoundException(errorMessage);
         }
 
         return folder;
@@ -370,7 +369,7 @@ public class ExperimentFolderService {
         if (set == null) {
             var errorMessage = "Experiment set with id : " + setId + " was not found in folder : " + folder.getId();
             logger.warn(errorMessage);
-            throw new ExperimentSetNotFoundException(errorMessage);
+            throw new ExperimentNotFoundException(errorMessage);
         }
         return set;
     }
@@ -393,7 +392,7 @@ public class ExperimentFolderService {
         // The run being moved is excluded from the max: it cannot count the position it is leaving.
         member.setSetPosition(nextPosition(folder.getMembers().stream()
                 .filter(other -> !Objects.equals(other, member))
-                .filter(other -> isInSet(other, target))
+                .filter(other -> other.isIn(target))
                 .map(ExperimentFolderMemberDAO::getSetPosition)
                 .toList()));
     }
@@ -402,13 +401,6 @@ public class ExperimentFolderService {
         return folder.getMembers().stream()
                 .map(ExperimentFolderMemberDAO::getFolderPosition)
                 .toList();
-    }
-
-    /** Id comparison, not equals: one side may still be an uninitialized association proxy. */
-    private boolean isInSet(ExperimentFolderMemberDAO member, ExperimentSetDAO set) {
-        return member.getExperimentSet() != null
-                && set.getId() != null
-                && set.getId().equals(member.getExperimentSet().getId());
     }
 
     private void ungroup(ExperimentFolderMemberDAO member) {

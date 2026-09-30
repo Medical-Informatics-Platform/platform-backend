@@ -14,9 +14,7 @@ public record ExperimentSetDTO(String id, String name, List<String> experimentId
 
     public static ExperimentSetDTO from(ExperimentSetDAO set, List<ExperimentFolderMemberDAO> members) {
         List<String> memberIds = members.stream()
-                .filter(member -> member.getExperimentSet() != null
-                        && member.getExperimentSet().getId() != null
-                        && member.getExperimentSet().getId().equals(set.getId()))
+                .filter(member -> member.isIn(set))
                 .sorted(Comparator.comparing(ExperimentFolderMemberDAO::getSetPosition,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(member -> member.getExperiment().getUuid().toString())
