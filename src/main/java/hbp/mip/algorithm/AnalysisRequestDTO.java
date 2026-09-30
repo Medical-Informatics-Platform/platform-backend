@@ -2,7 +2,6 @@ package hbp.mip.algorithm;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 public record AnalysisRequestDTO(
@@ -11,15 +10,6 @@ public record AnalysisRequestDTO(
         List<AnalysisPreprocessingStepDTO> preprocessing,
         AnalysisAlgorithmDTO algorithm,
         Map<String, Object> flags) {
-
-    public static AnalysisRequestDTO withRequestId(UUID experimentUuid, AnalysisRequestDTO analysis) {
-        return new AnalysisRequestDTO(
-                experimentUuid.toString(),
-                analysis.inputdata(),
-                analysis.preprocessing(),
-                analysis.algorithm(),
-                analysis.flags());
-    }
 
     public record AnalysisInputDataDTO(
             String data_model,

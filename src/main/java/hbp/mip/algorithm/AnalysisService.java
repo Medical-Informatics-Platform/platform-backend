@@ -38,7 +38,8 @@ public class AnalysisService {
     }
 
     public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
-        AnalysisRequestDTO requestWithId = AnalysisRequestDTO.withRequestId(requestId, analysisRequest);
+        AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), analysisRequest.inputdata(),
+                analysisRequest.preprocessing(), analysisRequest.algorithm(), analysisRequest.flags());
         String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);
 
         logger.debug("Exaflow analysis request, endpoint: " + analysisUrl);
