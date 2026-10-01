@@ -25,20 +25,22 @@ Following the OWASP DevSecOps model, scanning is split into three independent pi
 
 ```
 .github/
-├── workflows/
-│   ├── container-scan.yml     # builds the image, scans the Dockerfile (SAST) and image (SCA)
-│   ├── sca.yml                 # resolves deps, generates SBOM, scans it (SCA)
-│   └── sast.yml                 # scans source code (SAST)
-└── scripts/
-    ├── setup-tools.sh          # installs trivy, osv-scanner, opengrep, hadolint, semgrep-rules
-    ├── container_scan.py       # orchestrator for container-scan.yml
-    ├── sca_scan.py               # orchestrator for sca.yml
-    ├── sast_scan.py              # orchestrator for sast.yml
-    ├── parse_sarif.py            # shared: reads SARIF security-severity scores
-    ├── suppress_trivy.yaml       # shared Trivy ignore file
-    └── suppress_osv_scanner.toml # shared OSV-Scanner ignore file
-```
+└── workflows/
+    ├── container-scan.yml     # builds the image, scans the Dockerfile (SAST) and image (SCA)
+    ├── sca.yml                 # resolves deps, generates SBOM, scans it (SCA)
+    ├── sast.yml                 # scans source code (SAST)
+    ├── publish_images.yml       # publishes built images
+    └── ebrains.yml               # EBRAINS-specific pipeline
 
+ci/
+├── setup-tools.sh          # installs trivy, osv-scanner, opengrep, hadolint, semgrep-rules
+├── container_scan.py       # orchestrator for container-scan.yml
+├── sca_scan.py               # orchestrator for sca.yml
+├── sast_scan.py              # orchestrator for sast.yml
+├── parse_sarif.py            # shared: reads SARIF security-severity scores
+├── suppress_trivy.yaml       # shared Trivy ignore file
+└── suppress_osv_scanner.toml # shared OSV-Scanner ignore file
+```
 > **Note:** all three workflows trigger on `pull_request`, `workflow_dispatch`, and a weekly Monday 02:00 UTC schedule, and run independently in parallel. Each has its own gate and its own category in the GitHub Security tab.
 
 ## 2. Architecture

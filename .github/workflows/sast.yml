@@ -37,17 +37,39 @@ jobs:
       - name: Run SAST scanning
         run: python ci/sast_scan.py
 
-      - name: Upload Semgrep SARIF to GitHub Security tab
-        id: upload_semgrep
-        if: always()
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38.0
+      - name: Upload SARIF to GitHub Security tab
+        if: ${{ !cancelled() && hashFiles(env.OPENGREP_SARIF_OUTPUT) != '' }}
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
         with:
           sarif_file: ${{ env.OPENGREP_SARIF_OUTPUT }}
           category: semgrep-app
 
-      - name: Upload SARIF artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+      - name: Encrypt SARIF report
+        id: encrypt
+        if: ${{ !cancelled() && hashFiles(env.OPENGREP_SARIF_OUTPUT) != '' }}
+        env:
+          PW: ${{ secrets.ARTIFACT_PASSWORD }}
+          OUT: ${{ env.OPENGREP_SARIF_OUTPUT }}.gpg
+        run: |
+          if [ -z "$PW" ]; then
+            echo "::warning title=SARIF report not uploaded::ARTIFACT_PASSWORD is not available in this run (Dependabot, Renovate or fork PR). Skipping encryption and upload."
+            rm -f -- "$OPENGREP_SARIF_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "$PW" | gpg --symmetric --batch --yes --quiet \
+            --pinentry-mode loopback --passphrase-fd 0 \
+            --no-symkey-cache \
+            --cipher-algo AES256 \
+            --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 \
+            --output "$OUT" -- "$OPENGREP_SARIF_OUTPUT"
+          rm -f -- "$OPENGREP_SARIF_OUTPUT"
+          echo "encrypted=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted SARIF artifact
+        if: ${{ !cancelled() && steps.encrypt.outputs.encrypted != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sast-scan-sarif-report
-          path: ${{ env.OPENGREP_SARIF_OUTPUT }}
+          path: ${{ steps.encrypt.outputs.encrypted }}
           retention-days: 30
+          if-no-files-found: error

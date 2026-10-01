@@ -23,7 +23,7 @@ jobs:
       TRIVY_SCA_SARIF_OUTPUT: sca-trivy-container.sarif
       OSV_SCA_SARIF_OUTPUT: sca-osv-container.sarif
 
-      # SAST /Linting
+      # SAST / Linting
       SEMGREP_CONFIG_RULESETS: >-
               semgrep-rules/dockerfile auto
       OPENGREP_SAST_SARIF_OUTPUT: sast-opengrep-dockerfile.sarif
@@ -51,52 +51,49 @@ jobs:
         run: python ci/container_scan.py --scan-type sast
 
       - name: Run SCA scanning
-        if: always()
+        if: ${{ !cancelled() }}
         run: python ci/container_scan.py --scan-type sca --image ${{ env.IMAGE_NAME }}
 
-      - name: Upload Trivy SARIF to GitHub Security tab
-        id: upload_trivy
-        if: always()
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38.0
-        with:
-          sarif_file: ${{ env.TRIVY_SCA_SARIF_OUTPUT }}
-          category: trivy-container-scanning
-
-      - name: Upload OSV Scanner SARIF to GitHub Security tab
-        id: upload_osv
-        if: always()
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38.0
-        with:
-          sarif_file: ${{ env.OSV_SCA_SARIF_OUTPUT }}
-          category: osv-scanner-container-scanning
-
-      - name: Upload OpenGrep SARIF to GitHub Security tab
-        id: upload_opengrep
-        if: always()
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38.0
-        with:
-          sarif_file: ${{ env.OPENGREP_SAST_SARIF_OUTPUT }}
-          category: opengrep-sast
-
-      - name: Upload Hadolint SARIF to GitHub Security tab
-        id: upload_hadolint
-        if: always()
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38.0
-        with:
-          sarif_file: ${{ env.HADOLINT_SAST_SARIF_OUTPUT }}
-          category: hadolint-sast
-
       - name: Merge all SARIF reports
-        if: always()
+        if: ${{ !cancelled() }}
         run: |
           python ci/container_scan.py \
             --merge-sarif "${{ env.TRIVY_SCA_SARIF_OUTPUT }}" "${{ env.OSV_SCA_SARIF_OUTPUT }}" "${{ env.OPENGREP_SAST_SARIF_OUTPUT }}" "${{ env.HADOLINT_SAST_SARIF_OUTPUT }}" \
             --merge-output "${{ env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT }}"
 
-      - name: Upload SARIF artifacts
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+      - name: Upload merged SARIF to GitHub Security tab
+        if: ${{ !cancelled() && hashFiles(env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT) != '' }}
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
+        with:
+          sarif_file: ${{ env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT }}
+          category: container-scan
+
+      - name: Encrypt SARIF report
+        id: encrypt
+        if: ${{ !cancelled() && hashFiles(env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT) != '' }}
+        env:
+          PW: ${{ secrets.ARTIFACT_PASSWORD }}
+          OUT: ${{ env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT }}.gpg
+        run: |
+          if [ -z "$PW" ]; then
+            echo "::warning title=SARIF report not uploaded::ARTIFACT_PASSWORD is not available in this run (Dependabot, Renovate or fork PR). Skipping encryption and upload."
+            rm -f -- "$CONTAINER_SCAN_MERGED_SARIF_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "$PW" | gpg --symmetric --batch --yes --quiet \
+            --pinentry-mode loopback --passphrase-fd 0 \
+            --no-symkey-cache \
+            --cipher-algo AES256 \
+            --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 \
+            --output "$OUT" -- "$CONTAINER_SCAN_MERGED_SARIF_OUTPUT"
+          rm -f -- "$CONTAINER_SCAN_MERGED_SARIF_OUTPUT"
+          echo "encrypted=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted SARIF artifact
+        if: ${{ !cancelled() && steps.encrypt.outputs.encrypted != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: container-scan-sarif-report
-          path: ${{ env.CONTAINER_SCAN_MERGED_SARIF_OUTPUT }}
+          path: ${{ steps.encrypt.outputs.encrypted }}
           retention-days: 30
+          if-no-files-found: error

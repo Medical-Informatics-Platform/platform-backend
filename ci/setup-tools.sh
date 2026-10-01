@@ -22,13 +22,17 @@ OSV_SCANNER_SHA256="${OSV_SCANNER_SHA256:-f9f25499a2c8cc367b3af45df2ea7eeca7fbcc
 OPENGREP_VERSION="${OPENGREP_VERSION:-v1.30.0}"
 OPENGREP_SHA256="${OPENGREP_SHA256:-35779bdd72e92129c8df2a77f0c55e8c08356801ea92591ef32108d6b28d564c}"
 
-# renovate: datasource=github-tags depName=semgrep/semgrep-rules
+# renovate: datasource=git-refs depName=https://github.com/semgrep/semgrep-rules
 SEMGREP_RULES_REF="${SEMGREP_RULES_REF:-40b8c63f75dc7c22c8a77482d73bfb864b146f7e}"
 SEMGREP_RULES_DIR="semgrep-rules"
 
 # renovate: datasource=github-release-attachments depName=hadolint/hadolint
 HADOLINT_VERSION="${HADOLINT_VERSION:-v2.15.1}"
 HADOLINT_SHA256="${HADOLINT_SHA256:-c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507}"
+
+# renovate: datasource=github-release-attachments depName=gitleaks/gitleaks
+GITLEAKS_VERSION="${GITLEAKS_VERSION:-v8.30.1}"
+GITLEAKS_SHA256="${GITLEAKS_SHA256:-551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb}"
 
 # renovate: datasource=npm depName=@cyclonedx/cyclonedx-npm
 CYCLONEDX_NPM_VERSION="${CYCLONEDX_NPM_VERSION:-6.0.1}"
@@ -128,14 +132,29 @@ if should_install "hadolint"; then
   echo "Hadolint installed OK"
 fi
 
+# --- Gitleaks -----------------------------------------------------------
+if should_install "gitleaks"; then
+  echo "[setup-tools] Installing Gitleaks ${GITLEAKS_VERSION}"
+  GITLEAKS_TARBALL="gitleaks_${GITLEAKS_VERSION#v}_linux_x64.tar.gz"
+  download_and_verify \
+    "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/${GITLEAKS_TARBALL}" \
+    "${TMP_DIR}/${GITLEAKS_TARBALL}" \
+    "${GITLEAKS_SHA256}"
+  sudo tar -xzf "${TMP_DIR}/${GITLEAKS_TARBALL}" -C /usr/local/bin gitleaks
+  gitleaks version
+  echo "Gitleaks installed OK"
+fi
+
 # --- SBOM generation ----------------------------------------------------
 case "$SBOM_ECOSYSTEM" in
   maven)
     echo "Generating SBOM for Maven project"
-    mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -q
+    mvn -B -ntp dependency:resolve -q
+    mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -q
     ;;
   npm)
     echo "Generating SBOM for NPM project"
+    npm ci
     npx --yes "@cyclonedx/cyclonedx-npm@${CYCLONEDX_NPM_VERSION}" --output-file target/bom.json
     ;;
   none)
