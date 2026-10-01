@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload SARIF to GitHub Security tab
         if: ${{ !cancelled() && hashFiles(env.OPENGREP_SARIF_OUTPUT) != '' }}
-        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v4.31.2
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.31.2
         with:
           sarif_file: ${{ env.OPENGREP_SARIF_OUTPUT }}
           category: semgrep-app
