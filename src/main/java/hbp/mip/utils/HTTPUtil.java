@@ -3,6 +3,7 @@ package hbp.mip.utils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -45,12 +46,12 @@ public class HTTPUtil {
 
         int respCode = con.getResponseCode();
 
-        BufferedReader in;
-        if (respCode == 200) {
-            in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        } else {
-            in = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+        // An error response without a body has no error stream: answer with an empty body, not a NullPointerException.
+        InputStream body = respCode == 200 ? con.getInputStream() : con.getErrorStream();
+        if (body == null) {
+            return respCode;
         }
+        BufferedReader in = new BufferedReader(new InputStreamReader(body));
         String inputLine;
         StringBuilder response = new StringBuilder();
 

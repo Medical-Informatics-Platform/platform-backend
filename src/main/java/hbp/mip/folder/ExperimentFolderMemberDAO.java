@@ -64,4 +64,8 @@ public class ExperimentFolderMemberDAO {
         this.folderPosition = folderPosition;
     }
 
+    /** Id comparison, not equals: one side may still be an uninitialized association proxy. */
+    public boolean isIn(ExperimentSetDAO set) {
+        return experimentSet != null && set.getId() != null && set.getId().equals(experimentSet.getId());
+    }
 }

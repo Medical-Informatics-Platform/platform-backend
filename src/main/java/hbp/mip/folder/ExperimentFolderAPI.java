@@ -52,11 +52,11 @@ public class ExperimentFolderAPI {
 
     @PostMapping
     public ResponseEntity<ExperimentFolderDTO> createFolder(Authentication authentication,
-            @RequestBody CreateExperimentFolderDTO createExperimentFolderDTO) {
+            @RequestBody CreateExperimentGroupDTO createExperimentGroupDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders");
         logger.info("Request for experiment folder creation. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(createExperimentFolderDTO));
-        var folder = experimentFolderService.createFolder(authentication, createExperimentFolderDTO, logger);
+                + JsonConverters.convertObjectToJsonString(createExperimentGroupDTO));
+        var folder = experimentFolderService.createFolder(authentication, createExperimentGroupDTO, logger);
         logger.info("Experiment folder created with id: " + folder.id());
         return new ResponseEntity<>(folder, HttpStatus.CREATED);
     }
@@ -74,11 +74,11 @@ public class ExperimentFolderAPI {
     @PatchMapping(value = "/{folderId}")
     public ResponseEntity<ExperimentFolderDTO> renameFolder(Authentication authentication,
             @PathVariable("folderId") String folderId,
-            @RequestBody RenameExperimentFolderDTO renameExperimentFolderDTO) {
+            @RequestBody RenameExperimentGroupDTO renameExperimentGroupDTO) {
         var logger = logger(authentication, "(PATCH) /experiment-folders/" + folderId);
         logger.info("Request for experiment folder rename. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(renameExperimentFolderDTO));
-        var folder = experimentFolderService.renameFolder(authentication, folderId, renameExperimentFolderDTO, logger);
+                + JsonConverters.convertObjectToJsonString(renameExperimentGroupDTO));
+        var folder = experimentFolderService.renameFolder(authentication, folderId, renameExperimentGroupDTO, logger);
         logger.info("Experiment folder renamed. Id: " + folderId);
         return new ResponseEntity<>(folder, HttpStatus.OK);
     }
@@ -122,11 +122,11 @@ public class ExperimentFolderAPI {
     @PostMapping(value = "/{folderId}/sets")
     public ResponseEntity<ExperimentFolderDTO> createSet(Authentication authentication,
             @PathVariable("folderId") String folderId,
-            @RequestBody CreateExperimentSetDTO createExperimentSetDTO) {
+            @RequestBody CreateExperimentGroupDTO createExperimentGroupDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders/" + folderId + "/sets");
         logger.info("Request for experiment set creation. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(createExperimentSetDTO));
-        var folder = experimentFolderService.createSet(authentication, folderId, createExperimentSetDTO, logger);
+                + JsonConverters.convertObjectToJsonString(createExperimentGroupDTO));
+        var folder = experimentFolderService.createSet(authentication, folderId, createExperimentGroupDTO, logger);
         logger.info("Experiment set created in folder: " + folderId);
         return new ResponseEntity<>(folder, HttpStatus.CREATED);
     }
@@ -135,11 +135,11 @@ public class ExperimentFolderAPI {
     public ResponseEntity<ExperimentFolderDTO> renameSet(Authentication authentication,
             @PathVariable("folderId") String folderId,
             @PathVariable("setId") String setId,
-            @RequestBody RenameExperimentSetDTO renameExperimentSetDTO) {
+            @RequestBody RenameExperimentGroupDTO renameExperimentGroupDTO) {
         var logger = logger(authentication, "(PATCH) /experiment-folders/" + folderId + "/sets/" + setId);
         logger.info("Request for experiment set rename. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(renameExperimentSetDTO));
-        var folder = experimentFolderService.renameSet(authentication, folderId, setId, renameExperimentSetDTO, logger);
+                + JsonConverters.convertObjectToJsonString(renameExperimentGroupDTO));
+        var folder = experimentFolderService.renameSet(authentication, folderId, setId, renameExperimentGroupDTO, logger);
         logger.info("Experiment set renamed. Id: " + setId);
         return new ResponseEntity<>(folder, HttpStatus.OK);
     }

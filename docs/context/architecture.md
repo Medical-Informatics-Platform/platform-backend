@@ -6,7 +6,7 @@ This is a backend service for the Medical Informatics Platform. It is a Java 21 
 ## High-Level Structure
 The application entrypoint is `hbp.mip.MIPApplication`. APIs are grouped by feature package:
 
-- `algorithm`: exposes available algorithms, fetches algorithm metadata from Exaflow, and filters disabled algorithms.
+- `algorithm`: runs analyses through Exaflow (`/analysis`) and exposes Exaflow's inputdata, preprocessing and algorithm specifications (`/specifications/*`).
 - `datamodel`: exposes data models and dataset metadata from Exaflow, filtered by user claims when authentication is enabled.
 - `experiment`: creates, lists, updates, deletes, and executes experiments; persists experiment records in PostgreSQL.
 - `user`: resolves the active user from OAuth2/OIDC or JWT authentication and persists user profile/NDA state.

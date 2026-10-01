@@ -30,15 +30,15 @@ Notes: Raw authority strings are intentional and should not be automatically pre
 
 ## `src/main/java/hbp/mip/algorithm`
 
-Purpose: Algorithm metadata API and service.
+Purpose: Analysis execution (`POST /analysis`) and Exaflow specification endpoints (`GET /specifications/{inputdata,preprocessing,algorithms}`).
 
-Key files: `AlgorithmsAPI.java`, `AlgorithmService.java`, `AlgorithmsSpecs.java`, algorithm DTOs.
+Key files: `AnalysisAPI.java`, `AnalysisService.java`, `AnalysisRequestDTO.java`, `SpecificationsAPI.java`, `SpecificationsService.java`, specification DTOs.
 
-Used by: Clients requesting available algorithms and experiment execution validation paths.
+Used by: The UI and notebook client for specifications and analysis runs; `ExperimentService` for persisted and transient experiments.
 
-Rules: Keep Exaflow metadata fetching and disabled algorithm filtering in the service layer.
+Rules: Keep Exaflow calls in the service layer. Dataset access checks must cover `inputdata.allDatasets()` (datasets plus validation datasets).
 
-Tests: Mock Exaflow responses and disabled algorithm resources for service tests.
+Tests: `AnalysisServiceRequestIdTest`, `AnalysisRequestDTODeserializationTest`, `AlgorithmSpecificationDTOTest`, `ExaflowKMeansAndSmdContractTest`.
 
 
 ## `src/main/java/hbp/mip/datamodel`

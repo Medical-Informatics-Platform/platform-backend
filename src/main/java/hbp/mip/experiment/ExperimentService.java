@@ -139,7 +139,7 @@ public class ExperimentService {
 
     public ExperimentDTO createExperiment(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
             Logger logger) {
-        requireAnalysisPayload(experimentExecutionDTO, logger);
+        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
         validateDatasetAccess(authentication, experimentExecutionDTO, logger);
@@ -151,19 +151,11 @@ public class ExperimentService {
         return new ExperimentDTO(experimentDAO, false);
     }
 
-    private void requireAnalysisPayload(ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        if (experimentExecutionDTO.analysis() == null) {
-            String errorMessage = "Missing required analysis payload.";
-            logger.warn(errorMessage);
-            throw new BadRequestException(errorMessage);
-        }
-    }
-
     private void validateDatasetAccess(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
             Logger logger) {
         if (authenticationIsEnabled) {
             claimUtils.validateAccessRightsOnDatasets(authentication,
-                    experimentExecutionDTO.analysis().inputdata().datasets(), logger);
+                    experimentExecutionDTO.analysis().inputdata().allDatasets(), logger);
         }
     }
 
@@ -184,13 +176,13 @@ public class ExperimentService {
                 experimentDAO.setStatus(ExperimentDAO.Status.error);
             }
             experimentRepository.finishExperiment(experimentDAO, logger);
-            logger.info("Experiment finished: " + experimentDAO);
+            logger.info("Experiment finished. Id: " + experimentDAO.getUuid() + ", status: " + experimentDAO.getStatus());
         }).start();
     }
 
     public ExperimentDTO runTransientExperiment(Authentication authentication,
             ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        requireAnalysisPayload(experimentExecutionDTO, logger);
+        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
         validateDatasetAccess(authentication, experimentExecutionDTO, logger);
