@@ -2,6 +2,9 @@ name: Software Composition Analysis (SCA)
 
 on:
   pull_request:
+  push:
+    branches:
+      - master
   workflow_dispatch:
   schedule:
     - cron: '0 2 * * 1' # weekly SCA scan, every Monday 02:00 UTC
