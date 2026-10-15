@@ -38,9 +38,11 @@
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
         <!-- Security: jackson-databind <= 2.21.4 and 3.x < 3.1.5 are affected by
              CVE-2026-59889 / GHSA-5gvw-p9qm-jgwh (@JsonView bypass on @JsonUnwrapped
-             deserialization). 3.2.2 and 2.22.2 are the newest fixed BOMs. -->
-        <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
-        <jackson-bom.version>3.2.2</jackson-bom.version>
+             deserialization). 2.22.0-2.22.2 and 3.2.0-3.2.2 are in turn affected by
+             GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24 and
+             GHSA-wv8q-qhhj-9h54 (parser/databind DoS). 2.22.3 and 3.2.3 fix all of them. -->
+        <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
+        <jackson-bom.version>3.2.3</jackson-bom.version>
     </properties>
 
     <dependencies>
