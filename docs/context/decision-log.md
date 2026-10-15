@@ -93,3 +93,17 @@ Validation: Ran each upgraded tool with the exact command lines from `ci/sca_sca
 Files affected: `ci/setup-tools.sh`, `.github/workflows/sca.yml`, `.github/workflows/sast.yml`, `.github/workflows/container-scan.yml`, `.github/workflows/publish_images.yml`
 
 Date: 2026-09-15
+
+### Decision: Save a studio run without executing it again
+
+Status: Accepted
+
+Context: The studio's "Run experiment" used `POST /experiments/transient`, which discards the result, so "Save experiment" called `POST /experiments` and executed the whole analysis a second time. The saved experiment could differ from the reviewed one (parameters edited after the run, randomised algorithms such as K-means or cross-validation splits), and saving waited for a second run.
+
+Decision: `POST /experiments/runs` runs synchronously like `/transient` but keeps a successful result in a new `experiment_run` table owned by the user. `POST /experiments/runs/{runId}/save` copies that row into `experiment` (status `success`, the run's `created`/`finished` and MIP version) without calling Exaflow and after re-checking dataset access. The UI never uploads a result: results are still written only by the backend, which is why `PATCH /experiments/{uuid}` keeps rejecting `result`. Kept runs live in their own table so they never show up in experiment lists, folders or sharing, and expire after `experiments.run-draft-ttl` (default 24h), purged when a new run is kept. A run can be saved more than once ("Save a copy").
+
+Consequences: A result left unsaved for longer than the TTL must be run again before saving (404). Existing `POST /experiments` and `POST /experiments/transient` behaviour is unchanged for other clients.
+
+Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentRunDAO.java`, `ExperimentRunRepository.java`, `SaveExperimentRunDTO.java`, `V3__ExperimentRunDrafts.sql`, `application.yml`
+
+Date: 2026-10-13

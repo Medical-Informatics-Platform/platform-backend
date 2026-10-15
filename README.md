@@ -27,6 +27,9 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 #### EXTERNAL SERVICES ###
 * EXAFLOW_URL: URL to Exaflow server. Default is "http://localhost:5000" .
 
+#### EXPERIMENTS ###
+* EXPERIMENT_RUN_DRAFT_TTL: How long an unsaved studio run can still be saved without re-running it, as an ISO-8601 duration. Default is "PT24H".
+
 #### KEYCLOAK ###
 * KEYCLOAK_AUTH_URL: Keycloak authentication URL.
 * KEYCLOAK_REALM: Keycloak realm user for authentication.

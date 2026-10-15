@@ -132,4 +132,32 @@ public class ExperimentAPI {
 
         return new ResponseEntity<>(experimentResponse, HttpStatus.OK);
     }
+
+    @PostMapping(value = "/runs")
+    public ResponseEntity<ExperimentDTO> runExperiment(Authentication authentication,
+            @RequestBody ExperimentExecutionDTO experimentExecutionDTO) {
+        var user = activeUserService.getActiveUser(authentication);
+        var logger = new Logger(user.username(), "(POST) /experiments/runs");
+        logger.info("Request for experiment run. RequestBody: "
+                + JsonConverters.convertObjectToJsonString(experimentExecutionDTO));
+
+        var experimentResponse = experimentService.runExperiment(authentication, user, experimentExecutionDTO,
+                logger);
+
+        logger.info("Experiment run finished. Id: " + experimentResponse.uuid()
+                + " Status: " + experimentResponse.status());
+        return new ResponseEntity<>(experimentResponse, HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/runs/{runId}/save")
+    public ResponseEntity<ExperimentDTO> saveExperimentRun(Authentication authentication,
+            @PathVariable("runId") String runId, @RequestBody SaveExperimentRunDTO saveExperimentRunDTO) {
+        var user = activeUserService.getActiveUser(authentication);
+        var logger = new Logger(user.username(), "(POST) /experiments/runs/" + runId + "/save");
+        logger.info("Request to save experiment run with id: " + runId);
+        var experimentResponse = experimentService.saveExperimentRun(authentication, user, runId,
+                saveExperimentRunDTO.name(), logger);
+        logger.info("Experiment run saved. Run id: " + runId + ", experiment id: " + experimentResponse.uuid());
+        return new ResponseEntity<>(experimentResponse, HttpStatus.CREATED);
+    }
 }

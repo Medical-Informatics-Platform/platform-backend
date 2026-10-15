@@ -65,6 +65,11 @@ services:
 frontend:
   base-url: ${PLATFORM_UI_BASE_URL:http://localhost:4200}
 
+### EXPERIMENTS ###
+experiments:
+  # How long an unsaved studio run stays available to "Save experiment" without re-running it.
+  run-draft-ttl: ${EXPERIMENT_RUN_DRAFT_TTL:PT24H}
+
 ### PLATFORM VERSION ###
 mip:
   version: ${MIP_VERSION:dev}

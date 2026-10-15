@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +37,9 @@ class ExperimentServiceMipVersionTest {
     private ExperimentRepository experimentRepository;
 
     @Mock
+    private ExperimentRunRepository experimentRunRepository;
+
+    @Mock
     private AnalysisService analysisService;
 
     @Mock
@@ -46,7 +50,7 @@ class ExperimentServiceMipVersionTest {
     @BeforeEach
     void setUp() {
         experimentService = new ExperimentService(activeUserService, claimUtils, experimentRepository,
-                analysisService, false, "9.0.0");
+                experimentRunRepository, analysisService, false, "9.0.0", Duration.ofHours(24));
     }
 
     @Test

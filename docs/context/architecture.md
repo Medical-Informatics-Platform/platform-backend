@@ -49,6 +49,7 @@ Persistence is configured in `PersistenceConfiguration`.
 - Flyway runs at startup through a `flyway` bean.
 - JPA scans `hbp.mip.experiment` and `hbp.mip.user`.
 - Existing migration `V1__InitialSchema.sql` creates `user` and `experiment` tables.
+- `V3__ExperimentRunDrafts.sql` creates `experiment_run`, which keeps unsaved studio run results until they are saved or expire.
 - Hibernate is configured with `ddl-auto: validate`, so schema changes should be made through Flyway migrations.
 
 ## API Layer
@@ -56,7 +57,7 @@ The servlet context path is `/services`. Main endpoints include:
 
 - `/algorithms`
 - `/data-models`
-- `/experiments`
+- `/experiments` (including `/experiments/runs` and `/experiments/runs/{runId}/save` for run-then-save without re-execution)
 - `/activeUser`
 
 OpenAPI is configured by `OpenApiConfig` and springdoc dependencies.
@@ -81,7 +82,7 @@ Authorization-sensitive logic appears in `ClaimUtils`, `ExperimentService`, `Dat
 ## Config and Environment Model
 - All runtime config is in `src/main/resources/application.yml` with `${ENV:default}` placeholders.
 - Containers pass environment variables (see `mip/deployment`); no separate config template is rendered at startup.
-- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, and logging.
+- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, `EXPERIMENT_RUN_DRAFT_TTL`, and logging.
 - Do not introduce direct environment reads in business logic; route configuration through Spring properties.
 
 ## Known Gaps

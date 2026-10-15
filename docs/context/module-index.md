@@ -59,7 +59,7 @@ Notes: Data comes from multiple configured Exaflow endpoints and is aggregated i
 
 Purpose: Experiment lifecycle API, business logic, persistence entity, repository, and query specifications.
 
-Key files: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentSpecifications.java`.
+Key files: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentSpecifications.java`, `ExperimentRunDAO.java`, `ExperimentRunRepository.java`.
 
 Used by: Clients creating, listing, updating, deleting, and running experiments.
 
@@ -68,6 +68,15 @@ Rules: Preserve ownership/shared access checks, max page size behavior, immutabl
 Tests: Add service/repository tests for behavior changes and migration checks for schema changes.
 
 Notes: Persisted experiment execution starts a background thread and then updates status/result.
+
+Studio runs keep their result so saving does not execute the analysis again:
+
+```
+POST /experiments/runs                -> 200 experiment   { name, analysis }   (synchronous; uuid is the run id)
+POST /experiments/runs/{runId}/save   -> 201 experiment   { name }             (copies the kept run, no Exaflow call)
+```
+
+A successful run is stored in `experiment_run` for `experiments.run-draft-ttl` (`EXPERIMENT_RUN_DRAFT_TTL`, default `PT24H`); rows older than that are purged whenever a new run is kept. Saving a run that is missing, expired or owned by another user returns 404. The saved experiment keeps the run's `created`/`finished` times and MIP version. `POST /experiments` and `POST /experiments/transient` are unchanged.
 
 ## `src/main/java/hbp/mip/folder`
 

@@ -12,6 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.*;
 
 import static hbp.mip.utils.JsonConverters.convertObjectToJsonString;
@@ -24,23 +25,29 @@ public class ExperimentService {
     private final ActiveUserService activeUserService;
     private final ClaimUtils claimUtils;
     private final ExperimentRepository experimentRepository;
+    private final ExperimentRunRepository experimentRunRepository;
     private final AnalysisService analysisService;
     private final boolean authenticationIsEnabled;
     private final String mipVersion;
+    private final Duration runDraftTtl;
 
     public ExperimentService(
             ActiveUserService activeUserService,
             ClaimUtils claimUtils,
             ExperimentRepository experimentRepository,
+            ExperimentRunRepository experimentRunRepository,
             AnalysisService analysisService,
             @Value("${authentication.enabled}") boolean authenticationIsEnabled,
-            @Value("${mip.version}") String mipVersion) {
+            @Value("${mip.version}") String mipVersion,
+            @Value("${experiments.run-draft-ttl}") Duration runDraftTtl) {
         this.activeUserService = activeUserService;
         this.claimUtils = claimUtils;
         this.experimentRepository = experimentRepository;
+        this.experimentRunRepository = experimentRunRepository;
         this.analysisService = analysisService;
         this.authenticationIsEnabled = authenticationIsEnabled;
         this.mipVersion = mipVersion;
+        this.runDraftTtl = runDraftTtl;
     }
 
     public ExperimentsDTO getExperiments(Authentication authentication, String name, String algorithm, Boolean shared,
@@ -142,7 +149,7 @@ public class ExperimentService {
         AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
-        validateDatasetAccess(authentication, experimentExecutionDTO, logger);
+        validateDatasetAccess(authentication, experimentExecutionDTO.analysis(), logger);
 
         ExperimentDAO experimentDAO = experimentRepository.createExperimentInTheDatabase(experimentExecutionDTO,
                 activeUserService.getActiveUser(authentication), mipVersion, logger);
@@ -151,11 +158,9 @@ public class ExperimentService {
         return new ExperimentDTO(experimentDAO, false);
     }
 
-    private void validateDatasetAccess(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
-            Logger logger) {
+    private void validateDatasetAccess(Authentication authentication, AnalysisRequestDTO analysis, Logger logger) {
         if (authenticationIsEnabled) {
-            claimUtils.validateAccessRightsOnDatasets(authentication,
-                    experimentExecutionDTO.analysis().inputdata().allDatasets(), logger);
+            claimUtils.validateAccessRightsOnDatasets(authentication, analysis.inputdata().allDatasets(), logger);
         }
     }
 
@@ -185,7 +190,7 @@ public class ExperimentService {
         AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
-        validateDatasetAccess(authentication, experimentExecutionDTO, logger);
+        validateDatasetAccess(authentication, experimentExecutionDTO.analysis(), logger);
         UUID uuid = UUID.randomUUID();
         AnalysisService.AnalysisResultDTO analysisResult = analysisService.runAnalysis(
                 uuid,
@@ -197,6 +202,84 @@ public class ExperimentService {
                 analysisResult.code() >= 400 ? ExperimentDAO.Status.error : ExperimentDAO.Status.success,
                 experimentExecutionDTO.analysis(),
                 mipVersion);
+    }
+
+    /**
+     * Runs an analysis like {@link #runTransientExperiment} and, when it succeeds, keeps the result so
+     * {@link #saveExperimentRun} can persist it later without executing the analysis again. The
+     * returned uuid is the run id to save.
+     */
+    public ExperimentDTO runExperiment(Authentication authentication, UserDTO user,
+            ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
+        Date started = new Date();
+        ExperimentDTO run = runTransientExperiment(authentication, experimentExecutionDTO, logger);
+        if (run.status() == ExperimentDAO.Status.success) {
+            keepRun(run, experimentExecutionDTO.analysis(), started, user, logger);
+        }
+        return run;
+    }
+
+    private void keepRun(ExperimentDTO run, AnalysisRequestDTO analysis, Date started, UserDTO user,
+            Logger logger) {
+        ExperimentRunDAO runDAO = new ExperimentRunDAO();
+        runDAO.setUuid(run.uuid());
+        runDAO.setCreatedByUsername(user.username());
+        runDAO.setAlgorithm(convertObjectToJsonString(analysis));
+        runDAO.setAlgorithmId(analysis.algorithm().name());
+        runDAO.setResult(convertObjectToJsonString(run.result()));
+        runDAO.setCreated(started);
+        runDAO.setFinished(new Date());
+        runDAO.setMipVersion(mipVersion);
+
+        // Purging is housekeeping; a failure here must not stop this run from being kept.
+        try {
+            experimentRunRepository.deleteCreatedBefore(runDraftCutoff());
+        } catch (Exception e) {
+            logger.warn("Failed to purge expired runs: " + e.getMessage());
+        }
+
+        // The result is still returned when it cannot be kept; saving it later then reports it as missing.
+        try {
+            experimentRunRepository.save(runDAO);
+        } catch (Exception e) {
+            logger.error("Failed to keep the run in the database: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Persists a run kept by {@link #runExperiment} as an experiment of the active user. The stored
+     * analysis and result are the ones the run produced; nothing is sent to Exaflow.
+     */
+    public ExperimentDTO saveExperimentRun(Authentication authentication, UserDTO user, String runId, String name,
+            Logger logger) {
+        if (name == null || name.isBlank()) {
+            throw new BadRequestException("An experiment name is required.");
+        }
+
+        ExperimentRunDAO run = loadKeptRun(runId, user, logger);
+
+        // Dataset rights were checked when the run executed; check them again in case they were revoked since.
+        validateDatasetAccess(authentication,
+                JsonConverters.convertJsonStringToObject(run.getAlgorithm(), AnalysisRequestDTO.class), logger);
+
+        ExperimentDAO experimentDAO = experimentRepository.createExperimentFromRun(run, name.trim(), user, logger);
+        return new ExperimentDTO(experimentDAO, false);
+    }
+
+    private ExperimentRunDAO loadKeptRun(String runId, UserDTO user, Logger logger) {
+        // Another user's run reads as missing, so run ids cannot be probed.
+        return experimentRunRepository.findById(ExperimentRepository.parseUuid(runId, logger))
+                .filter(run -> run.getCreatedByUsername().equals(user.username()))
+                .filter(run -> !run.getCreated().before(runDraftCutoff()))
+                .orElseThrow(() -> {
+                    logger.warn("Run to save was not found or has expired. Id: " + runId);
+                    return new ExperimentNotFoundException(
+                            "This run is no longer available to save. Run the experiment again.");
+                });
+    }
+
+    private Date runDraftCutoff() {
+        return new Date(System.currentTimeMillis() - runDraftTtl.toMillis());
     }
 
     public ExperimentDTO updateExperiment(UserDTO user, String uuid, ExperimentDTO experiment, Logger logger) {
