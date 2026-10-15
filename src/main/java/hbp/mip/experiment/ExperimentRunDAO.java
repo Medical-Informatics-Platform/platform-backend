@@ -28,8 +28,9 @@ public class ExperimentRunDAO {
     @Column(columnDefinition = "TEXT")
     private String result;
 
+    // The AnalysisRequestDTO the result was computed from, as JSON.
     @Column(columnDefinition = "TEXT")
-    private String algorithm;
+    private String analysis;
 
     @Column(name = "algorithm_id", columnDefinition = "TEXT")
     private String algorithmId;

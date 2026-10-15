@@ -58,23 +58,6 @@ public class AnalysisService {
         return new AnalysisResultDTO(responseCode, result);
     }
 
-    public AnalysisResultDTO runAnalysis(AnalysisRequestDTO analysisRequest, Logger logger) {
-        UUID requestId = analysisRequest.request_id() != null
-                ? parseRequestId(analysisRequest.request_id(), logger)
-                : UUID.randomUUID();
-        return runAnalysis(requestId, analysisRequest, logger);
-    }
-
-    private static UUID parseRequestId(String requestId, Logger logger) {
-        try {
-            return UUID.fromString(requestId);
-        } catch (IllegalArgumentException e) {
-            String errorMessage = "Invalid request_id: must be a valid UUID.";
-            logger.warn(errorMessage);
-            throw new BadRequestException(errorMessage);
-        }
-    }
-
     private static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
             case 200 -> JsonConverters.convertJsonStringToObject(responseBody.toString(), Object.class);

@@ -80,13 +80,15 @@ public class ExperimentAPI {
     }
 
     @PostMapping
-    public ResponseEntity<ExperimentDTO> createExperiment(Authentication authentication,
-            @RequestBody ExperimentExecutionDTO experimentExecutionDTO) {
-        var logger = new Logger(activeUserService.getActiveUser(authentication).username(), "(POST) /experiments");
-        logger.info("Request for experiment creation. RequestBody: "
-                + JsonConverters.convertObjectToJsonString(experimentExecutionDTO));
-        var experimentResponse = experimentService.createExperiment(authentication, experimentExecutionDTO, logger);
-        logger.info("Experiment created with id: " + experimentResponse.uuid());
+    public ResponseEntity<ExperimentDTO> saveExperimentRun(Authentication authentication,
+            @RequestBody SaveExperimentRunDTO saveExperimentRunDTO) {
+        var user = activeUserService.getActiveUser(authentication);
+        var logger = new Logger(user.username(), "(POST) /experiments");
+        logger.info("Request to save experiment run with id: " + saveExperimentRunDTO.runId());
+        var experimentResponse = experimentService.saveExperimentRun(user, saveExperimentRunDTO.runId(),
+                saveExperimentRunDTO.name(), logger);
+        logger.info("Experiment run saved. Run id: " + saveExperimentRunDTO.runId() + ", experiment id: "
+                + experimentResponse.uuid());
         return new ResponseEntity<>(experimentResponse, HttpStatus.CREATED);
     }
 
@@ -112,24 +114,17 @@ public class ExperimentAPI {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping(value = "/transient")
-    public ResponseEntity<ExperimentDTO> createTransientExperiment(Authentication authentication,
+    @PostMapping(value = "/preview")
+    public ResponseEntity<ExperimentDTO> previewExperiment(Authentication authentication,
             @RequestBody ExperimentExecutionDTO experimentExecutionDTO) {
         var logger = new Logger(activeUserService.getActiveUser(authentication).username(),
-                "(POST) /experiments/transient");
-        logger.info("Request for transient experiment creation. RequestBody: "
+                "(POST) /experiments/preview");
+        logger.info("Request for experiment preview. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(experimentExecutionDTO));
 
-        var experimentResponse = experimentService.runTransientExperiment(
-                authentication,
-                experimentExecutionDTO,
-                logger);
+        var experimentResponse = experimentService.previewExperiment(authentication, experimentExecutionDTO, logger);
 
-        logger.info(
-                "Experiment (transient) finished. " +
-                        " Status: " + experimentResponse.status() +
-                        " Result: " + experimentResponse.result());
-
+        logger.info("Experiment preview finished. Status: " + experimentResponse.status());
         return new ResponseEntity<>(experimentResponse, HttpStatus.OK);
     }
 
@@ -147,17 +142,5 @@ public class ExperimentAPI {
         logger.info("Experiment run finished. Id: " + experimentResponse.uuid()
                 + " Status: " + experimentResponse.status());
         return new ResponseEntity<>(experimentResponse, HttpStatus.OK);
-    }
-
-    @PostMapping(value = "/runs/{runId}/save")
-    public ResponseEntity<ExperimentDTO> saveExperimentRun(Authentication authentication,
-            @PathVariable("runId") String runId, @RequestBody SaveExperimentRunDTO saveExperimentRunDTO) {
-        var user = activeUserService.getActiveUser(authentication);
-        var logger = new Logger(user.username(), "(POST) /experiments/runs/" + runId + "/save");
-        logger.info("Request to save experiment run with id: " + runId);
-        var experimentResponse = experimentService.saveExperimentRun(authentication, user, runId,
-                saveExperimentRunDTO.name(), logger);
-        logger.info("Experiment run saved. Run id: " + runId + ", experiment id: " + experimentResponse.uuid());
-        return new ResponseEntity<>(experimentResponse, HttpStatus.CREATED);
     }
 }
