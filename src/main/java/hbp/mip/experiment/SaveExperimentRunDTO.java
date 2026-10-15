@@ -1,4 +1,4 @@
 package hbp.mip.experiment;
 
-public record SaveExperimentRunDTO(String name) {
+public record SaveExperimentRunDTO(String runId, String name) {
 }

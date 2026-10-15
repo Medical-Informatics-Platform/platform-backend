@@ -30,11 +30,11 @@ Notes: Raw authority strings are intentional and should not be automatically pre
 
 ## `src/main/java/hbp/mip/algorithm`
 
-Purpose: Analysis execution (`POST /analysis`) and Exaflow specification endpoints (`GET /specifications/{inputdata,preprocessing,algorithms}`).
+Purpose: Exaflow analysis execution (`AnalysisService`, called by `ExperimentService`) and Exaflow specification endpoints (`GET /specifications/{inputdata,preprocessing,algorithms}`).
 
-Key files: `AnalysisAPI.java`, `AnalysisService.java`, `AnalysisRequestDTO.java`, `SpecificationsAPI.java`, `SpecificationsService.java`, specification DTOs.
+Key files: `AnalysisService.java`, `AnalysisRequestDTO.java`, `SpecificationsAPI.java`, `SpecificationsService.java`, specification DTOs.
 
-Used by: The UI and notebook client for specifications and analysis runs; `ExperimentService` for persisted and transient experiments.
+Used by: The UI and notebook client for specifications; `ExperimentService` for experiment previews and runs.
 
 Rules: Keep Exaflow calls in the service layer. Dataset access checks must cover `inputdata.allDatasets()` (datasets plus validation datasets).
 
@@ -67,16 +67,15 @@ Rules: Preserve ownership/shared access checks, max page size behavior, immutabl
 
 Tests: Add service/repository tests for behavior changes and migration checks for schema changes.
 
-Notes: Persisted experiment execution starts a background thread and then updates status/result.
-
-Studio runs keep their result so saving does not execute the analysis again:
+Notes: Every analysis executes synchronously through `/experiments/preview` or `/experiments/runs`; saving never calls Exaflow. The `analysis` column of `experiment` and `experiment_run` holds the `AnalysisRequestDTO` JSON; the algorithm name is in `algorithm_id`.
 
 ```
-POST /experiments/runs                -> 200 experiment   { name, analysis }   (synchronous; uuid is the run id)
-POST /experiments/runs/{runId}/save   -> 201 experiment   { name }             (copies the kept run, no Exaflow call)
+POST /experiments/preview   -> 200 experiment   { name, analysis }   (compute and return, nothing stored)
+POST /experiments/runs      -> 200 experiment   { name, analysis }   (compute and keep; uuid is the run id)
+POST /experiments           -> 201 experiment   { runId, name }      (save the kept run, no Exaflow call)
 ```
 
-A successful run is stored in `experiment_run` for `experiments.run-draft-ttl` (`EXPERIMENT_RUN_DRAFT_TTL`, default `PT24H`); rows older than that are purged whenever a new run is kept. Saving a run that is missing, expired or owned by another user returns 404. The saved experiment keeps the run's `created`/`finished` times and MIP version. `POST /experiments` and `POST /experiments/transient` are unchanged.
+A successful run is stored in `experiment_run` for `experiments.run-draft-ttl` (`EXPERIMENT_RUN_DRAFT_TTL`, default `PT24H`); rows older than that are purged whenever a new run is kept. Saving without a `runId` or `name` returns 400; a run that is missing, expired or owned by another user returns 404. The saved experiment keeps the run's `created`/`finished` times and MIP version.
 
 ## `src/main/java/hbp/mip/folder`
 

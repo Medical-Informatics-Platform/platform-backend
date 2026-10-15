@@ -6,7 +6,7 @@ This is a backend service for the Medical Informatics Platform. It is a Java 21 
 ## High-Level Structure
 The application entrypoint is `hbp.mip.MIPApplication`. APIs are grouped by feature package:
 
-- `algorithm`: runs analyses through Exaflow (`/analysis`) and exposes Exaflow's inputdata, preprocessing and algorithm specifications (`/specifications/*`).
+- `algorithm`: runs analyses through Exaflow (for the `experiment` package) and exposes Exaflow's inputdata, preprocessing and algorithm specifications (`/specifications/*`).
 - `datamodel`: exposes data models and dataset metadata from Exaflow, filtered by user claims when authentication is enabled.
 - `experiment`: creates, lists, updates, deletes, and executes experiments; persists experiment records in PostgreSQL.
 - `user`: resolves the active user from OAuth2/OIDC or JWT authentication and persists user profile/NDA state.
@@ -57,7 +57,7 @@ The servlet context path is `/services`. Main endpoints include:
 
 - `/algorithms`
 - `/data-models`
-- `/experiments` (including `/experiments/runs` and `/experiments/runs/{runId}/save` for run-then-save without re-execution)
+- `/experiments` (`/experiments/preview` computes without storing, `/experiments/runs` computes and keeps the result, `POST /experiments` saves a kept run)
 - `/activeUser`
 
 OpenAPI is configured by `OpenApiConfig` and springdoc dependencies.

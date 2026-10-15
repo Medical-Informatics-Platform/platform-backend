@@ -144,48 +144,14 @@ public class ExperimentService {
         }
     }
 
-    public ExperimentDTO createExperiment(Authentication authentication, ExperimentExecutionDTO experimentExecutionDTO,
-            Logger logger) {
-        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
-        analysisParametersLogging(experimentExecutionDTO, logger);
-
-        validateDatasetAccess(authentication, experimentExecutionDTO.analysis(), logger);
-
-        ExperimentDAO experimentDAO = experimentRepository.createExperimentInTheDatabase(experimentExecutionDTO,
-                activeUserService.getActiveUser(authentication), mipVersion, logger);
-        runAnalysisInBackground(experimentDAO, experimentExecutionDTO, logger);
-
-        return new ExperimentDTO(experimentDAO, false);
-    }
-
     private void validateDatasetAccess(Authentication authentication, AnalysisRequestDTO analysis, Logger logger) {
         if (authenticationIsEnabled) {
             claimUtils.validateAccessRightsOnDatasets(authentication, analysis.inputdata().allDatasets(), logger);
         }
     }
 
-    private void runAnalysisInBackground(ExperimentDAO experimentDAO, ExperimentExecutionDTO experimentExecutionDTO,
-            Logger logger) {
-        new Thread(() -> {
-            try {
-                logger.debug("Experiment analysis execution started in a background thread.");
-                AnalysisService.AnalysisResultDTO resultDTO = analysisService.runAnalysis(
-                        experimentDAO.getUuid(),
-                        experimentExecutionDTO.analysis(),
-                        logger);
-                experimentDAO.setResult(convertObjectToJsonString(resultDTO.body()));
-                experimentDAO
-                        .setStatus(resultDTO.code() >= 400 ? ExperimentDAO.Status.error : ExperimentDAO.Status.success);
-            } catch (Exception e) {
-                logger.error("Exaflow analysis execution failed: " + e.getMessage());
-                experimentDAO.setStatus(ExperimentDAO.Status.error);
-            }
-            experimentRepository.finishExperiment(experimentDAO, logger);
-            logger.info("Experiment finished. Id: " + experimentDAO.getUuid() + ", status: " + experimentDAO.getStatus());
-        }).start();
-    }
-
-    public ExperimentDTO runTransientExperiment(Authentication authentication,
+    /** Runs an analysis and returns its result without storing anything. */
+    public ExperimentDTO previewExperiment(Authentication authentication,
             ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
         AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
@@ -205,14 +171,14 @@ public class ExperimentService {
     }
 
     /**
-     * Runs an analysis like {@link #runTransientExperiment} and, when it succeeds, keeps the result so
+     * Runs an analysis like {@link #previewExperiment} and, when it succeeds, keeps the result so
      * {@link #saveExperimentRun} can persist it later without executing the analysis again. The
      * returned uuid is the run id to save.
      */
     public ExperimentDTO runExperiment(Authentication authentication, UserDTO user,
             ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
         Date started = new Date();
-        ExperimentDTO run = runTransientExperiment(authentication, experimentExecutionDTO, logger);
+        ExperimentDTO run = previewExperiment(authentication, experimentExecutionDTO, logger);
         if (run.status() == ExperimentDAO.Status.success) {
             keepRun(run, experimentExecutionDTO.analysis(), started, user, logger);
         }
@@ -224,7 +190,7 @@ public class ExperimentService {
         ExperimentRunDAO runDAO = new ExperimentRunDAO();
         runDAO.setUuid(run.uuid());
         runDAO.setCreatedByUsername(user.username());
-        runDAO.setAlgorithm(convertObjectToJsonString(analysis));
+        runDAO.setAnalysis(convertObjectToJsonString(analysis));
         runDAO.setAlgorithmId(analysis.algorithm().name());
         runDAO.setResult(convertObjectToJsonString(run.result()));
         runDAO.setCreated(started);
@@ -250,17 +216,16 @@ public class ExperimentService {
      * Persists a run kept by {@link #runExperiment} as an experiment of the active user. The stored
      * analysis and result are the ones the run produced; nothing is sent to Exaflow.
      */
-    public ExperimentDTO saveExperimentRun(Authentication authentication, UserDTO user, String runId, String name,
-            Logger logger) {
+    public ExperimentDTO saveExperimentRun(UserDTO user, String runId, String name, Logger logger) {
         if (name == null || name.isBlank()) {
             throw new BadRequestException("An experiment name is required.");
         }
+        if (runId == null || runId.isBlank()) {
+            throw new BadRequestException("A runId is required.");
+        }
 
+        // Dataset access was validated when the run executed; the kept run is owner-only, so it is not checked again.
         ExperimentRunDAO run = loadKeptRun(runId, user, logger);
-
-        // Dataset rights were checked when the run executed; check them again in case they were revoked since.
-        validateDatasetAccess(authentication,
-                JsonConverters.convertJsonStringToObject(run.getAlgorithm(), AnalysisRequestDTO.class), logger);
 
         ExperimentDAO experimentDAO = experimentRepository.createExperimentFromRun(run, name.trim(), user, logger);
         return new ExperimentDTO(experimentDAO, false);

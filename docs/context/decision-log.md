@@ -100,10 +100,24 @@ Status: Accepted
 
 Context: The studio's "Run experiment" used `POST /experiments/transient`, which discards the result, so "Save experiment" called `POST /experiments` and executed the whole analysis a second time. The saved experiment could differ from the reviewed one (parameters edited after the run, randomised algorithms such as K-means or cross-validation splits), and saving waited for a second run.
 
-Decision: `POST /experiments/runs` runs synchronously like `/transient` but keeps a successful result in a new `experiment_run` table owned by the user. `POST /experiments/runs/{runId}/save` copies that row into `experiment` (status `success`, the run's `created`/`finished` and MIP version) without calling Exaflow and after re-checking dataset access. The UI never uploads a result: results are still written only by the backend, which is why `PATCH /experiments/{uuid}` keeps rejecting `result`. Kept runs live in their own table so they never show up in experiment lists, folders or sharing, and expire after `experiments.run-draft-ttl` (default 24h), purged when a new run is kept. A run can be saved more than once ("Save a copy").
+Decision: `POST /experiments/runs` runs synchronously like `/transient` but keeps a successful result in a new `experiment_run` table owned by the user. `POST /experiments/runs/{runId}/save` copies that row into `experiment` (status `success`, the run's `created`/`finished` and MIP version) without calling Exaflow. Dataset access is validated when the run executes and is not checked again on save; the kept run is owner-only and its result was already returned to that user. The UI never uploads a result: results are still written only by the backend, which is why `PATCH /experiments/{uuid}` keeps rejecting `result`. Kept runs live in their own table so they never show up in experiment lists, folders or sharing, and expire after `experiments.run-draft-ttl` (default 24h), purged when a new run is kept. A run can be saved more than once ("Save a copy").
 
 Consequences: A result left unsaved for longer than the TTL must be run again before saving (404). Existing `POST /experiments` and `POST /experiments/transient` behaviour is unchanged for other clients.
 
 Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentRunDAO.java`, `ExperimentRunRepository.java`, `SaveExperimentRunDTO.java`, `V3__ExperimentRunDrafts.sql`, `application.yml`
 
 Date: 2026-10-13
+
+### Decision: One experiment API for preview, run and save
+
+Status: Accepted
+
+Context: Analyses could be executed from four places: `POST /analysis`, `POST /experiments/transient`, `POST /experiments/runs` and the asynchronous `POST /experiments`, while saving used `POST /experiments/runs/{runId}/save`. The difference between an "analysis" and an "experiment" was unclear, and the `experiment.algorithm` column actually held the whole analysis.
+
+Decision: All routes live under `/experiments`. `POST /experiments/preview` (was `/transient`) computes and returns a result without storing it; the studio's histogram, descriptive, outlier and K-means previews use it. `POST /experiments/runs` computes and keeps the result. `POST /experiments` takes `{ runId, name }` and saves a kept run. `POST /analysis`, `POST /experiments/transient`, `POST /experiments/runs/{runId}/save` and the asynchronous create-and-run `POST /experiments` are removed. V4 renames the `algorithm` column to `analysis` in `experiment` and `experiment_run`.
+
+Consequences: Breaking change. The UI and the notebook client must switch to the new routes in the same release. A client that still posts an analysis to `POST /experiments` gets 400 (`runId` is required). Analyses now always run synchronously, so a long analysis is bounded by the HTTP and ingress timeouts. Existing `pending` experiments created by the removed asynchronous path stay `pending`.
+
+Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentRunDAO.java`, `SaveExperimentRunDTO.java`, `AnalysisService.java`, removed `AnalysisAPI.java`, `V4__RenameAlgorithmColumnToAnalysis.sql`
+
+Date: 2026-10-15

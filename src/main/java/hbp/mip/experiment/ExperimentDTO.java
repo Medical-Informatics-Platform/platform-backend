@@ -36,7 +36,7 @@ public record ExperimentDTO(
                                 Object.class)
                         : null,
                 experimentDAO.getStatus(),
-                JsonConverters.convertJsonStringToObject(experimentDAO.getAlgorithm(), AnalysisRequestDTO.class),
+                JsonConverters.convertJsonStringToObject(experimentDAO.getAnalysis(), AnalysisRequestDTO.class),
                 experimentDAO.getMipVersion());
     }
 }

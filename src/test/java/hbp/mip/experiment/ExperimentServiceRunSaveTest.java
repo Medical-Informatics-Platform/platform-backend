@@ -114,7 +114,7 @@ class ExperimentServiceRunSaveTest {
 
     @Test
     void saveExperimentRun_rejectsInvalidRunId() {
-        assertThatThrownBy(() -> experimentService.saveExperimentRun(authentication, USER, "not-a-uuid", "name",
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, "not-a-uuid", "name",
                 logger)).isInstanceOf(BadRequestException.class);
         verifyNoInteractions(experimentRunRepository, experimentRepository);
     }
@@ -125,7 +125,7 @@ class ExperimentServiceRunSaveTest {
         when(experimentRunRepository.findById(run.getUuid())).thenReturn(Optional.of(run));
         when(experimentRepository.createExperimentFromRun(any(), anyString(), any(), any())).thenCallRealMethod();
 
-        var response = experimentService.saveExperimentRun(authentication, USER, run.getUuid().toString(),
+        var response = experimentService.saveExperimentRun(USER, run.getUuid().toString(),
                 "  My experiment  ", logger);
 
         var saved = ArgumentCaptor.forClass(ExperimentDAO.class);
@@ -136,7 +136,7 @@ class ExperimentServiceRunSaveTest {
         assertThat(experiment.getCreatedBy().getUsername()).isEqualTo("user");
         assertThat(experiment.getStatus()).isEqualTo(ExperimentDAO.Status.success);
         assertThat(experiment.getResult()).isEqualTo(run.getResult());
-        assertThat(experiment.getAlgorithm()).isEqualTo(run.getAlgorithm());
+        assertThat(experiment.getAnalysis()).isEqualTo(run.getAnalysis());
         assertThat(experiment.getAlgorithmId()).isEqualTo("histogram");
         assertThat(experiment.getCreated()).isEqualTo(run.getCreated());
         assertThat(experiment.getFinished()).isEqualTo(run.getFinished());
@@ -147,15 +147,15 @@ class ExperimentServiceRunSaveTest {
     }
 
     @Test
-    void saveExperimentRun_rechecksDatasetAccessWhenAuthenticationIsEnabled() {
+    void saveExperimentRun_doesNotRecheckDatasetAccess() {
         experimentService = service(true);
         var run = keptRun("user", hoursAgo(1));
         when(experimentRunRepository.findById(run.getUuid())).thenReturn(Optional.of(run));
         when(experimentRepository.createExperimentFromRun(any(), anyString(), any(), any())).thenCallRealMethod();
 
-        experimentService.saveExperimentRun(authentication, USER, run.getUuid().toString(), "name", logger);
+        experimentService.saveExperimentRun(USER, run.getUuid().toString(), "name", logger);
 
-        verify(claimUtils).validateAccessRightsOnDatasets(eq(authentication), eq(List.of("ds1")), any(Logger.class));
+        verifyNoInteractions(claimUtils);
     }
 
     @Test
@@ -163,7 +163,7 @@ class ExperimentServiceRunSaveTest {
         var run = keptRun("someone-else", hoursAgo(1));
         when(experimentRunRepository.findById(run.getUuid())).thenReturn(Optional.of(run));
 
-        assertThatThrownBy(() -> experimentService.saveExperimentRun(authentication, USER, run.getUuid().toString(),
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, run.getUuid().toString(),
                 "name", logger)).isInstanceOf(ExperimentNotFoundException.class);
         verify(experimentRepository, never()).save(any());
     }
@@ -173,7 +173,7 @@ class ExperimentServiceRunSaveTest {
         var run = keptRun("user", hoursAgo(25));
         when(experimentRunRepository.findById(run.getUuid())).thenReturn(Optional.of(run));
 
-        assertThatThrownBy(() -> experimentService.saveExperimentRun(authentication, USER, run.getUuid().toString(),
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, run.getUuid().toString(),
                 "name", logger)).isInstanceOf(ExperimentNotFoundException.class);
         verify(experimentRepository, never()).save(any());
     }
@@ -183,13 +183,20 @@ class ExperimentServiceRunSaveTest {
         var runId = UUID.randomUUID();
         when(experimentRunRepository.findById(runId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> experimentService.saveExperimentRun(authentication, USER, runId.toString(), "name", logger))
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, runId.toString(), "name", logger))
                 .isInstanceOf(ExperimentNotFoundException.class);
     }
 
     @Test
+    void saveExperimentRun_rejectsMissingRunId() {
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, null, "name", logger))
+                .isInstanceOf(BadRequestException.class);
+        verifyNoInteractions(experimentRunRepository, experimentRepository);
+    }
+
+    @Test
     void saveExperimentRun_rejectsBlankName() {
-        assertThatThrownBy(() -> experimentService.saveExperimentRun(authentication, USER, UUID.randomUUID().toString(),
+        assertThatThrownBy(() -> experimentService.saveExperimentRun(USER, UUID.randomUUID().toString(),
                 "   ", logger)).isInstanceOf(BadRequestException.class);
         verifyNoInteractions(experimentRunRepository, experimentRepository);
     }
@@ -203,7 +210,7 @@ class ExperimentServiceRunSaveTest {
         var run = new ExperimentRunDAO();
         run.setUuid(UUID.randomUUID());
         run.setCreatedByUsername(owner);
-        run.setAlgorithm(JsonConverters.convertObjectToJsonString(sampleExecution().analysis()));
+        run.setAnalysis(JsonConverters.convertObjectToJsonString(sampleExecution().analysis()));
         run.setAlgorithmId("histogram");
         run.setResult("{\"ok\":true}");
         run.setCreated(created);

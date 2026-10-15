@@ -35,8 +35,9 @@ public class ExperimentDAO {
     @Column(columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Date finished;
 
+    // The AnalysisRequestDTO the result was computed from, as JSON.
     @Column(columnDefinition = "TEXT")
-    private String algorithm;
+    private String analysis;
 
     @Column(name = "algorithm_id", columnDefinition = "TEXT")
     private String algorithmId;
