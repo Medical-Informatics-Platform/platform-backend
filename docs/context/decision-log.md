@@ -121,3 +121,17 @@ Consequences: Breaking change. The UI and the notebook client must switch to the
 Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentRunDAO.java`, `SaveExperimentRunDTO.java`, `AnalysisService.java`, removed `AnalysisAPI.java`, `V4__RenameAlgorithmColumnToAnalysis.sql`
 
 Date: 2026-10-15
+
+### Decision: Enforce the terms of use on the server
+
+Status: Accepted
+
+Context: `agreeNDA` was only enforced by the portal's TermsGuard. Clients calling the API with a Bearer token (the `mip` notebook client, or a researcher's laptop with a token obtained through JupyterHub) could use every endpoint without ever accepting the terms.
+
+Decision: When `authentication.enabled` is on, `TermsOfUseFilter` runs in the security chain after authorization and answers 403 `{"statusCode":403,"message":"Accept the MIP terms of use in the portal before using the API"}` to any authenticated request (session or Bearer) whose user has not agreed. It does one `findByUsername` per request and never creates users; a user who never called `GET /activeUser` counts as not agreed. Exempt: `/activeUser`, `/activeUser/agreeNDA`, `/activeUser/token` (the portal's terms flow), `/login/**`, `/oauth2/**`, `/logout`, `/actuator/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`. Authentication-disabled mode does not register the filter.
+
+Consequences: Users who have not accepted the terms get 403 on data, specification, experiment and folder endpoints until they accept them in the portal. The portal is unaffected: before the terms page it only calls the exempt endpoints, and its interceptor re-authenticates only on 401/0. `POST /activeUser/agreeNDA` remains reachable with a Bearer token.
+
+Files affected: `TermsOfUseFilter.java`, `SecurityConfiguration.java`, `ActiveUserService.java`, `TermsOfUseFilterTest.java`
+
+Date: 2026-10-16
