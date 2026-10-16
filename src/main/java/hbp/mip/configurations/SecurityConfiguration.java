@@ -1,6 +1,8 @@
 package hbp.mip.configurations;
 
+import hbp.mip.user.ActiveUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -22,10 +24,12 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,8 +39,20 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 public class SecurityConfiguration {
 
+    // Reachable without login, and without accepting the terms of use.
+    static final String[] PUBLIC_PATHS = {
+            "/login/**",
+            "/oauth2/**",
+            "/actuator/**",
+            "/v3/api-docs",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"};
+
     private final SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler;
     private final FrontendRedirectCaptureFilter frontendRedirectCaptureFilter;
+    private final ActiveUserService activeUserService;
+    private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Value("${authentication.enabled}")
     private boolean authenticationEnabled;
@@ -45,9 +61,13 @@ public class SecurityConfiguration {
     private String frontendBaseUrl;
 
     public SecurityConfiguration(SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler,
-            FrontendRedirectCaptureFilter frontendRedirectCaptureFilter) {
+            FrontendRedirectCaptureFilter frontendRedirectCaptureFilter,
+            ActiveUserService activeUserService,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
         this.spaRedirectAuthenticationSuccessHandler = spaRedirectAuthenticationSuccessHandler;
         this.frontendRedirectCaptureFilter = frontendRedirectCaptureFilter;
+        this.activeUserService = activeUserService;
+        this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
     // This Bean is used when there is no authentication and there is no keycloak
@@ -78,14 +98,7 @@ public class SecurityConfiguration {
         if (authenticationEnabled) {
             http.addFilterBefore(frontendRedirectCaptureFilter, OAuth2AuthorizationRequestRedirectFilter.class);
             http.authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/login/**",
-                            "/oauth2/**",
-                            "/actuator/**",
-                            "/v3/api-docs",
-                            "/v3/api-docs/**",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html")
+                    .requestMatchers(PUBLIC_PATHS)
                     .permitAll()
                     .requestMatchers("/**").authenticated());
 
@@ -95,6 +108,10 @@ public class SecurityConfiguration {
             // This runs alongside oauth2Login (session-based) authentication.
             http.oauth2ResourceServer(oauth2 -> oauth2
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+
+            // Terms of use (NDA) apply to session and Bearer clients alike, not only to the portal UI.
+            http.addFilterAfter(new TermsOfUseFilter(activeUserService, handlerExceptionResolver, PUBLIC_PATHS),
+                    AuthorizationFilter.class);
 
             // Open ID Logout
             // https://docs.spring.io/spring-security/reference/servlet/oauth2/login/advanced.html#oauth2login-advanced-oidc-logout
