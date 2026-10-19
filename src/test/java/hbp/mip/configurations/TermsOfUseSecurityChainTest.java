@@ -9,6 +9,7 @@ import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,10 +23,14 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
@@ -61,10 +66,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The terms-of-use gate through the real SecurityConfiguration filter chain, so moving the filter to a point
  * where the session or Bearer authentication is not yet known fails here. The real ActiveUserAPI and
  * ControllerExceptionHandler render the responses; /experiments is a stand-in. No datasource, Keycloak or
- * Exaflow. A Bearer token's value is the username it authenticates.
+ * Exaflow. A Bearer token's value is {@code <username>[.<azp>]}; azp defaults to the platform client.
  */
 @SpringJUnitWebConfig(TermsOfUseSecurityChainTest.Config.class)
-@TestPropertySource(properties = "authentication.enabled=1")
+@TestPropertySource(properties = {"authentication.enabled=1",
+        "spring.security.oauth2.client.registration.keycloak.client-id=client"})
 class TermsOfUseSecurityChainTest {
 
     @Autowired
@@ -102,6 +108,15 @@ class TermsOfUseSecurityChainTest {
         mvc.perform(withBearer(get("/services/experiments"), "alice"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("experiments"));
+    }
+
+    @Test
+    void bearerTokenOfAnotherClientIsRejected() throws Exception {
+        storedUser("alice", true);
+
+        // e.g. another federation's portal token, whatever its aud says.
+        mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -202,15 +217,26 @@ class TermsOfUseSecurityChainTest {
             return new InMemoryOAuth2AuthorizedClientService(registrations);
         }
 
+        // Applies every OAuth2TokenValidator<Jwt> bean, as Spring Boot's issuer-uri JwtDecoder does.
         @Bean
-        JwtDecoder jwtDecoder() {
-            return token -> Jwt.withTokenValue(token)
-                    .header("alg", "none")
-                    .subject(token)
-                    .claim("preferred_username", token)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(300))
-                    .build();
+        JwtDecoder jwtDecoder(ObjectProvider<OAuth2TokenValidator<Jwt>> validators) {
+            OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(validators.orderedStream().toList());
+            return token -> {
+                String[] parts = token.split("\\.");
+                Jwt jwt = Jwt.withTokenValue(token)
+                        .header("alg", "none")
+                        .subject(parts[0])
+                        .claim("preferred_username", parts[0])
+                        .claim("azp", parts.length > 1 ? parts[1] : "client")
+                        .issuedAt(Instant.now())
+                        .expiresAt(Instant.now().plusSeconds(300))
+                        .build();
+                OAuth2TokenValidatorResult result = validator.validate(jwt);
+                if (result.hasErrors()) {
+                    throw new JwtValidationException("invalid token", result.getErrors());
+                }
+                return jwt;
+            };
         }
 
         @Bean
