@@ -94,7 +94,7 @@ public class SecurityConfiguration {
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.
             http.oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter(keycloakClientId))));
 
             // Terms of use (NDA) apply to session and Bearer clients alike, not only to the portal UI.
             http.addFilterAfter(new TermsOfUseFilter(activeUserService, handlerExceptionResolver, PUBLIC_PATHS),
@@ -159,53 +159,25 @@ public class SecurityConfiguration {
                         "The token was not issued for this MIP platform", null));
     }
 
-    private static JwtAuthenticationConverter jwtAuthenticationConverter() {
+    static JwtAuthenticationConverter jwtAuthenticationConverter(String clientId) {
         JwtGrantedAuthoritiesConverter fallback = new JwtGrantedAuthoritiesConverter();
         // Do not force ROLE_ prefix; the app expects raw authority strings (e.g. research_dataset_*).
         fallback.setAuthorityPrefix("");
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter((Jwt jwt) -> {
-            List<GrantedAuthority> out = new ArrayList<>();
-
             // 1) Preferred: our realm may map roles directly into an "authorities" claim.
-            Object raw = jwt.getClaims().get("authorities");
-            if (raw instanceof Collection<?> col) {
+            List<GrantedAuthority> out = new ArrayList<>(GrantedAuthoritiesMapperImpl.extractAuthorities(jwt.getClaims()));
+
+            // 2) Keycloak default: resource_access.<client>.roles, of this federation's client only.
+            // Realm roles (realm_access) and other clients' roles span every federation of the realm,
+            // so they grant nothing here: no access crosses federations.
+            Object resourceAccess = jwt.getClaims().get("resource_access");
+            if (resourceAccess instanceof Map<?, ?> ra && ra.get(clientId) instanceof Map<?, ?> m
+                    && m.get("roles") instanceof Collection<?> col) {
                 for (Object v : col) {
                     if (v != null) {
                         out.add(new SimpleGrantedAuthority(v.toString()));
-                    }
-                }
-            }
-
-            // 2) Keycloak default: realm_access.roles
-            Object realmAccess = jwt.getClaims().get("realm_access");
-            if (realmAccess instanceof Map<?, ?> m) {
-                Object roles = m.get("roles");
-                if (roles instanceof Collection<?> col) {
-                    for (Object v : col) {
-                        if (v != null) {
-                            out.add(new SimpleGrantedAuthority(v.toString()));
-                        }
-                    }
-                }
-            }
-
-            // 3) Keycloak default: resource_access.<client>.roles (collect all client roles)
-            Object resourceAccess = jwt.getClaims().get("resource_access");
-            if (resourceAccess instanceof Map<?, ?> ra) {
-                for (Object entryVal : ra.values()) {
-                    if (!(entryVal instanceof Map<?, ?> m)) {
-                        continue;
-                    }
-                    Object roles = m.get("roles");
-                    if (!(roles instanceof Collection<?> col)) {
-                        continue;
-                    }
-                    for (Object v : col) {
-                        if (v != null) {
-                            out.add(new SimpleGrantedAuthority(v.toString()));
-                        }
                     }
                 }
             }
