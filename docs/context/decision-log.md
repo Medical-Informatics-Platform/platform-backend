@@ -135,3 +135,17 @@ Consequences: Users who have not accepted the terms get 403 on data, specificati
 Files affected: `TermsOfUseFilter.java`, `SecurityConfiguration.java`, `ActiveUserService.java`, `ActiveUserAPI.java`, `ControllerExceptionHandler.java`, `TermsOfUseNotAcceptedException.java`, `TermsOfUseFilterTest.java`, `TermsOfUseSecurityChainTest.java`, `ActiveUserServiceAgreeToNDATest.java`
 
 Date: 2026-10-16
+
+### Decision: Accept only Bearer tokens issued to this federation's own Keycloak clients
+
+Status: Accepted
+
+Context: The resource server checked only the issuer, so any access token from the realm was accepted, whichever client it was issued to. A first fix also accepted tokens whose `aud` named this platform's client; but Keycloak's default `roles` client scope puts into `aud` every client the user has roles on, so another federation's portal or notebook token passed, and its `authorities` claim (that federation's roles, e.g. `RESEARCH_DATASET_ALL`) granted access here.
+
+Decision: `SecurityConfiguration.keycloakClientValidator` is an `OAuth2TokenValidator<Jwt>` bean, which Spring Boot adds to the issuer-uri `JwtDecoder`. A token passes only when its `azp` (the client Keycloak issued it to) is `KEYCLOAK_CLIENT_ID` (the platform client, shared by the portal and JupyterHub). `aud` is ignored. With no client ID set, every Bearer token is rejected.
+
+Consequences: Tokens of other clients and other federations get 401, whatever their `aud`. Roles therefore always come from this federation's own clients' mappers. Federations that share one client ID (today handson and hbpmip.link share `mippublic`) still accept each other's tokens; give each federation its own client. Another client that must call this API has to be added here explicitly.
+
+Files affected: `SecurityConfiguration.java`, `KeycloakClientValidatorTest.java`, `TermsOfUseSecurityChainTest.java`
+
+Date: 2026-10-23

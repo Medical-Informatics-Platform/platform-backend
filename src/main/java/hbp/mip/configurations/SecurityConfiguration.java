@@ -19,6 +19,10 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -59,6 +63,10 @@ public class SecurityConfiguration {
 
     @Value("${frontend.base-url:}")
     private String frontendBaseUrl;
+
+    // The Keycloak client shared by the portal and JupyterHub.
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-id:}")
+    private String keycloakClientId;
 
     public SecurityConfiguration(SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler,
             FrontendRedirectCaptureFilter frontendRedirectCaptureFilter,
@@ -152,6 +160,24 @@ public class SecurityConfiguration {
 
         }
         return http.build();
+    }
+
+    // Spring Boot adds this to the issuer-uri JwtDecoder: a Bearer token must have been issued to this
+    // federation's own Keycloak client (shared by the portal and JupyterHub), not merely by the same realm.
+    // Keycloak names the requesting client in azp. aud is not enough: other federations' tokens can list this
+    // client there (Keycloak adds every client the user has roles on), and their authorities claim holds the
+    // other federation's roles.
+    @Bean
+    OAuth2TokenValidator<Jwt> keycloakClientValidator() {
+        return clientValidator(keycloakClientId);
+    }
+
+    static OAuth2TokenValidator<Jwt> clientValidator(String... clientIds) {
+        Set<String> allowed = Arrays.stream(clientIds).filter(StringUtils::hasText).collect(Collectors.toSet());
+        return jwt -> allowed.contains(jwt.getClaimAsString("azp"))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                        "The token was not issued for this MIP platform", null));
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter() {
