@@ -149,3 +149,17 @@ Consequences: Tokens of other clients and other federations get 401, whatever th
 Files affected: `SecurityConfiguration.java`, `KeycloakClientValidatorTest.java`, `TermsOfUseSecurityChainTest.java`
 
 Date: 2026-10-23
+
+### Decision: Take Bearer roles only from the federation's own Keycloak client
+
+Status: Accepted
+
+Context: `jwtAuthenticationConverter` collected the roles of every client under `resource_access`. A role that another client of the realm defines (another federation's client, another application) with a name such as `research_dataset_all` therefore granted data access on this platform.
+
+Decision: Each federation has its own Keycloak client (`mippublic` only on the test federation) and access must never cross federations. Bearer authorities come from the `authorities` claim and `resource_access.<KEYCLOAK_CLIENT_ID>.roles` only. Realm roles (`realm_access.roles`) and other clients' roles are ignored, because they apply to every federation of the realm. Portal sessions are unchanged: they read only the ID token's `authorities` claim.
+
+Consequences: Dataset and experiment roles (`research_dataset_*`, `research_experiment_all`) must be client roles of each federation's client, or put into the access token's `authorities` claim by a mapper of that client that adds only that client's roles. A user whose roles are realm roles or another client's roles loses that access through the notebook and the laptop client.
+
+Files affected: `SecurityConfiguration.java`, `JwtAuthoritiesTest.java`
+
+Date: 2026-10-19
