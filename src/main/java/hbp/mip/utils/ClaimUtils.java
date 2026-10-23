@@ -97,15 +97,11 @@ public class ClaimUtils {
                 }
 
                 userDataModelDatasets.add(dataset);
-                if (originalDatasetVariables == null) {
-                    continue;
+                // Unknown variables (null or []) are omitted, same rule as DataModelService.
+                List<String> variables = originalDatasetVariables == null ? null : originalDatasetVariables.get(dataset.code());
+                if (variables != null && !variables.isEmpty()) {
+                    filteredDatasetVariables.put(dataset.code(), variables);
                 }
-
-                List<String> variables = originalDatasetVariables.get(dataset.code());
-                List<String> safeVariables = variables != null
-                        ? Collections.unmodifiableList(new ArrayList<>(variables))
-                        : Collections.emptyList();
-                filteredDatasetVariables.put(dataset.code(), safeVariables);
             }
 
             if (userDataModelDatasets.isEmpty()) {
