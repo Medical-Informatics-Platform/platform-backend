@@ -94,6 +94,22 @@ Files affected: `ci/setup-tools.sh`, `.github/workflows/sca.yml`, `.github/workf
 
 Date: 2026-09-15
 
+### Decision: Upgrade to Spring Boot 4.1.2 and refresh CI pins (October 2026)
+
+Status: Verified locally / needs one CI run
+
+Context: Routine "everything to latest, zero vulnerabilities" pass. Before the change the CycloneDX SBOM already scanned clean (Trivy v0.76.0 and osv-scanner v2.7.0: 0 findings), but Boot, several pinned libraries, four action pins and three scanner pins had newer releases.
+
+Decision: Boot parent 4.1.1 -> 4.1.2 (Spring Framework 7.0.10, Security 7.1.2, Data 2026.0.2, Tomcat 11.0.27), Hibernate 7.4.8.Final -> 7.4.13.Final, Flyway 13.6.0 -> 13.11.1, PostgreSQL JDBC 42.7.13 -> 42.7.14, nimbus-jose-jwt 10.9.1 -> 10.10, Jackson BOMs 2.22.3 / 3.2.3 -> 2.22.4 / 3.2.4. The `tomcat.version` 11.0.25 override is removed because Boot 4.1.2 manages 11.0.27 (newest release, includes the CVE-2026-65905 / CVE-2026-65182 / CVE-2026-68525 fixes). CI: `upload-sarif` -> v4.39.0 everywhere (gitleaks was still on deprecated v2.25.6), `checkout` v6.0.3 -> v7.0.1 in secrets-scan, `upload-artifact` -> v7.0.2, `setup-buildx-action` -> v4.4.1, `build-push-action` -> v7.4.0, Python 3.14.7 -> 3.14.8, Trivy -> v0.76.0, osv-scanner -> v2.7.0, OpenGrep -> v1.31.0, semgrep-rules -> `17e31e11`. Releases younger than the 7-day cooldown (codeql-action v4.39.1, setup-python v7.1.0, Python 3.14.9, Trivy v0.76.1, OpenGrep v1.32.0) are intentionally not taken. Prereleases (Boot 4.2.0-RC1, Hibernate 8.0.0.Beta3, Jakarta Persistence 4.0.0-M7) and Java 25 stay out.
+
+Consequences: No API, schema or config changes. Flyway 13.6 -> 13.11 is a minor bump of the programmatic API only. The Docker base images (`maven:3.9.16-amazoncorretto-21`, `amazoncorretto:21-alpine3.24`) are already the newest tags and the runtime base scans clean with Trivy.
+
+Validation: `mvn -B -ntp verify` passed 75/75 tests on Temurin 21.0.13 + Maven 3.9.16. Trivy (SBOM and `fs`) and osv-scanner (SBOM and `pom.xml`) report 0 findings before and after. Hadolint v2.15.1 and OpenGrep v1.31.0 pass the container and app SAST gates against the new rules ref. `docker build` and the GitHub runner were not exercised locally (no Docker daemon).
+
+Files affected: `pom.xml`, `ci/setup-tools.sh`, `.github/workflows/*.yml`, `AGENTS.md`, `docs/context/risk-register.md`
+
+Date: 2026-10-23
+
 ### Decision: Save a studio run without executing it again
 
 Status: Accepted

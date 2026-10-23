@@ -17,4 +17,3 @@
 | Repository mirroring | Mirror workflow can publish refs to EBRAINS GitLab | `.github/workflows/ebrains.yml` | Review branch/tag triggers and token usage | Yes |
 | Dependency updates | Framework/security/library upgrades can change runtime behavior | `pom.xml` | Explain need, run Maven checks, and consider Docker build | Yes |
 | Token-heavy tool output | Broad file dumps, full logs, or unbounded diffs can exhaust agent context and hide relevant facts | Agent workflow instructions in `AGENTS.md` and `docs/context/conventions.md` | Use bounded searches and summaries; require approval before high-output commands | Yes |
-| Tomcat pinned ahead of the Boot BOM | `pom.xml` pins Tomcat 11.0.25 over Spring Boot 4.1.1's 11.0.24; deleting the override re-exposes CVE-2026-65905, CVE-2026-65182 and CVE-2026-68525 | `pom.xml` | Keep until the Boot BOM manages >= 11.0.25, then drop the override and re-run the dependency scan | No |
