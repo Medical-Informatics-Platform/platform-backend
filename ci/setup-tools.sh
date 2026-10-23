@@ -11,19 +11,19 @@ trap 'echo "[setup-tools] ERROR: command failed (exit $?) at line $LINENO: $BASH
 # *_SHA256 must be overridden as well or verification will fail.
 
 # renovate: datasource=github-release-attachments depName=aquasecurity/trivy
-TRIVY_VERSION="${TRIVY_VERSION:-v0.74.0}"
-TRIVY_SHA256="${TRIVY_SHA256:-2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a}"
+TRIVY_VERSION="${TRIVY_VERSION:-v0.76.0}"
+TRIVY_SHA256="${TRIVY_SHA256:-e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7}"
 
 # renovate: datasource=github-release-attachments depName=google/osv-scanner
-OSV_SCANNER_VERSION="${OSV_SCANNER_VERSION:-v2.5.1}"
-OSV_SCANNER_SHA256="${OSV_SCANNER_SHA256:-f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be}"
+OSV_SCANNER_VERSION="${OSV_SCANNER_VERSION:-v2.7.0}"
+OSV_SCANNER_SHA256="${OSV_SCANNER_SHA256:-160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b}"
 
 # renovate: datasource=github-release-attachments depName=opengrep/opengrep
-OPENGREP_VERSION="${OPENGREP_VERSION:-v1.30.0}"
-OPENGREP_SHA256="${OPENGREP_SHA256:-35779bdd72e92129c8df2a77f0c55e8c08356801ea92591ef32108d6b28d564c}"
+OPENGREP_VERSION="${OPENGREP_VERSION:-v1.31.0}"
+OPENGREP_SHA256="${OPENGREP_SHA256:-dbbe3c2058dbe600c449a8ba22ea79a1643a6660658400090d0323a8d0d31147}"
 
 # renovate: datasource=git-refs depName=https://github.com/semgrep/semgrep-rules
-SEMGREP_RULES_REF="${SEMGREP_RULES_REF:-40b8c63f75dc7c22c8a77482d73bfb864b146f7e}"
+SEMGREP_RULES_REF="${SEMGREP_RULES_REF:-17e31e11ebac99fb7dfe1cd288f7a32151b6f3f9}"
 SEMGREP_RULES_DIR="semgrep-rules"
 
 # renovate: datasource=github-release-attachments depName=hadolint/hadolint
