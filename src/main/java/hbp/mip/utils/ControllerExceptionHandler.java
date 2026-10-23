@@ -61,9 +61,9 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(NoAuthorizedPathologiesException.class)
-    public ResponseEntity<Object> handleNoAuthorizedPathologiesException(
-            NoAuthorizedPathologiesException ex,
+    @ExceptionHandler({NoAuthorizedPathologiesException.class, TermsOfUseNotAcceptedException.class})
+    public ResponseEntity<Object> handleForbiddenException(
+            RuntimeException ex,
             WebRequest request
     ) {
         ErrorMessage message = new ErrorMessage(

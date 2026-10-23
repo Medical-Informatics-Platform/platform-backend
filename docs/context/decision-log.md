@@ -137,3 +137,59 @@ Consequences: Breaking change. The UI and the notebook client must switch to the
 Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentRunDAO.java`, `SaveExperimentRunDTO.java`, `AnalysisService.java`, removed `AnalysisAPI.java`, `V4__RenameAlgorithmColumnToAnalysis.sql`
 
 Date: 2026-10-15
+
+### Decision: Enforce the terms of use on the server
+
+Status: Accepted
+
+Context: `agreeNDA` was only enforced by the portal's TermsGuard. Clients calling the API with a Bearer token (the `mip` notebook client, or a researcher's laptop with a token obtained through JupyterHub) could use every endpoint without ever accepting the terms.
+
+Decision: When `authentication.enabled` is on, `TermsOfUseFilter` runs in the security chain after authorization. Any authenticated request (session or Bearer) whose user has not agreed gets a `TermsOfUseNotAcceptedException`, rendered by `ControllerExceptionHandler` like every other error: 403 `{"statusCode":403,"timestamp":...,"message":"Accept the MIP terms of use in the portal before using the API","description":"uri=..."}`. The filter does one `findByUsername` per request and never creates users; a user who never called `GET /activeUser` counts as not agreed. Exempt: `SecurityConfiguration.PUBLIC_PATHS` (login, OAuth2, actuator, API docs, Swagger; one list for `permitAll` and the filter), `GET /activeUser` and `POST /activeUser/agreeNDA`. `/activeUser/token` is not exempt: nothing calls it before the terms page. `ActiveUserService.agreeToNDA` accepts only portal sessions (`OAuth2AuthenticationToken`); any other client gets the same 403, so the terms are always accepted by a person in the portal. Authentication-disabled mode does not register the filter, and `agreeToNDA` keeps working for the anonymous user.
+
+Consequences: Users who have not accepted the terms get 403 on data, specification, experiment, folder and token endpoints until they accept them in the portal. The portal is unaffected: before the terms page it only calls the exempt endpoints, and its interceptor re-authenticates only on 401/0. Bearer users are looked up by `preferred_username`, as the portal stores them; the JupyterHub login requests the `profile` scope, so its tokens carry the claim. The agreed flag is not cached in the session: a request can carry both a portal cookie and another user's Bearer token, and one indexed lookup is cheap.
+
+Files affected: `TermsOfUseFilter.java`, `SecurityConfiguration.java`, `ActiveUserService.java`, `ActiveUserAPI.java`, `ControllerExceptionHandler.java`, `TermsOfUseNotAcceptedException.java`, `TermsOfUseFilterTest.java`, `TermsOfUseSecurityChainTest.java`, `ActiveUserServiceAgreeToNDATest.java`
+
+Date: 2026-10-16
+
+### Decision: Accept only Bearer tokens issued to this federation's own Keycloak clients
+
+Status: Accepted
+
+Context: The resource server checked only the issuer, so any access token from the realm was accepted, whichever client it was issued to. A first fix also accepted tokens whose `aud` named this platform's client; but Keycloak's default `roles` client scope puts into `aud` every client the user has roles on, so another federation's portal or notebook token passed, and its `authorities` claim (that federation's roles, e.g. `RESEARCH_DATASET_ALL`) granted access here.
+
+Decision: `SecurityConfiguration.keycloakClientValidator` is an `OAuth2TokenValidator<Jwt>` bean, which Spring Boot adds to the issuer-uri `JwtDecoder`. A token passes only when its `azp` (the client Keycloak issued it to) is `KEYCLOAK_CLIENT_ID` (the platform client, shared by the portal and JupyterHub) or `KEYCLOAK_CLI_CLIENT_ID` (the public client of the mip client on users' own computers, when set). `aud` is ignored. With neither set, every Bearer token is rejected.
+
+Consequences: Tokens of other clients and other federations get 401, whatever their `aud`. Roles therefore always come from this federation's own clients' mappers. Federations that share one client ID (today handson and hbpmip.link share `mippublic`) still accept each other's tokens; give each federation its own client. Another client that must call this API has to be added here explicitly.
+
+Files affected: `SecurityConfiguration.java`, `KeycloakClientValidatorTest.java`, `TermsOfUseSecurityChainTest.java`
+
+Date: 2026-10-23
+
+### Decision: Take Bearer roles only from the federation's own Keycloak client
+
+Status: Accepted
+
+Context: `jwtAuthenticationConverter` collected the roles of every client under `resource_access`. A role that another client of the realm defines (another federation's client, another application) with a name such as `research_dataset_all` therefore granted data access on this platform.
+
+Decision: Each federation has its own Keycloak client (`mippublic` only on the test federation) and access must never cross federations. Bearer authorities come from the `authorities` claim and `resource_access.<KEYCLOAK_CLIENT_ID>.roles` only. Realm roles (`realm_access.roles`) and other clients' roles are ignored, because they apply to every federation of the realm. Portal sessions are unchanged: they read only the ID token's `authorities` claim.
+
+Consequences: Dataset and experiment roles (`research_dataset_*`, `research_experiment_all`) must be client roles of each federation's client, or put into the access token's `authorities` claim by a mapper of that client that adds only that client's roles. A user whose roles are realm roles or another client's roles loses that access through the notebook and the laptop client.
+
+Files affected: `SecurityConfiguration.java`, `JwtAuthoritiesTest.java`
+
+Date: 2026-10-19
+
+### Decision: Users' own computers sign in with a public Keycloak client, not through JupyterHub
+
+Status: Accepted
+
+Context: The laptop client got its access token from JupyterHub: users created a hub API token and the hub handed out the Keycloak token it kept from their last sign-in. Authentication then depended on the hub and on a recent Notebook visit, and the hub decided token lifetimes.
+
+Decision: `GET /auth-config` (public, in `PUBLIC_PATHS`) returns the issuer (`spring.security.oauth2.resourceserver.jwt.issuer-uri`) and `authentication.cli_client_id` (`KEYCLOAK_CLI_CLIENT_ID`), or 404 when the latter is empty. The portal's account page creates a token by signing in as that public client in the browser (authorization code with PKCE, `offline_access`) and shows the offline refresh token once; `mip login` can instead run the OAuth 2.0 device flow. Either way the mip client renews access tokens with Keycloak itself; the backend only answers `/auth-config` and validates the resulting tokens like any other Bearer token.
+
+Consequences: Each federation that offers laptop sign-in needs, in Keycloak, a public client with the standard flow (PKCE S256, redirect URI `<portal>/account`, web origin `<portal>`) and the Device Authorization Grant, an audience mapper that adds `KEYCLOAK_CLIENT_ID` to `aud` (not checked here, but it keeps the token meant for this federation only), the platform client's roles in its tokens (`resource_access.<KEYCLOAK_CLIENT_ID>.roles`, through a scope mapping or full scope) and the same `authorities` mapper as the platform client, and a client session / offline session maximum that sets how long a laptop stays signed in. Without `KEYCLOAK_CLI_CLIENT_ID` the portal hides the guide and `mip login` says laptop sign-in is not offered.
+
+Files affected: `AuthConfigAPI.java`, `SecurityConfiguration.java`, `application.yml`, `AuthConfigAPITest.java`, `TermsOfUseSecurityChainTest.java`
+
+Date: 2026-10-19

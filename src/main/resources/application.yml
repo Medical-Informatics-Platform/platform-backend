@@ -50,6 +50,8 @@ authentication:
   all_datasets_allowed_claim: research_dataset_all
   all_experiments_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_
+  # Public Keycloak client (device flow) for `mip login` on users' own computers; empty = not offered.
+  cli_client_id: ${KEYCLOAK_CLI_CLIENT_ID:}
 
 ### EXTERNAL SERVICES ###
 services:

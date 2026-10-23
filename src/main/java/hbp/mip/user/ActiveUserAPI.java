@@ -34,10 +34,10 @@ public class ActiveUserAPI {
 
     @PostMapping(value = "/agreeNDA")
     public ResponseEntity<UserDTO> activeUserServiceAgreesToNDA(Authentication authentication) {
-        Logger logger = new Logger(activeUserService.getActiveUser(authentication).username(),
-                "(POST) /activeUser/agreeNDA");
+        UserDTO user = activeUserService.agreeToNDA(authentication);
+        Logger logger = new Logger(user.username(), "(POST) /activeUser/agreeNDA");
         logger.info("User agreed to the NDA.");
-        return ResponseEntity.ok(activeUserService.agreeToNDA(authentication));
+        return ResponseEntity.ok(user);
     }
 
     @GetMapping(value = "/token")
