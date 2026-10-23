@@ -35,6 +35,7 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 * KEYCLOAK_REALM: Keycloak realm user for authentication.
 * KEYCLOAK_CLIENT_ID: The keycloak client id.
 * KEYCLOAK_CLIENT_SECRET: The keycloak secret to be able to authenticate.
+* KEYCLOAK_CLI_CLIENT_ID: Public Keycloak client (device flow) for `mip login` on users' own computers. Empty (default): not offered. See `docs/context/decision-log.md`.
 
 # Acknowledgement
 This project/research received funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).

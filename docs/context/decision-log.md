@@ -142,7 +142,7 @@ Status: Accepted
 
 Context: The resource server checked only the issuer, so any access token from the realm was accepted, whichever client it was issued to. A first fix also accepted tokens whose `aud` named this platform's client; but Keycloak's default `roles` client scope puts into `aud` every client the user has roles on, so another federation's portal or notebook token passed, and its `authorities` claim (that federation's roles, e.g. `RESEARCH_DATASET_ALL`) granted access here.
 
-Decision: `SecurityConfiguration.keycloakClientValidator` is an `OAuth2TokenValidator<Jwt>` bean, which Spring Boot adds to the issuer-uri `JwtDecoder`. A token passes only when its `azp` (the client Keycloak issued it to) is `KEYCLOAK_CLIENT_ID` (the platform client, shared by the portal and JupyterHub). `aud` is ignored. With no client ID set, every Bearer token is rejected.
+Decision: `SecurityConfiguration.keycloakClientValidator` is an `OAuth2TokenValidator<Jwt>` bean, which Spring Boot adds to the issuer-uri `JwtDecoder`. A token passes only when its `azp` (the client Keycloak issued it to) is `KEYCLOAK_CLIENT_ID` (the platform client, shared by the portal and JupyterHub) or `KEYCLOAK_CLI_CLIENT_ID` (the public client of the mip client on users' own computers, when set). `aud` is ignored. With neither set, every Bearer token is rejected.
 
 Consequences: Tokens of other clients and other federations get 401, whatever their `aud`. Roles therefore always come from this federation's own clients' mappers. Federations that share one client ID (today handson and hbpmip.link share `mippublic`) still accept each other's tokens; give each federation its own client. Another client that must call this API has to be added here explicitly.
 
@@ -161,5 +161,19 @@ Decision: Each federation has its own Keycloak client (`mippublic` only on the t
 Consequences: Dataset and experiment roles (`research_dataset_*`, `research_experiment_all`) must be client roles of each federation's client, or put into the access token's `authorities` claim by a mapper of that client that adds only that client's roles. A user whose roles are realm roles or another client's roles loses that access through the notebook and the laptop client.
 
 Files affected: `SecurityConfiguration.java`, `JwtAuthoritiesTest.java`
+
+Date: 2026-10-19
+
+### Decision: Users' own computers sign in with a public Keycloak client, not through JupyterHub
+
+Status: Accepted
+
+Context: The laptop client got its access token from JupyterHub: users created a hub API token and the hub handed out the Keycloak token it kept from their last sign-in. Authentication then depended on the hub and on a recent Notebook visit, and the hub decided token lifetimes.
+
+Decision: `GET /auth-config` (public, in `PUBLIC_PATHS`) returns the issuer (`spring.security.oauth2.resourceserver.jwt.issuer-uri`) and `authentication.cli_client_id` (`KEYCLOAK_CLI_CLIENT_ID`), or 404 when the latter is empty. The portal's account page creates a token by signing in as that public client in the browser (authorization code with PKCE, `offline_access`) and shows the offline refresh token once; `mip login` can instead run the OAuth 2.0 device flow. Either way the mip client renews access tokens with Keycloak itself; the backend only answers `/auth-config` and validates the resulting tokens like any other Bearer token.
+
+Consequences: Each federation that offers laptop sign-in needs, in Keycloak, a public client with the standard flow (PKCE S256, redirect URI `<portal>/account`, web origin `<portal>`) and the Device Authorization Grant, an audience mapper that adds `KEYCLOAK_CLIENT_ID` to `aud` (not checked here, but it keeps the token meant for this federation only), the platform client's roles in its tokens (`resource_access.<KEYCLOAK_CLIENT_ID>.roles`, through a scope mapping or full scope) and the same `authorities` mapper as the platform client, and a client session / offline session maximum that sets how long a laptop stays signed in. Without `KEYCLOAK_CLI_CLIENT_ID` the portal hides the guide and `mip login` says laptop sign-in is not offered.
+
+Files affected: `AuthConfigAPI.java`, `SecurityConfiguration.java`, `application.yml`, `AuthConfigAPITest.java`, `TermsOfUseSecurityChainTest.java`
 
 Date: 2026-10-19
