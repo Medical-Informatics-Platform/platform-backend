@@ -43,6 +43,7 @@ public class SecurityConfiguration {
     static final String[] PUBLIC_PATHS = {
             "/login/**",
             "/oauth2/**",
+            "/auth-config",
             "/actuator/**",
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -141,14 +142,14 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    // Spring Boot adds this to the issuer-uri JwtDecoder: a Bearer token must have been issued to this
-    // federation's own Keycloak client (shared by the portal and JupyterHub), not merely by the same realm.
-    // Keycloak names the requesting client in azp. aud is not enough: other federations' tokens can list this
-    // client there (Keycloak adds every client the user has roles on), and their authorities claim holds the
-    // other federation's roles.
+    // Spring Boot adds this to the issuer-uri JwtDecoder: a Bearer token must have been issued to one of this
+    // federation's own Keycloak clients, not merely by the same realm. Keycloak names the requesting client in azp:
+    // the platform client (shared by the portal and JupyterHub) or the public client of the mip client on users'
+    // own computers. aud is not enough: other federations' tokens can list this client there (Keycloak adds every
+    // client the user has roles on), and their authorities claim holds the other federation's roles.
     @Bean
-    OAuth2TokenValidator<Jwt> keycloakClientValidator() {
-        return clientValidator(keycloakClientId);
+    OAuth2TokenValidator<Jwt> keycloakClientValidator(@Value("${authentication.cli_client_id:}") String cliClientId) {
+        return clientValidator(keycloakClientId, cliClientId);
     }
 
     static OAuth2TokenValidator<Jwt> clientValidator(String... clientIds) {

@@ -2,6 +2,7 @@ package hbp.mip.configurations;
 
 import hbp.mip.user.ActiveUserAPI;
 import hbp.mip.user.ActiveUserService;
+import hbp.mip.user.AuthConfigAPI;
 import hbp.mip.user.UserDAO;
 import hbp.mip.user.UserRepository;
 import hbp.mip.utils.ControllerExceptionHandler;
@@ -69,8 +70,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Exaflow. A Bearer token's value is {@code <username>[.<azp>]}; azp defaults to the platform client.
  */
 @SpringJUnitWebConfig(TermsOfUseSecurityChainTest.Config.class)
-@TestPropertySource(properties = {"authentication.enabled=1",
-        "spring.security.oauth2.client.registration.keycloak.client-id=client"})
+@TestPropertySource(properties = {"authentication.enabled=1", "authentication.cli_client_id=mip-cli",
+        "spring.security.oauth2.client.registration.keycloak.client-id=client",
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.org/realms/MIP"})
 class TermsOfUseSecurityChainTest {
 
     @Autowired
@@ -117,6 +119,14 @@ class TermsOfUseSecurityChainTest {
         // e.g. another federation's portal token, whatever its aud says.
         mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void bearerTokenOfTheLaptopClientIsAccepted() throws Exception {
+        storedUser("alice", true);
+
+        mvc.perform(withBearer(get("/services/experiments"), "alice.mip-cli"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -167,6 +177,14 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void authConfigIsPublic() throws Exception {
+        mvc.perform(get("/services/auth-config").contextPath("/services"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issuer").value("https://idp.example.org/realms/MIP"))
+                .andExpect(jsonPath("$.clientId").value("mip-cli"));
+    }
+
+    @Test
     void unauthenticatedRequestIsStillRejectedByAuthentication() throws Exception {
         int status = mvc.perform(get("/services/experiments").contextPath("/services"))
                 .andReturn().getResponse().getStatus();
@@ -199,7 +217,7 @@ class TermsOfUseSecurityChainTest {
     @EnableWebMvc
     @Import({SecurityConfiguration.class, SpaRedirectAuthenticationSuccessHandler.class,
             FrontendRedirectCaptureFilter.class, ControllerExceptionHandler.class, ActiveUserAPI.class,
-            StandInAPI.class})
+            AuthConfigAPI.class, StandInAPI.class})
     static class Config {
 
         @Bean
