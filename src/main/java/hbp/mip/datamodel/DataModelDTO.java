@@ -34,8 +34,6 @@ public record DataModelDTO(
         private String code;
         private String label;
         private String description;
-        private String sql_type;
-        private String is_categorical;
         @Setter
         private List<DataModelDTO.EnumerationDTO> enumerations;
         private String minValue;
