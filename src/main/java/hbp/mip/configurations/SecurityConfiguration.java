@@ -2,7 +2,6 @@ package hbp.mip.configurations;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -13,10 +12,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -50,27 +46,10 @@ public class SecurityConfiguration {
         this.frontendRedirectCaptureFilter = frontendRedirectCaptureFilter;
     }
 
-    // This Bean is used when there is no authentication and there is no keycloak
-    // server running due to this bug:
-    // https://github.com/spring-projects/spring-security/issues/11397#issuecomment-1655906163
-    // So we overwrite the ClientRegistrationRepository Bean to avoid the IP server
-    // lookup.
-    @Bean
-    @ConditionalOnProperty(prefix = "authentication", name = "enabled", havingValue = "0")
-    public ClientRegistrationRepository clientRegistrationRepository() {
-        ClientRegistration dummyRegistration = ClientRegistration.withRegistrationId("dummy")
-                .clientId("google-client-id")
-                .clientSecret("google-client-secret")
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
-                .scope("openid")
-                .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth")
-                .tokenUri("https://www.googleapis.com/oauth2/v4/token")
-                .userInfoUri("https://www.googleapis.com/oauth2/v3/userinfo")
-                .jwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
-                .build();
-        return new InMemoryClientRegistrationRepository(dummyRegistration);
-    }
+    // The dummy ClientRegistrationRepository (used when authentication is disabled and no
+    // Keycloak server is running, to avoid the OAuth2 server lookup bug) is defined in
+    // DummyClientRegistrationConfiguration. It is kept in a separate @Configuration class to
+    // avoid a circular reference; see that class for details.
 
     @Bean
     SecurityFilterChain clientSecurityFilterChain(HttpSecurity http,
