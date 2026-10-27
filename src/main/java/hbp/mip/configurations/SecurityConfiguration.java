@@ -31,6 +31,16 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 public class SecurityConfiguration {
 
+    // Reachable without login, and without accepting the terms of use.
+    static final String[] PUBLIC_PATHS = {
+            "/login/**",
+            "/oauth2/**",
+            "/actuator/**",
+            "/v3/api-docs",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"};
+
     private final SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler;
     private final FrontendRedirectCaptureFilter frontendRedirectCaptureFilter;
 
@@ -57,14 +67,7 @@ public class SecurityConfiguration {
         if (authenticationEnabled) {
             http.addFilterBefore(frontendRedirectCaptureFilter, OAuth2AuthorizationRequestRedirectFilter.class);
             http.authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/login/**",
-                            "/oauth2/**",
-                            "/actuator/**",
-                            "/v3/api-docs",
-                            "/v3/api-docs/**",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html")
+                    .requestMatchers(PUBLIC_PATHS)
                     .permitAll()
                     .requestMatchers("/**").authenticated());
 
