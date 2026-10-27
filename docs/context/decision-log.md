@@ -137,3 +137,17 @@ Consequences: Breaking change. The UI and the notebook client must switch to the
 Files affected: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentRunDAO.java`, `SaveExperimentRunDTO.java`, `AnalysisService.java`, removed `AnalysisAPI.java`, `V4__RenameAlgorithmColumnToAnalysis.sql`
 
 Date: 2026-10-15
+
+### Decision: Enforce the terms of use on the server
+
+Status: Accepted
+
+Context: `agreeNDA` was only enforced by the portal's TermsGuard. Clients calling the API with a Bearer token (the `mip` notebook client, or a researcher's laptop with a token obtained through JupyterHub) could use every endpoint without ever accepting the terms.
+
+Decision: When `authentication.enabled` is on, `TermsOfUseFilter` runs in the security chain after authorization. Any authenticated request (session or Bearer) whose user has not agreed gets a `TermsOfUseNotAcceptedException`, rendered by `ControllerExceptionHandler` like every other error: 403 `{"statusCode":403,"timestamp":...,"message":"Accept the MIP terms of use in the portal before using the API","description":"uri=..."}`. The filter does one `findByUsername` per request and never creates users; a user who never called `GET /activeUser` counts as not agreed. Exempt: `SecurityConfiguration.PUBLIC_PATHS` (login, OAuth2, actuator, API docs, Swagger; one list for `permitAll` and the filter), `GET /activeUser` and `POST /activeUser/agreeNDA`. `/activeUser/token` is not exempt: nothing calls it before the terms page. `ActiveUserService.agreeToNDA` accepts only portal sessions (`OAuth2AuthenticationToken`); any other client gets the same 403, so the terms are always accepted by a person in the portal. Authentication-disabled mode does not register the filter, and `agreeToNDA` keeps working for the anonymous user.
+
+Consequences: Users who have not accepted the terms get 403 on data, specification, experiment, folder and token endpoints until they accept them in the portal. The portal is unaffected: before the terms page it only calls the exempt endpoints, and its interceptor re-authenticates only on 401/0. Bearer users are looked up by `preferred_username`, as the portal stores them; the JupyterHub login requests the `profile` scope, so its tokens carry the claim. The agreed flag is not cached in the session: a request can carry both a portal cookie and another user's Bearer token, and one indexed lookup is cheap.
+
+Files affected: `TermsOfUseFilter.java`, `SecurityConfiguration.java`, `ActiveUserService.java`, `ActiveUserAPI.java`, `ControllerExceptionHandler.java`, `TermsOfUseNotAcceptedException.java`, `TermsOfUseFilterTest.java`, `TermsOfUseSecurityChainTest.java`, `ActiveUserServiceAgreeToNDATest.java`
+
+Date: 2026-10-16
