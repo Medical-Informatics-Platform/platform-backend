@@ -1,7 +1,9 @@
 package hbp.mip.user;
 
+import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -74,6 +76,10 @@ public class ActiveUserService {
 
     @Transactional
     public UserDTO agreeToNDA(Authentication authentication) {
+        // The terms are accepted by a person in the portal (OIDC session), never by an API client on their behalf.
+        if (authenticationIsEnabled && !(authentication instanceof OAuth2AuthenticationToken)) {
+            throw new TermsOfUseNotAcceptedException();
+        }
         UserDTO userDTO = getActiveUser(authentication);
 
         UserDAO userDAO = userRepository.findByUsername(userDTO.username());
