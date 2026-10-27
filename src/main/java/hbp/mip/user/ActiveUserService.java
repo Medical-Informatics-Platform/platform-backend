@@ -87,6 +87,15 @@ public class ActiveUserService {
         return new UserDTO(userDAO);
     }
 
+    /**
+     * Per-request terms-of-use check: one lookup by username, never creates the user.
+     * A user who has never called GET /activeUser does not exist yet, so has not agreed.
+     */
+    public boolean hasAgreedToNDA(Authentication authentication) {
+        UserDAO user = userRepository.findByUsername(buildUserFromAuthentication(authentication).getUsername());
+        return user != null && Boolean.TRUE.equals(user.getAgreeNDA());
+    }
+
     private static UserDAO buildUserFromAuthentication(Authentication authentication) {
         Object principal = authentication != null ? authentication.getPrincipal() : null;
 
