@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.reflect.TypeToken;
 import hbp.mip.SpringJsonMapper;
 import hbp.mip.utils.JsonConverters;
+import hbp.mip.utils.RawJson;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -12,17 +13,17 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Pins the t-test result and specification shapes of Exaflow PR #656 (algorithms/t-test-corrections)
- * across the backend's Gson read -> Spring Jackson write hop, which both the preview response and a
- * saved run's stored result take. The backend passes t-test results through untouched, so none of
- * the PR's changes needs backend code; these tests keep it that way.
+ * Pins the t-test result and specification shapes of Exaflow PR #656 (algorithms/t-test-corrections).
+ * Results pass through as {@link RawJson}: stored for a kept run by {@link JsonConverters}, then written
+ * to the UI by Spring's configured mapper. None of the PR's changes needs backend code; these tests
+ * keep it that way.
  */
 class ExaflowTTestContractTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private JsonNode roundTrip(String exaflowResult) throws Exception {
-        Object result = JsonConverters.convertJsonStringToObject(exaflowResult, Object.class);
-        return objectMapper.readTree(SpringJsonMapper.INSTANCE.writeValueAsString(result));
+        String stored = JsonConverters.convertObjectToJsonString(new RawJson(exaflowResult));
+        return objectMapper.readTree(SpringJsonMapper.INSTANCE.writeValueAsString(new RawJson(stored)));
     }
 
     @Test
@@ -42,18 +43,18 @@ class ExaflowTTestContractTest {
     }
 
     @Test
-    void dropsNullStatisticsWhenExaflowCannotComputeThem() throws Exception {
+    void keepsNullStatisticsWhenExaflowCannotComputeThem() throws Exception {
         // Before PR #656 an independent t-test with a one-row group returned nulls; a zero-variance
-        // sample still can. application.yml's non_null inclusion drops them from the response; the
-        // UI reads a missing statistic the same as null.
+        // sample still can. They stay explicit nulls despite application.yml's non_null inclusion.
         JsonNode result = roundTrip("""
-                {"t_stat":null,"df":14.0,"p":null,"mean_diff":0.0624,"se_diff":null,
+                {"n_obs":15,"t_stat":null,"df":14.0,"p":null,"mean_diff":0.0624,"se_diff":null,
                  "ci_upper":null,"ci_lower":null,"cohens_d":null}
                 """);
 
-        assertThat(result.has("p")).isFalse();
-        assertThat(result.has("ci_lower")).isFalse();
+        assertThat(result.get("p").isNull()).isTrue();
+        assertThat(result.get("ci_lower").isNull()).isTrue();
         assertThat(result.get("mean_diff").asDouble()).isEqualTo(0.0624);
+        assertThat(result.get("n_obs").isIntegralNumber()).isTrue();
     }
 
     @Test
