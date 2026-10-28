@@ -36,4 +36,12 @@ class AnalysisServiceRequestIdTest {
         assertThat(new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of(), List.of("restricted"), null,
                 List.of("age")).allDatasets()).isEmpty();
     }
+
+    @Test
+    void convertResponse_mapsExaflowBusyToRetryMessage() {
+        var exaflowBody = new StringBuilder("The controller is already running the maximum number of concurrent analyses.");
+
+        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 503, exaflowBody))
+                .isEqualTo(Map.of("data", AnalysisService.BUSY_ERROR_MESSAGE, "type", "text/plain+error"));
+    }
 }
