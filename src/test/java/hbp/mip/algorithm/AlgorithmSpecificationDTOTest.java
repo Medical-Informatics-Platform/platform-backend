@@ -1,10 +1,10 @@
 package hbp.mip.algorithm;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import hbp.mip.SpringJsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
@@ -79,7 +79,7 @@ class AlgorithmSpecificationDTOTest {
     }
 
     @Test
-    void deserializesInputdataAndPreprocessingSpecifications() {
+    void deserializesInputdataAndPreprocessingSpecifications() throws Exception {
         String inputdataPayload = """
                 {
                   "data_model": { "label": "Data model", "desc": "", "types": ["text"], "required": true },
@@ -151,8 +151,7 @@ class AlgorithmSpecificationDTOTest {
 
         // application.yml sets spring.jackson.default-property-inclusion: non_null; the outputs
         // contract must still send its nullable fields as explicit nulls.
-        ObjectMapper nonNullMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        JsonNode serialized = nonNullMapper.valueToTree(preprocessing);
+        JsonNode serialized = objectMapper.readTree(SpringJsonMapper.INSTANCE.writeValueAsString(preprocessing));
         assertThat(serialized.at("/0/outputs/columns/0/column_count_param").asText()).isEqualTo("n_components");
         assertThat(serialized.at("/1/outputs/columns/0/enumerations/prefix_parameter_name").isNull()).isTrue();
         assertThat(serialized.at("/1/outputs/columns/0/column_count_param").isNull()).isTrue();
