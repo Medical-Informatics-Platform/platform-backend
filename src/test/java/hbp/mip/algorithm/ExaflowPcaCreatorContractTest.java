@@ -93,6 +93,26 @@ class ExaflowPcaCreatorContractTest {
         assertThat(tree.at("/preprocessing/3/parameters/n_components").isIntegralNumber()).isTrue();
     }
 
+    @Test
+    void keepsCreatorCountsIntegralInASavedRun() throws Exception {
+        // A kept run stores the analysis with JsonConverters and serves it back through Gson.
+        AnalysisRequestDTO request = SpringJsonMapper.INSTANCE.readValue("""
+                {
+                  "inputdata": {"data_model": "dm:1", "datasets": ["ds1"], "variables": ["age"]},
+                  "preprocessing": [
+                    { "name": "pca_column_creator", "parameters": { "new_column_names": ["pca_a1", "pca_a2"], "n_components": 2 } }
+                  ],
+                  "algorithm": {"name": "linear_regression", "x": ["pca_a1"], "y": ["age"], "parameters": {}}
+                }
+                """, AnalysisRequestDTO.class);
+        String stored = JsonConverters.convertObjectToJsonString(request);
+        AnalysisRequestDTO served = JsonConverters.convertJsonStringToObject(stored, AnalysisRequestDTO.class);
+
+        JsonNode tree = objectMapper.readTree(SpringJsonMapper.INSTANCE.writeValueAsString(served));
+
+        assertThat(tree.at("/preprocessing/0/parameters/n_components").isIntegralNumber()).isTrue();
+    }
+
     private static List<String> names(JsonNode tree) {
         List<String> names = new ArrayList<>();
         tree.at("/preprocessing").forEach(step -> names.add(step.at("/name").asText()));
