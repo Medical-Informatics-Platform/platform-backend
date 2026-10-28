@@ -5,6 +5,7 @@ import hbp.mip.utils.Exceptions.InternalServerError;
 import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
+import hbp.mip.utils.RawJson;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -62,7 +63,7 @@ public class AnalysisService {
 
     static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
-            case 200 -> JsonConverters.convertJsonStringToObject(responseBody.toString(), Object.class);
+            case 200 -> new RawJson(responseBody.toString());
             case 400, 413, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
             // Exaflow is at its concurrent-analysis limit; its own message names internal components,
