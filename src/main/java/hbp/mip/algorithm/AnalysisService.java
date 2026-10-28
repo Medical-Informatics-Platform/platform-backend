@@ -65,8 +65,12 @@ public class AnalysisService {
             case 200 -> JsonConverters.convertJsonStringToObject(responseBody.toString(), Object.class);
             case 400, 413, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
-            // Exaflow is at its concurrent-analysis limit; its own message names internal components.
-            case 503 -> convertExaflowResponseToAnalysisResult(BUSY_ERROR_MESSAGE);
+            // Exaflow is at its concurrent-analysis limit; its own message names internal components,
+            // so it goes to the log and the user gets a retry message.
+            case 503 -> {
+                logger.warn("Exaflow rejected the analysis as busy: " + responseBody);
+                yield convertExaflowResponseToAnalysisResult(BUSY_ERROR_MESSAGE);
+            }
             default -> handleUnexpectedResponseCode(logger, code);
         };
     }
