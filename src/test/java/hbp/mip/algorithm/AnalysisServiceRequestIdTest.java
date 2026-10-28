@@ -44,4 +44,12 @@ class AnalysisServiceRequestIdTest {
         assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 503, exaflowBody))
                 .isEqualTo(Map.of("data", AnalysisService.BUSY_ERROR_MESSAGE, "type", "text/plain+error"));
     }
+
+    @Test
+    void convertResponse_passesExaflowMessageTooLargeThrough() {
+        var exaflowBody = new StringBuilder("result too large (>104857600 bytes / 100.0 MiB); reduce variables/levels");
+
+        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 413, exaflowBody))
+                .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
+    }
 }
