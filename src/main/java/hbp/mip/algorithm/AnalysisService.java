@@ -17,6 +17,8 @@ public class AnalysisService {
 
     private static final String GENERIC_ERROR_MESSAGE =
             "Something went wrong. Please inform the system administrator or try again later.";
+    static final String BUSY_ERROR_MESSAGE =
+            "The platform is busy running other analyses. Please try again in a few minutes.";
 
     private final String analysisUrl;
 
@@ -58,11 +60,17 @@ public class AnalysisService {
         return new AnalysisResultDTO(responseCode, result);
     }
 
-    private static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
+    static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
             case 200 -> JsonConverters.convertJsonStringToObject(responseBody.toString(), Object.class);
-            case 400, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
+            case 400, 413, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
+            // Exaflow is at its concurrent-analysis limit; its own message names internal components,
+            // so it goes to the log and the user gets a retry message.
+            case 503 -> {
+                logger.warn("Exaflow rejected the analysis as busy: " + responseBody);
+                yield convertExaflowResponseToAnalysisResult(BUSY_ERROR_MESSAGE);
+            }
             default -> handleUnexpectedResponseCode(logger, code);
         };
     }
