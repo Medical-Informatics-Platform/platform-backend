@@ -2,7 +2,7 @@ name: Publish staging images
 
 on:
   push:
-    branches: [staging-b, staging-c]
+    branches: [staging-a, staging-b]
   workflow_dispatch:
 
 concurrency: staging-${{ github.ref_name }}
@@ -22,18 +22,11 @@ jobs:
   build:
     name: Build BACKEND staging image and push to Docker Hub
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
-
-      - name: Compute staging tag
-        id: tag
-        env:
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          short_sha=$(git rev-parse --short=7 HEAD)
-          echo "tag=${REF_NAME}-${short_sha}" >> "$GITHUB_OUTPUT"
-          echo "Staging image tag: ${REF_NAME}-${short_sha}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 #v4.4.1
@@ -69,11 +62,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # Immutable <branch>-<sha> tag plus a moving <branch> tag (staging-b / staging-c)
-          # for Argo CD Image Updater; exact tracked pattern to be confirmed by MIP Infra Staging.
-          tags: |
-            hbpmip/platform-backend:${{ steps.tag.outputs.tag }}
-            hbpmip/platform-backend:${{ github.ref_name }}
+          tags: hbpmip/platform-backend:${{ github.ref_name }}-${{ github.sha:0:7 }}
           cache-from: type=local,src=/tmp/.buildx-cache/backend
           cache-to: type=local,dest=/tmp/.buildx-cache-new/backend
 
@@ -81,3 +70,27 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Output staging tag
+        id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHORT_SHA: ${{ github.sha:0:7 }}
+        run: |
+          TAG="$REF_NAME-$SHORT_SHA"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Staging image tag: $TAG"
+
+  bump:
+    name: Bump staging image tag in mip
+    needs: build
+    uses: Medical-Informatics-Platform/mip/.github/workflows/bump-staging-image.yml@master
+    permissions:
+      contents: read
+    with:
+      branch: ${{ github.ref_name }}
+      key: platform-backend.image.tag
+      tag: ${{ needs.build.outputs.tag }}
+    secrets:
+      app-id: ${{ secrets.STAGING_BUMP_APP_ID }}
+      private-key: ${{ secrets.STAGING_BUMP_APP_PRIVATE_KEY }}
