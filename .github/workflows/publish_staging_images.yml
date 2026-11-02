@@ -1,0 +1,92 @@
+name: Publish staging images
+
+on:
+  push:
+    branches: [staging-a, staging-b]
+  workflow_dispatch:
+
+concurrency: staging-${{ github.ref_name }}
+
+permissions:
+  contents: read
+
+env:
+  HARBOR_REGISTRY: docker-registry.ebrains.eu
+  DOCKER_BUILDKIT: 1
+  DOCKER_CLIENT_TIMEOUT: 300
+  COMPOSE_HTTP_TIMEOUT: 300
+  RETRY_ATTEMPTS: "4"
+  RETRY_SLEEP: "10"
+
+jobs:
+  build:
+    name: Build BACKEND staging image and push to Docker Hub
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 #v4.4.1
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f #v4.6.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Load BACKEND service cached image
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: /tmp/.buildx-cache/backend
+          key: ${{ runner.os }}-buildx-backend-${{ hashFiles('**/Dockerfile', '**/*.py', '**/*.js', '**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-backend-
+
+      - name: Build BACKEND docker image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc #v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: hbpmip/platform-backend:${{ github.ref_name }}-${{ github.sha:0:7 }}
+          cache-from: type=local,src=/tmp/.buildx-cache/backend
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/backend
+
+      - name: Move Docker images cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Output staging tag
+        id: tag
+        run: |
+          echo "tag=${{ github.ref_name }}-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "Staging image tag: ${{ github.ref_name }}-${GITHUB_SHA:0:7}"
+
+  bump:
+    name: Bump staging image tag in mip
+    needs: build
+    uses: Medical-Informatics-Platform/mip/.github/workflows/bump-staging-image.yml@master
+    permissions:
+      contents: read
+    with:
+      branch: ${{ github.ref_name }}
+      key: platform-backend.image.tag
+      tag: ${{ needs.build.outputs.tag }}
+    secrets:
+      app-id: ${{ secrets.STAGING_BUMP_APP_ID }}
+      private-key: ${{ secrets.STAGING_BUMP_APP_PRIVATE_KEY }}
