@@ -73,9 +73,13 @@ jobs:
 
       - name: Output staging tag
         id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHORT_SHA: ${{ github.sha:0:7 }}
         run: |
-          echo "tag=${{ github.ref_name }}-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
-          echo "Staging image tag: ${{ github.ref_name }}-${GITHUB_SHA:0:7}"
+          TAG="$REF_NAME-$SHORT_SHA"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Staging image tag: $TAG"
 
   bump:
     name: Bump staging image tag in mip
