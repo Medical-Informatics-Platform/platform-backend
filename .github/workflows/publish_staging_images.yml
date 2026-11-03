@@ -2,7 +2,7 @@ name: Publish staging images
 
 on:
   push:
-    branches: [staging-a, staging-b]
+    branches: [staging-b, staging-c]
   workflow_dispatch:
 
 concurrency: staging-${{ github.ref_name }}
@@ -27,6 +27,15 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+
+      - name: Compute staging tag
+        id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          short_sha=$(git rev-parse --short=7 HEAD)
+          echo "tag=${REF_NAME}-${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "Staging image tag: ${REF_NAME}-${short_sha}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 #v4.4.1
@@ -62,7 +71,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: hbpmip/platform-backend:${{ github.ref_name }}-${{ github.sha:0:7 }}
+          tags: hbpmip/platform-backend:${{ steps.tag.outputs.tag }}
           cache-from: type=local,src=/tmp/.buildx-cache/backend
           cache-to: type=local,dest=/tmp/.buildx-cache-new/backend
 
@@ -71,20 +80,10 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Output staging tag
-        id: tag
-        env:
-          REF_NAME: ${{ github.ref_name }}
-          SHORT_SHA: ${{ github.sha:0:7 }}
-        run: |
-          TAG="$REF_NAME-$SHORT_SHA"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Staging image tag: $TAG"
-
   bump:
     name: Bump staging image tag in mip
     needs: build
-    uses: Medical-Informatics-Platform/mip/.github/workflows/bump-staging-image.yml@master
+    uses: Medical-Informatics-Platform/mip/.github/workflows/bump-staging-image.yml@0eff4dd7667262adf39284c7585f2b8ee75dd034 # mip PR #33 (chore/bump-staging-workflow); switch to @master once merged
     permissions:
       contents: read
     with:
