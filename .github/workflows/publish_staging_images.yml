@@ -22,8 +22,6 @@ jobs:
   build:
     name: Build BACKEND staging image and push to Docker Hub
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
@@ -71,7 +69,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: hbpmip/platform-backend:${{ steps.tag.outputs.tag }}
+          tags: |
+            hbpmip/platform-backend:${{ steps.tag.outputs.tag }}
+            hbpmip/platform-backend:${{ github.ref_name }}
           cache-from: type=local,src=/tmp/.buildx-cache/backend
           cache-to: type=local,dest=/tmp/.buildx-cache-new/backend
 
@@ -79,17 +79,3 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  bump:
-    name: Bump staging image tag in mip
-    needs: build
-    uses: Medical-Informatics-Platform/mip/.github/workflows/bump-staging-image.yml@0eff4dd7667262adf39284c7585f2b8ee75dd034 # mip PR #33 (chore/bump-staging-workflow); switch to @master once merged
-    permissions:
-      contents: read
-    with:
-      branch: ${{ github.ref_name }}
-      key: platform-backend.image.tag
-      tag: ${{ needs.build.outputs.tag }}
-    secrets:
-      app-id: ${{ secrets.STAGING_BUMP_APP_ID }}
-      private-key: ${{ secrets.STAGING_BUMP_APP_PRIVATE_KEY }}
