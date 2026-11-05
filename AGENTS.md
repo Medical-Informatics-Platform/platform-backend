@@ -19,7 +19,7 @@ This repository contains the Spring Boot backend for the Medical Informatics Pla
 ## Stack
 - Language/runtime: Java 21.
 - Build/package manager: Maven (`pom.xml`); no Maven wrapper is committed.
-- Frameworks/libraries: Spring Boot 4.1.1, Spring Security 7, OAuth2 client/resource server, Spring Data JPA, Hibernate, Flyway, Gson, Log4j2, springdoc OpenAPI.
+- Frameworks/libraries: Spring Boot 4.1.2, Spring Security 7, OAuth2 client/resource server, Spring Data JPA, Hibernate, Flyway, Gson, Log4j2, springdoc OpenAPI.
 - Database: PostgreSQL, configured through Spring datasource properties.
 - Auth: Keycloak/OIDC when `authentication.enabled` is enabled; anonymous development mode exists when disabled.
 - External services: Exaflow endpoints for algorithms, data models, metadata, dataset variables, and algorithm execution.
