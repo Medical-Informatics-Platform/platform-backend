@@ -10,7 +10,7 @@ public record PreprocessingStepSpecificationDTO(
         String documentation,
         String label,
         Map<String, ParameterSpecificationDTO> parameters,
-        PreprocessingOutputSpecificationDTO output) {
+        PreprocessingOutputsSpecificationDTO outputs) {
     @Override
     public Map<String, ParameterSpecificationDTO> parameters() {
         return Objects.requireNonNullElse(parameters, Collections.emptyMap());

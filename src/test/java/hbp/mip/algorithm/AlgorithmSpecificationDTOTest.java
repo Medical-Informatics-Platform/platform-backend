@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import hbp.mip.SpringJsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
@@ -78,7 +79,7 @@ class AlgorithmSpecificationDTOTest {
     }
 
     @Test
-    void deserializesInputdataAndPreprocessingSpecifications() {
+    void deserializesInputdataAndPreprocessingSpecifications() throws Exception {
         String inputdataPayload = """
                 {
                   "data_model": { "label": "Data model", "desc": "", "types": ["text"], "required": true },
@@ -90,14 +91,44 @@ class AlgorithmSpecificationDTOTest {
         String preprocessingPayload = """
                 [
                   {
+                    "name": "pca_column_creator",
+                    "label": "PCA Column Creator",
+                    "desc": "Create principal component columns.",
+                    "documentation": "Long preprocessing documentation.",
+                    "parameters": {},
+                    "outputs": {
+                      "new_column_names_param": "new_column_names",
+                      "columns": [
+                        {
+                          "type": "real",
+                          "stattype": "numerical",
+                          "column_count_param": "n_components",
+                          "enumerations": null
+                        }
+                      ]
+                    }
+                  },
+                  {
                     "name": "categorical_column_creator",
                     "label": "Categorical Column Creator",
                     "desc": "Create a derived column.",
                     "documentation": "Long preprocessing documentation.",
                     "parameters": {},
-                    "output": {
-                      "type": "new_categorical_column",
-                      "code_parameter": "code"
+                    "outputs": {
+                      "new_column_names_param": "new_column_names",
+                      "columns": [
+                        {
+                          "type": "text",
+                          "stattype": "nominal",
+                          "column_count_param": null,
+                          "enumerations": {
+                            "source_parameter_name": "rules",
+                            "source_type": "dict_keys",
+                            "additional_value_parameter_name": "default_enumeration",
+                            "prefix_parameter_name": null
+                          }
+                        }
+                      ]
                     }
                   }
                 ]
@@ -109,9 +140,23 @@ class AlgorithmSpecificationDTOTest {
                 new TypeToken<List<PreprocessingStepSpecificationDTO>>() {
                 }.getType());
 
+        PreprocessingStepSpecificationDTO pca = preprocessing.get(0);
+        PreprocessingStepSpecificationDTO categorical = preprocessing.get(1);
+
         assertThat(inputdata.variables().min_count()).isEqualTo(1);
-        assertThat(preprocessing.getFirst().output().type()).isEqualTo("new_categorical_column");
-        assertThat(preprocessing.getFirst().output().code_parameter()).isEqualTo("code");
+        assertThat(pca.outputs().new_column_names_param()).isEqualTo("new_column_names");
+        assertThat(pca.outputs().columns().getFirst().column_count_param()).isEqualTo("n_components");
+        assertThat(pca.outputs().columns().getFirst().enumerations()).isNull();
+        assertThat(categorical.outputs().columns().getFirst().enumerations().source_type()).isEqualTo("dict_keys");
+
+        // application.yml sets spring.jackson.default-property-inclusion: non_null; the outputs
+        // contract must still send its nullable fields as explicit nulls.
+        JsonNode serialized = objectMapper.readTree(SpringJsonMapper.INSTANCE.writeValueAsString(preprocessing));
+        assertThat(serialized.at("/0/outputs/columns/0/column_count_param").asText()).isEqualTo("n_components");
+        assertThat(serialized.at("/1/outputs/columns/0/enumerations/prefix_parameter_name").isNull()).isTrue();
+        assertThat(serialized.at("/1/outputs/columns/0/column_count_param").isNull()).isTrue();
+        assertThat(serialized.at("/0/outputs/columns/0/enumerations").isNull()).isTrue();
+        assertThat(serialized.has("output")).isFalse();
     }
 
     @Test
