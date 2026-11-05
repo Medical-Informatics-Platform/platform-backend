@@ -9,7 +9,6 @@ This directory contains durable context for humans and AI coding agents working 
 - `testing.md`: testing strategy and validation matrix
 - `conventions.md`: coding patterns and repo norms
 - `risk-register.md`: fragile, security-sensitive, or high-review areas
-- `decision-log.md`: architectural decisions
 - `code-review-checklist.md`: review checklist
 - `ai-task-templates.md`: reusable prompts for agents
 
