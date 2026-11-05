@@ -38,7 +38,7 @@ Used by: The UI and notebook client for specifications; `ExperimentService` for 
 
 Rules: Keep Exaflow calls in the service layer. Dataset access checks must cover `inputdata.allDatasets()` (datasets plus validation datasets).
 
-Tests: `AnalysisServiceRequestIdTest`, `AnalysisRequestDTODeserializationTest`, `AlgorithmSpecificationDTOTest`, `ExaflowKMeansAndSmdContractTest`.
+Tests: `AnalysisServiceRequestIdTest`, `AnalysisRequestDTODeserializationTest`, `AlgorithmSpecificationDTOTest`, `ExaflowKMeansAndSmdContractTest`, `ExaflowPcaCreatorContractTest`.
 
 
 ## `src/main/java/hbp/mip/datamodel`
