@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DataModelService {
@@ -127,19 +128,30 @@ public class DataModelService {
         return dataModelDTOs;
     }
 
-    private Map<String, List<String>> selectDatasetVariables(Map<String, Map<String, List<String>>> datasetVariablesByDataModel, DataModelDTO dataModel) {
+    static Map<String, List<String>> selectDatasetVariables(Map<String, Map<String, List<String>>> datasetVariablesByDataModel, DataModelDTO dataModel) {
         if (datasetVariablesByDataModel == null || dataModel == null) {
             return Collections.emptyMap();
         }
 
         String versionedKey = dataModel.code() + ":" + dataModel.version();
         Map<String, List<String>> variables = datasetVariablesByDataModel.get(versionedKey);
-        if (variables != null) {
-            return variables;
+        if (variables == null) {
+            variables = datasetVariablesByDataModel.get(dataModel.code());
         }
+        return keepKnownDatasetVariables(variables);
+    }
 
-        variables = datasetVariablesByDataModel.get(dataModel.code());
-        return variables != null ? variables : Collections.emptyMap();
+    /** Omits datasets whose variables are unknown (null or []): the UI reads a list as "only these
+     *  variables exist" and a missing entry as "no information". */
+    static Map<String, List<String>> keepKnownDatasetVariables(Map<String, List<String>> datasetVariables) {
+        if (datasetVariables == null) {
+            return Collections.emptyMap();
+        }
+        return datasetVariables.entrySet().stream()
+                .filter(e -> e.getKey() != null && e.getValue() != null)
+                .map(e -> Map.entry(e.getKey(), e.getValue().stream().filter(Objects::nonNull).toList()))
+                .filter(e -> !e.getValue().isEmpty())
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private List<DataModelDTO.EnumerationDTO> selectDatasetEnumerations(Map<String, List<DataModelDTO.EnumerationDTO>> datasetEnumerationsByDataModel, DataModelDTO dataModel) {
