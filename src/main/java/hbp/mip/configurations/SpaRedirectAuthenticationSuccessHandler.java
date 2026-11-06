@@ -12,7 +12,6 @@ import org.springframework.util.StringUtils;
 public class SpaRedirectAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
     public static final String REDIRECT_PATH_ATTRIBUTE = "SPA_REDIRECT_TARGET_PATH";
-    public static final String PLATFORM_UI_BASE_URL_ATTRIBUTE = "SPA_REDIRECT_PLATFORM_UI_BASE_URL";
 
     private final String frontendBaseUrl;
 
@@ -30,17 +29,16 @@ public class SpaRedirectAuthenticationSuccessHandler extends SavedRequestAwareAu
             return request.getContextPath() + "/";
         }
 
-        String baseUrl = resolveFrontendBaseUrl(request);
-        if (!StringUtils.hasText(baseUrl)) {
+        if (frontendBaseUrl == null) {
             // No frontend base URL available. Fallback to relative redirect on the backend domain.
             return targetPath;
         }
 
         if ("/".equals(targetPath)) {
-            return baseUrl + "/";
+            return frontendBaseUrl + "/";
         }
 
-        return baseUrl + targetPath;
+        return frontendBaseUrl + targetPath;
     }
 
     private String resolveTargetPath(HttpServletRequest request) {
@@ -55,34 +53,13 @@ public class SpaRedirectAuthenticationSuccessHandler extends SavedRequestAwareAu
         return null;
     }
 
-    private String resolveFrontendBaseUrl(HttpServletRequest request) {
-        if (StringUtils.hasText(frontendBaseUrl)) {
-            return frontendBaseUrl;
-        }
-
-        // Dev fallback: FrontendRedirectCaptureFilter stores this based on Referer / frontend_redirect.
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            Object attribute = session.getAttribute(PLATFORM_UI_BASE_URL_ATTRIBUTE);
-            session.removeAttribute(PLATFORM_UI_BASE_URL_ATTRIBUTE);
-            if (attribute instanceof String storedUrl && StringUtils.hasText(storedUrl)) {
-                return normalizeBaseUrl(storedUrl);
-            }
-        }
-
-        return null;
-    }
-
-    private static String normalizeRedirectPath(String path) {
+    /** A path on this site: exactly one leading slash, because //host and /\host are other sites to a browser. */
+    static String normalizeRedirectPath(String path) {
         if (path == null || path.isBlank()) {
             return "/";
         }
 
-        String normalized = path.trim();
-
-        if (!normalized.startsWith("/")) {
-            normalized = "/" + normalized;
-        }
+        String normalized = "/" + path.trim().replaceFirst("^[/\\\\]+", "");
 
         if (normalized.length() > 1 && normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
