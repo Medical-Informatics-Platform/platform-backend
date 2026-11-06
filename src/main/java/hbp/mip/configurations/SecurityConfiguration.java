@@ -4,6 +4,7 @@ import hbp.mip.user.ActiveUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.convert.DurationStyle;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
@@ -67,6 +69,9 @@ public class SecurityConfiguration {
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id:}")
     private String keycloakClientId;
 
+    @Value("${authentication.session_max_age:8h}")
+    private String sessionMaxAge;
+
     public SecurityConfiguration(SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler,
             FrontendRedirectCaptureFilter frontendRedirectCaptureFilter,
             ActiveUserService activeUserService,
@@ -93,6 +98,8 @@ public class SecurityConfiguration {
                     .requestMatchers("/**").authenticated());
 
             http.oauth2Login(login -> login.successHandler(spaRedirectAuthenticationSuccessHandler));
+
+            http.addFilterBefore(new SessionMaxAgeFilter(DurationStyle.detectAndParse(sessionMaxAge)), SecurityContextHolderFilter.class);
 
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.

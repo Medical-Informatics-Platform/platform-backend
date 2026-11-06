@@ -45,6 +45,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +75,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringJUnitWebConfig(TermsOfUseSecurityChainTest.Config.class)
 @TestPropertySource(properties = {"authentication.enabled=1", "authentication.cli_client_id=mip-cli",
+        "authentication.session_max_age=8h",
         "spring.security.oauth2.client.registration.keycloak.client-id=client",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://idp.example.org/realms/MIP"})
 class TermsOfUseSecurityChainTest {
@@ -221,6 +223,28 @@ class TermsOfUseSecurityChainTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.issuer").value("https://idp.example.org/realms/MIP"))
                 .andExpect(jsonPath("$.clientId").value("mip-cli"));
+    }
+
+    @Test
+    void sessionPastItsMaximumAgeIsSignedOut() throws Exception {
+        storedUser("alice", true);
+        MockHttpSession session = session("alice");
+        mvc.perform(get("/services/experiments").contextPath("/services").session(session))
+                .andExpect(status().isOk());
+
+        // MockHttpSession's creation time is fixed: an old session is one created before "now minus the maximum".
+        MockHttpSession old = new MockHttpSession() {
+            @Override
+            public long getCreationTime() {
+                return System.currentTimeMillis() - Duration.ofHours(9).toMillis();
+            }
+        };
+        old.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+
+        assertThat(mvc.perform(get("/services/experiments").contextPath("/services").session(old))
+                .andReturn().getResponse().getStatus()).isIn(302, 401);
+        assertThat(old.isInvalid()).isTrue();
     }
 
     @Test
