@@ -52,6 +52,8 @@ authentication:
   dataset_claim_prefix: research_dataset_
   # Public Keycloak client (device flow) for `mip login` on users' own computers; empty = not offered.
   cli_client_id: ${KEYCLOAK_CLI_CLIENT_ID:}
+  # When set, Bearer tokens must also name this in aud; set it once every client's tokens do.
+  required_audience: ${KEYCLOAK_REQUIRED_AUDIENCE:}
 
 ### EXTERNAL SERVICES ###
 services:

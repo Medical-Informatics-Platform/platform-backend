@@ -160,6 +160,28 @@ public class SecurityConfiguration {
                         "The token was not issued for this MIP platform", null));
     }
 
+    // Optional, because not every federation's tokens name this service in aud yet: set it once they do.
+    @Bean
+    OAuth2TokenValidator<Jwt> requiredAudienceValidator(@Value("${authentication.required_audience:}") String audience) {
+        return audienceValidator(audience);
+    }
+
+    static OAuth2TokenValidator<Jwt> audienceValidator(String audience) {
+        return jwt -> !StringUtils.hasText(audience) || (jwt.getAudience() != null && jwt.getAudience().contains(audience))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                        "The token is not meant for this MIP platform", null));
+    }
+
+    // Keycloak signs ID tokens with the same key and the same azp, so only its typ claim tells them from access tokens.
+    @Bean
+    OAuth2TokenValidator<Jwt> accessTokenValidator() {
+        return jwt -> "Bearer".equals(jwt.getClaimAsString("typ"))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                        "The token is not an access token", null));
+    }
+
     static JwtAuthenticationConverter jwtAuthenticationConverter(String clientId) {
         JwtGrantedAuthoritiesConverter fallback = new JwtGrantedAuthoritiesConverter();
         // Do not force ROLE_ prefix; the app expects raw authority strings (e.g. research_dataset_*).

@@ -67,7 +67,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The terms-of-use gate through the real SecurityConfiguration filter chain, so moving the filter to a point
  * where the session or Bearer authentication is not yet known fails here. The real ActiveUserAPI and
  * ControllerExceptionHandler render the responses; /experiments is a stand-in. No datasource, Keycloak or
- * Exaflow. A Bearer token's value is {@code <username>[.<azp>]}; azp defaults to the platform client.
+ * Exaflow. A Bearer token's value is {@code <username>[.<azp>[.<typ>[.<sub>]]]}; azp defaults to the platform
+ * client, typ to Bearer and sub to the username.
  */
 @SpringJUnitWebConfig(TermsOfUseSecurityChainTest.Config.class)
 @TestPropertySource(properties = {"authentication.enabled=1", "authentication.cli_client_id=mip-cli",
@@ -127,6 +128,14 @@ class TermsOfUseSecurityChainTest {
 
         mvc.perform(withBearer(get("/services/experiments"), "alice.mip-cli"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void idTokenOfThisFederationIsRejectedAsBearerToken() throws Exception {
+        storedUser("alice", true);
+
+        mvc.perform(withBearer(get("/services/experiments"), "alice.client.ID"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -246,6 +255,7 @@ class TermsOfUseSecurityChainTest {
                         .subject(parts[0])
                         .claim("preferred_username", parts[0])
                         .claim("azp", parts.length > 1 ? parts[1] : "client")
+                        .claim("typ", parts.length > 2 ? parts[2] : "Bearer")
                         .issuedAt(Instant.now())
                         .expiresAt(Instant.now().plusSeconds(300))
                         .build();

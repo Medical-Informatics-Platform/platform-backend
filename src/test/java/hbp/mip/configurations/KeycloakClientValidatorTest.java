@@ -42,6 +42,25 @@ class KeycloakClientValidatorTest {
     }
 
     @Test
+    void acceptsOnlyAccessTokens() {
+        OAuth2TokenValidator<Jwt> accessTokens = new SecurityConfiguration(null, null, null, null).accessTokenValidator();
+        assertThat(accessTokens.validate(token(Map.of("typ", "Bearer"))).hasErrors()).isFalse();
+        assertThat(accessTokens.validate(token(Map.of("typ", "ID"))).hasErrors()).isTrue();
+        assertThat(accessTokens.validate(token(Map.of("typ", "Refresh"))).hasErrors()).isTrue();
+        assertThat(accessTokens.validate(token(Map.of())).hasErrors()).isTrue();
+    }
+
+    @Test
+    void requiredAudienceIsCheckedOnlyWhenSet() {
+        OAuth2TokenValidator<Jwt> required = SecurityConfiguration.audienceValidator("mippublic");
+        assertThat(required.validate(token(Map.of("aud", List.of("account", "mippublic")))).hasErrors()).isFalse();
+        assertThat(required.validate(token(Map.of("aud", List.of("account")))).hasErrors()).isTrue();
+        assertThat(required.validate(token(Map.of())).hasErrors()).isTrue();
+
+        assertThat(SecurityConfiguration.audienceValidator("").validate(token(Map.of())).hasErrors()).isFalse();
+    }
+
+    @Test
     void rejectsEverythingWithoutAClientId() {
         assertThat(SecurityConfiguration.clientValidator("", "").validate(token(Map.of("azp", ""))).hasErrors()).isTrue();
     }
