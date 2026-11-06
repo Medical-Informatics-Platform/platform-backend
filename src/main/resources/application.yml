@@ -1,5 +1,12 @@
 # Platform-backend configuration (local defaults; override via environment variables)
 
+### API DOCUMENTATION: off unless asked for, so a deployment does not publish its API description ###
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
+
 ### EMBEDDED SERVER CONFIGURATION ###
 server:
   servlet:

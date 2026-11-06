@@ -48,11 +48,7 @@ public class SecurityConfiguration {
             "/login/**",
             "/oauth2/**",
             "/auth-config",
-            "/actuator/**",
-            "/v3/api-docs",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html"};
+            "/actuator/health/**"};
 
     private final SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler;
     private final FrontendRedirectCaptureFilter frontendRedirectCaptureFilter;
