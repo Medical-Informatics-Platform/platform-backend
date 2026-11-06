@@ -272,14 +272,14 @@ class ExperimentFolderAPITest {
 
     /** A run the caller may not read must not become a folder membership, and must not say 404 either. */
     @Test
-    void unreadableRunIsUnauthorized() throws Exception {
+    void unreadableRunIsForbidden() throws Exception {
         when(service.addExperiment(any(), eq(FOLDER_ID), any(AddExperimentFoldersMemberDTO.class), any(Logger.class)))
                 .thenThrow(new UnauthorizedException("You don't have access to that experiment."));
 
         mvc.perform(post("/experiment-folders/" + FOLDER_ID + "/members").contentType("application/json")
                 .content("{\"experimentUuid\":\"" + RUN_ID + "\"}").principal(principal))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.statusCode").value(401));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value(403));
     }
 
     private ExperimentFolderDTO folderDto() {

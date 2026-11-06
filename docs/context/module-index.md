@@ -107,7 +107,7 @@ Rules: Scope every read and write to the user resolved from the token; a folder 
 
 Tests: `ExperimentFolderServiceTest` (Mockito) covers naming, ownership, membership, ordering, and the lost-race 409; `ExperimentFolderDTOTest` covers the three orderings in the response; `ExperimentFolderAPITest` (standalone MockMvc) pins the wire contract — body field names, response field names, and the status of every failure.
 
-Notes: Folders hold experiment ids, never experiment copies, so nothing here can go stale by carrying a run's data. Statuses: 200 reads and mutations that leave a folder behind, 201 new folder or set, 204 only `DELETE /{folderId}`, 400 blank name or malformed id, 404 folder/set not the caller's or run not readable, 401 run not readable, 409 duplicate name (pre-check or lost database race).
+Notes: Folders hold experiment ids, never experiment copies, so nothing here can go stale by carrying a run's data. Statuses: 200 reads and mutations that leave a folder behind, 201 new folder or set, 204 only `DELETE /{folderId}`, 400 blank name or malformed id, 404 folder/set not the caller's or run not readable, 403 run not readable, 409 duplicate name (pre-check or lost database race).
 
 ## `src/main/java/hbp/mip/user`
 
