@@ -115,7 +115,7 @@ Purpose: Active user resolution, persistence, and NDA state.
 
 Key files: `ActiveUserAPI.java`, `ActiveUserService.java`, `UserRepository.java`, `UserDAO.java`, `UserDTO.java`.
 
-Used by: Controllers needing user context and endpoints exposing active user/token behavior.
+Used by: Controllers needing user context and the endpoints exposing the active user.
 
 Rules: Treat token exposure and user identity mapping as security-sensitive.
 

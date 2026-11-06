@@ -17,8 +17,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -149,11 +147,11 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
-    void tokenEndpointIsBlockedUntilTheTermsAreAccepted() throws Exception {
-        storedUser("alice", false);
+    void tokenEndpointNoLongerExists() throws Exception {
+        storedUser("alice", true);
 
         mvc.perform(withBearer(get("/services/activeUser/token"), "alice"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -237,11 +235,6 @@ class TermsOfUseSecurityChainTest {
         @Bean
         ActiveUserService activeUserService(UserRepository userRepository) {
             return new ActiveUserService(userRepository);
-        }
-
-        @Bean
-        OAuth2AuthorizedClientService authorizedClientService(ClientRegistrationRepository registrations) {
-            return new InMemoryOAuth2AuthorizedClientService(registrations);
         }
 
         // Applies every OAuth2TokenValidator<Jwt> bean, as Spring Boot's issuer-uri JwtDecoder does.
