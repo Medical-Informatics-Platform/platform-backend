@@ -50,18 +50,9 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException ex, WebRequest request) {
-        ErrorMessage message = new ErrorMessage(
-                HttpStatus.UNAUTHORIZED.value(),
-                new Date(),
-                ex.getMessage(),
-                request.getDescription(false));
-
-        return new ResponseEntity<>(message, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler({NoAuthorizedPathologiesException.class, TermsOfUseNotAcceptedException.class})
+    // UnauthorizedException means a signed-in user was denied: 403. A 401 would make the portal sign in again.
+    @ExceptionHandler({UnauthorizedException.class, NoAuthorizedPathologiesException.class,
+            TermsOfUseNotAcceptedException.class})
     public ResponseEntity<Object> handleForbiddenException(
             RuntimeException ex,
             WebRequest request
@@ -103,7 +94,8 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorMessage message = new ErrorMessage(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 new Date(),
-                ex.getMessage(),
+                // The details are in the log above: exception text can name hosts, SQL or schema.
+                "An internal error occurred.",
                 request.getDescription(false));
 
         return new ResponseEntity<>(message, HttpStatus.INTERNAL_SERVER_ERROR);
