@@ -4,8 +4,12 @@ import hbp.mip.user.ActiveUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationEventPublisher;
+import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
+import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -140,6 +144,14 @@ public class SecurityConfiguration {
 
         }
         return http.build();
+    }
+
+    // The default publisher sends no event for OAuth2 exceptions, so failed Bearer and OIDC logins would go unlogged.
+    @Bean
+    AuthenticationEventPublisher authenticationEventPublisher(ApplicationEventPublisher publisher) {
+        DefaultAuthenticationEventPublisher eventPublisher = new DefaultAuthenticationEventPublisher(publisher);
+        eventPublisher.setDefaultAuthenticationFailureEvent(AuthenticationFailureBadCredentialsEvent.class);
+        return eventPublisher;
     }
 
     // Spring Boot adds this to the issuer-uri JwtDecoder: a Bearer token must have been issued to one of this

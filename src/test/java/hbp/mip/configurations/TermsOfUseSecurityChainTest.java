@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.event.EventListener;
+import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -44,6 +46,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +83,9 @@ class TermsOfUseSecurityChainTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FailureEvents failures;
 
     private MockMvc mvc;
 
@@ -119,6 +125,18 @@ class TermsOfUseSecurityChainTest {
         // e.g. another federation's portal token, whatever its aud says.
         mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectedBearerTokenPublishesAFailureEventWithoutTheToken() throws Exception {
+        failures.events.clear();
+
+        mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(failures.events).singleElement()
+                .satisfies(event -> assertThat(event.getException().getClass().getSimpleName())
+                        .doesNotContain("alice"));
     }
 
     @Test
@@ -238,7 +256,7 @@ class TermsOfUseSecurityChainTest {
     @EnableWebMvc
     @Import({SecurityConfiguration.class, SpaRedirectAuthenticationSuccessHandler.class,
             FrontendRedirectCaptureFilter.class, ControllerExceptionHandler.class, ActiveUserAPI.class,
-            AuthConfigAPI.class, StandInAPI.class})
+            AuthConfigAPI.class, StandInAPI.class, FailureEvents.class})
     static class Config {
 
         @Bean
@@ -283,6 +301,15 @@ class TermsOfUseSecurityChainTest {
                     .authorizationUri("https://idp.example.org/auth")
                     .tokenUri("https://idp.example.org/token")
                     .build());
+        }
+    }
+
+    static class FailureEvents {
+        final List<AbstractAuthenticationFailureEvent> events = new ArrayList<>();
+
+        @EventListener
+        void record(AbstractAuthenticationFailureEvent event) {
+            events.add(event);
         }
     }
 

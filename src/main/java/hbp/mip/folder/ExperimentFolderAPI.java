@@ -54,7 +54,7 @@ public class ExperimentFolderAPI {
     public ResponseEntity<ExperimentFolderDTO> createFolder(Authentication authentication,
             @RequestBody CreateExperimentGroupDTO createExperimentGroupDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders");
-        logger.info("Request for experiment folder creation. RequestBody: "
+        logger.debug("Request for experiment folder creation. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(createExperimentGroupDTO));
         var folder = experimentFolderService.createFolder(authentication, createExperimentGroupDTO, logger);
         logger.info("Experiment folder created with id: " + folder.id());
@@ -76,7 +76,7 @@ public class ExperimentFolderAPI {
             @PathVariable("folderId") String folderId,
             @RequestBody RenameExperimentGroupDTO renameExperimentGroupDTO) {
         var logger = logger(authentication, "(PATCH) /experiment-folders/" + folderId);
-        logger.info("Request for experiment folder rename. RequestBody: "
+        logger.debug("Request for experiment folder rename. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(renameExperimentGroupDTO));
         var folder = experimentFolderService.renameFolder(authentication, folderId, renameExperimentGroupDTO, logger);
         logger.info("Experiment folder renamed. Id: " + folderId);
@@ -99,7 +99,7 @@ public class ExperimentFolderAPI {
             @PathVariable("folderId") String folderId,
             @RequestBody AddExperimentFoldersMemberDTO addExperimentFoldersMemberDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders/" + folderId + "/members");
-        logger.info("Request for experiment addition to a folder. RequestBody: "
+        logger.debug("Request for experiment addition to a folder. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(addExperimentFoldersMemberDTO));
         var folder = experimentFolderService.addExperiment(authentication, folderId, addExperimentFoldersMemberDTO,
                 logger);
@@ -124,7 +124,7 @@ public class ExperimentFolderAPI {
             @PathVariable("folderId") String folderId,
             @RequestBody CreateExperimentGroupDTO createExperimentGroupDTO) {
         var logger = logger(authentication, "(POST) /experiment-folders/" + folderId + "/sets");
-        logger.info("Request for experiment set creation. RequestBody: "
+        logger.debug("Request for experiment set creation. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(createExperimentGroupDTO));
         var folder = experimentFolderService.createSet(authentication, folderId, createExperimentGroupDTO, logger);
         logger.info("Experiment set created in folder: " + folderId);
@@ -137,7 +137,7 @@ public class ExperimentFolderAPI {
             @PathVariable("setId") String setId,
             @RequestBody RenameExperimentGroupDTO renameExperimentGroupDTO) {
         var logger = logger(authentication, "(PATCH) /experiment-folders/" + folderId + "/sets/" + setId);
-        logger.info("Request for experiment set rename. RequestBody: "
+        logger.debug("Request for experiment set rename. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(renameExperimentGroupDTO));
         var folder = experimentFolderService.renameSet(authentication, folderId, setId, renameExperimentGroupDTO, logger);
         logger.info("Experiment set renamed. Id: " + setId);
@@ -167,7 +167,7 @@ public class ExperimentFolderAPI {
             @RequestBody UpdateExperimentSetMembershipDTO updateExperimentSetMembershipDTO) {
         var logger = logger(authentication,
                 "(PATCH) /experiment-folders/" + folderId + "/members/" + experimentUuid + "/set");
-        logger.info("Request to change the set of an experiment. RequestBody: "
+        logger.debug("Request to change the set of an experiment. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(updateExperimentSetMembershipDTO));
         var folder = experimentFolderService.updateSetMembership(authentication, folderId, experimentUuid,
                 updateExperimentSetMembershipDTO, logger);
