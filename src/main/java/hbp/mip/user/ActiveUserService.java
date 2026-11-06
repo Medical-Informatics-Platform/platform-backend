@@ -1,6 +1,8 @@
 package hbp.mip.user;
 
 import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
+import hbp.mip.utils.Exceptions.UserIdentityConflictException;
+import hbp.mip.utils.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -40,6 +42,7 @@ public class ActiveUserService {
 
             UserDAO activeUserDatabaseDetails = userRepository.findByUsername(activeUserDAO.getUsername());
             if (activeUserDatabaseDetails != null) {
+                refuseAnotherSubject(activeUserDatabaseDetails, activeUserDAO);
                 boolean changed = false;
                 if ((!Objects.equals(activeUserDAO.getEmail(), activeUserDatabaseDetails.getEmail()))
                         || !Objects.equals(activeUserDAO.getFullname(), activeUserDatabaseDetails.getFullname())) {
@@ -47,6 +50,10 @@ public class ActiveUserService {
                     // username is the PK in our database and subjectid is the PK in keycloak
                     activeUserDatabaseDetails.setFullname(activeUserDAO.getFullname());
                     activeUserDatabaseDetails.setEmail(activeUserDAO.getEmail());
+                    changed = true;
+                }
+                if (!isKnownSubject(activeUserDatabaseDetails) && isKnownSubject(activeUserDAO)) {
+                    activeUserDatabaseDetails.setSubjectId(activeUserDAO.getSubjectId());
                     changed = true;
                 }
                 if (changed) {
@@ -98,8 +105,29 @@ public class ActiveUserService {
      * A user who has never called GET /activeUser does not exist yet, so has not agreed.
      */
     public boolean hasAgreedToNDA(Authentication authentication) {
-        UserDAO user = userRepository.findByUsername(buildUserFromAuthentication(authentication).getUsername());
-        return user != null && Boolean.TRUE.equals(user.getAgreeNDA());
+        UserDAO authenticated = buildUserFromAuthentication(authentication);
+        UserDAO user = userRepository.findByUsername(authenticated.getUsername());
+        if (user == null) {
+            return false;
+        }
+        refuseAnotherSubject(user, authenticated);
+        return Boolean.TRUE.equals(user.getAgreeNDA());
+    }
+
+    // A username Keycloak gave to someone else must not inherit the previous holder's experiments or accepted terms.
+    private static void refuseAnotherSubject(UserDAO stored, UserDAO authenticated) {
+        if (isKnownSubject(stored) && isKnownSubject(authenticated)
+                && !stored.getSubjectId().equals(authenticated.getSubjectId())) {
+            new Logger(authenticated.getUsername(), "ActiveUserService")
+                    .warn("Refused: the stored user has another Keycloak subject.");
+            throw new UserIdentityConflictException();
+        }
+    }
+
+    // buildUserFromAuthentication falls back to the username when a token has no subject, and older rows may be empty.
+    private static boolean isKnownSubject(UserDAO user) {
+        String subject = user.getSubjectId();
+        return subject != null && !subject.isBlank() && !subject.equals(user.getUsername());
     }
 
     private static UserDAO buildUserFromAuthentication(Authentication authentication) {

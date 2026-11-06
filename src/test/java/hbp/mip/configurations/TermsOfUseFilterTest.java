@@ -4,6 +4,7 @@ import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDAO;
 import hbp.mip.user.UserRepository;
 import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
+import hbp.mip.utils.Exceptions.UserIdentityConflictException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -107,6 +108,20 @@ class TermsOfUseFilterTest {
 
         assertBlocked(response);
         assertThat(response.getErrorMessage()).isEqualTo(TermsOfUseNotAcceptedException.MESSAGE);
+    }
+
+    @Test
+    void usernameOfAnotherSubjectIsToldAboutTheConflictNotTheTerms() throws Exception {
+        UserDAO previousHolder = new UserDAO("alice", "alice", "alice@example.org", "subject-previous-holder");
+        previousHolder.setAgreeNDA(true);
+        when(userRepository.findByUsername("alice")).thenReturn(previousHolder);
+        authenticate(bearer("alice"));
+
+        MockHttpServletResponse response = run("GET", "/experiments");
+
+        assertThat(response.getHeader("X-Passed")).isNull();
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(resolved).singleElement().isInstanceOf(UserIdentityConflictException.class);
     }
 
     // ------------------------------------------------------------------ exempt

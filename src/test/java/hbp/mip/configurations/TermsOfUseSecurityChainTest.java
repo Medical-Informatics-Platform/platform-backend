@@ -7,6 +7,7 @@ import hbp.mip.user.UserDAO;
 import hbp.mip.user.UserRepository;
 import hbp.mip.utils.ControllerExceptionHandler;
 import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
+import hbp.mip.utils.Exceptions.UserIdentityConflictException;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -163,6 +164,19 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void usernameHeldByAnotherSubjectIsForbidden() throws Exception {
+        UserDAO previousHolder = new UserDAO("alice", "alice", "alice@example.org", "sub-1");
+        previousHolder.setAgreeNDA(true);
+        when(userRepository.findByUsername("alice")).thenReturn(previousHolder);
+
+        mvc.perform(withBearer(get("/services/activeUser"), "alice.client.Bearer.sub-2"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(UserIdentityConflictException.MESSAGE));
+        mvc.perform(withBearer(get("/services/experiments"), "alice.client.Bearer.sub-2"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void sessionUserWhoHasNotAgreedIsBlocked() throws Exception {
         storedUser("alice", false);
 
@@ -245,7 +259,7 @@ class TermsOfUseSecurityChainTest {
                 String[] parts = token.split("\\.");
                 Jwt jwt = Jwt.withTokenValue(token)
                         .header("alg", "none")
-                        .subject(parts[0])
+                        .subject(parts.length > 3 ? parts[3] : parts[0])
                         .claim("preferred_username", parts[0])
                         .claim("azp", parts.length > 1 ? parts[1] : "client")
                         .claim("typ", parts.length > 2 ? parts[2] : "Bearer")

@@ -2,6 +2,7 @@ package hbp.mip.configurations;
 
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.utils.Exceptions.TermsOfUseNotAcceptedException;
+import hbp.mip.utils.Exceptions.UserIdentityConflictException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,12 +62,21 @@ public class TermsOfUseFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         // Runs after AuthorizationFilter, so every request that gets here is authenticated.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (activeUserService.hasAgreedToNDA(authentication)) {
+        RuntimeException exception;
+        try {
+            if (activeUserService.hasAgreedToNDA(authentication)) {
+                exception = null;
+            } else {
+                exception = new TermsOfUseNotAcceptedException();
+            }
+        } catch (UserIdentityConflictException conflict) {
+            exception = conflict;
+        }
+        if (exception == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        TermsOfUseNotAcceptedException exception = new TermsOfUseNotAcceptedException();
         if (handlerExceptionResolver.resolveException(request, response, null, exception) == null) {
             // ControllerExceptionHandler could not render it (e.g. the client does not accept JSON).
             response.sendError(HttpStatus.FORBIDDEN.value(), exception.getMessage());
