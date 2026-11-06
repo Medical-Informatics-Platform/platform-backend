@@ -16,19 +16,22 @@ public class HTTPUtil {
         throw new IllegalAccessError("HTTPUtil class");
     }
 
-    public static void sendGet(String url, StringBuilder resp) throws IOException {
-        sendHTTP(url, "", resp, "GET");
+    public static void sendGet(String url, String apiToken, StringBuilder resp) throws IOException {
+        sendHTTP(url, apiToken, "", resp, "GET");
     }
 
-    public static int sendPost(String url, String query, StringBuilder resp) throws IOException {
-        return sendHTTP(url, query, resp, "POST");
+    public static int sendPost(String url, String apiToken, String query, StringBuilder resp) throws IOException {
+        return sendHTTP(url, apiToken, query, resp, "POST");
     }
 
-    private static int sendHTTP(String url, String query, StringBuilder resp, String httpVerb)
+    private static int sendHTTP(String url, String apiToken, String query, StringBuilder resp, String httpVerb)
             throws IOException {
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+        if (apiToken != null && !apiToken.isBlank()) {
+            con.setRequestProperty("Authorization", "Bearer " + apiToken);
+        }
 
         if (!"GET".equals(httpVerb)) {
             con.setRequestMethod(httpVerb);

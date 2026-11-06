@@ -20,6 +20,9 @@ public class SpecificationsService {
     private static final Type ALGORITHM_SPECIFICATIONS_TYPE = new TypeToken<List<AlgorithmSpecificationDTO>>() {
     }.getType();
 
+    @Value("${services.exaflow.apiToken:}")
+    private String exaflowApiToken;
+
     @Value("${services.exaflow.inputdataSpecUrl}")
     private String inputdataSpecUrl;
 
@@ -44,7 +47,7 @@ public class SpecificationsService {
     private <T> T fetch(String url, Type typeOfT, String what, Logger logger) {
         StringBuilder response = new StringBuilder();
         try {
-            HTTPUtil.sendGet(url, response);
+            HTTPUtil.sendGet(url, exaflowApiToken, response);
             T specification = JsonConverters.convertJsonStringToObject(response.toString(), typeOfT);
             if (specification == null || (specification instanceof List<?> list && list.isEmpty())) {
                 throw new InternalServerError("Exaflow " + what + " response was empty.");
