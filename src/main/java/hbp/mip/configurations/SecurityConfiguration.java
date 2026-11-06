@@ -1,6 +1,8 @@
 package hbp.mip.configurations;
 
 import hbp.mip.user.ActiveUserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +32,12 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler;
+import org.springframework.security.web.authentication.logout.HeaderWriterLogoutHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.header.writers.ClearSiteDataHeaderWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
@@ -131,7 +137,16 @@ public class SecurityConfiguration {
             if (StringUtils.hasText(frontendBaseUrl)) {
                 successHandler.setPostLogoutRedirectUri(frontendBaseUrl);
             }
-            http.logout(logout -> logout.logoutSuccessHandler(successHandler));
+            http.logout(logout -> logout
+                    // Not its cookies directive: browsers apply that to the whole registrable domain, so signing out
+                    // of a portal on a shared domain would also sign the user out of unrelated services.
+                    .addLogoutHandler(new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter(
+                            ClearSiteDataHeaderWriter.Directive.CACHE,
+                            ClearSiteDataHeaderWriter.Directive.STORAGE)))
+                    .addLogoutHandler(new CookieClearingLogoutHandler(
+                            expiredHubCookie("jupyterhub-hub-login"), expiredHubCookie("jupyterhub-session-id")))
+                    .deleteCookies("JSESSIONID")
+                    .logoutSuccessHandler(successHandler));
 
             // ---> XSRF Token handling
             // https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html#deferred-csrf-token
@@ -152,7 +167,8 @@ public class SecurityConfiguration {
                         String authz = request.getHeader("Authorization");
                         return authz != null && authz.startsWith("Bearer ");
                     })
-                    .ignoringRequestMatchers("/logout"));
+                    // Only this instance's own call: Spring's back-channel logout posts here without a token.
+                    .ignoringRequestMatchers(SecurityConfiguration::isLocalLogout));
             // <--- XSRF Token handling
 
         } else {
@@ -179,6 +195,21 @@ public class SecurityConfiguration {
     @Bean
     OidcSessionRegistry oidcSessionRegistry() {
         return new UserWideOidcSessionRegistry();
+    }
+
+    // ponytail: assumes the hub's default base path; a setting if a deployment moves it. A notebook server's own
+    // cookie is not cleared, because its path holds the username: it ends at the hub's next token refresh.
+    private static Cookie expiredHubCookie(String name) {
+        Cookie cookie = new Cookie(name, null);
+        cookie.setPath("/notebook/hub/");
+        cookie.setMaxAge(0);
+        return cookie;
+    }
+
+    private static boolean isLocalLogout(HttpServletRequest request) {
+        String address = request.getRemoteAddr();
+        return PathPatternRequestMatcher.pathPattern("/logout").matches(request)
+                && ("127.0.0.1".equals(address) || "0:0:0:0:0:0:0:1".equals(address) || "::1".equals(address));
     }
 
     static boolean isLocalOrUnset(String url) {
