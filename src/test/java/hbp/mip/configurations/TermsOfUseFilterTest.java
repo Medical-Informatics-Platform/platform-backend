@@ -131,12 +131,7 @@ class TermsOfUseFilterTest {
     @CsvSource({
             "GET, /activeUser",
             "POST, /activeUser/agreeNDA",
-            "GET, /actuator",
             "GET, /actuator/health",
-            "GET, /v3/api-docs",
-            "GET, /v3/api-docs/swagger-config",
-            "GET, /swagger-ui/index.html",
-            "GET, /swagger-ui.html",
             "GET, /login/oauth2/code/keycloak",
             "GET, /oauth2/authorization/keycloak"})
     void termsFlowAndPublicEndpointsAreExempt(String method, String path) throws Exception {

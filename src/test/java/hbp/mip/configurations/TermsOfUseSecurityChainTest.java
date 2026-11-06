@@ -224,6 +224,14 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void apiDescriptionAndActuatorRootNeedALogin() throws Exception {
+        for (String path : List.of("/services/v3/api-docs", "/services/swagger-ui.html", "/services/actuator")) {
+            assertThat(mvc.perform(get(path).contextPath("/services")).andReturn().getResponse().getStatus())
+                    .as(path).isIn(302, 401);
+        }
+    }
+
+    @Test
     void unauthenticatedRequestIsStillRejectedByAuthentication() throws Exception {
         int status = mvc.perform(get("/services/experiments").contextPath("/services"))
                 .andReturn().getResponse().getStatus();
