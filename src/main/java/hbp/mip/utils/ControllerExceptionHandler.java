@@ -52,7 +52,7 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     // UnauthorizedException means a signed-in user was denied: 403. A 401 would make the portal sign in again.
     @ExceptionHandler({UnauthorizedException.class, NoAuthorizedPathologiesException.class,
-            TermsOfUseNotAcceptedException.class})
+            TermsOfUseNotAcceptedException.class, UserIdentityConflictException.class})
     public ResponseEntity<Object> handleForbiddenException(
             RuntimeException ex,
             WebRequest request
