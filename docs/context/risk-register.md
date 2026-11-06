@@ -4,7 +4,6 @@
 |---|---|---|---|---|
 | Authentication and OAuth2 | Login, logout, JWT, CSRF, and session behavior can lock users out or weaken protection | `SecurityConfiguration.java`, `SpaRedirectAuthenticationSuccessHandler.java`, `FrontendRedirectCaptureFilter.java` | Add focused tests and manually review auth flows before changing | Yes |
 | Authority and claim mapping | Dataset/experiment access depends on raw authority strings and Keycloak claims | `SecurityConfiguration.java`, `ClaimUtils.java` | Do not add `ROLE_` prefixes or rename claims without migration/compat notes | Yes |
-| Active user token endpoint | `/activeUser/token` can expose access tokens to authenticated callers | `ActiveUserAPI.java` | Do not broaden access, log token values, or change response semantics without review | Yes |
 | Dataset authorization | Users may see unauthorized pathologies or datasets if filtering changes | `DataModelService.java`, `ClaimUtils.java` | Cover authenticated and authentication-disabled behavior | Yes |
 | Experiment authorization | Owners/shared/admin-like access rules protect experiment read/update/delete | `ExperimentService.java`, `ExperimentSpecifications.java` | Test owner, shared, not-owner, and all-experiments authority cases | Yes |
 | Experiment deletion | Deletion is destructive and authorization-sensitive | `ExperimentAPI.java`, `ExperimentService.java` | Require focused tests and rollback/restore discussion for behavior changes | Yes |
