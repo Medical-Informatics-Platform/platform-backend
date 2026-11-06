@@ -88,12 +88,12 @@ public class ExperimentService {
             spec = Specification.where(new ExperimentSpecifications.MyExperiment(user.username()));
         } else if (notMine) {
             spec = Specification.where(new ExperimentSpecifications.NotMyExperiment(user.username()))
-                    .and(new ExperimentSpecifications.SharedExperiment(true));
+                    .and(sharedAndReadable(authentication, true, hasAccessRights, logger));
         } else if (hasAccessRights) {
             spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
         } else {
             spec = Specification.where(new ExperimentSpecifications.MyExperiment(user.username()))
-                    .or(new ExperimentSpecifications.SharedExperiment(includeShared));
+                    .or(sharedAndReadable(authentication, includeShared, hasAccessRights, logger));
         }
 
         return spec
@@ -102,6 +102,16 @@ public class ExperimentService {
                 .and(new ExperimentSpecifications.ExperimentWithShared(shared))
                 .and(new ExperimentSpecifications.ExperimentWithViewed(viewed))
                 .and(new ExperimentSpecifications.ExperimentOrderBy(orderBy, descending));
+    }
+
+    // canRead's rule for lists, in the query: filtering afterwards would let totals and filters reveal hidden experiments.
+    private Specification<ExperimentDAO> sharedAndReadable(Authentication authentication, boolean shared,
+            boolean hasAccessRights, Logger logger) {
+        Specification<ExperimentDAO> spec = new ExperimentSpecifications.SharedExperiment(shared);
+        List<String> datasets = hasAccessRights ? null : claimUtils.usableDatasets(authentication, logger);
+        return datasets == null
+                ? spec
+                : spec.and(new ExperimentSpecifications.DatasetsReadable(convertObjectToJsonString(datasets)));
     }
 
     private ExperimentsDTO createExperimentsDTO(Page<ExperimentDAO> pageExperiments) {
@@ -134,14 +144,27 @@ public class ExperimentService {
     private void validateExperimentAccess(Authentication authentication, ExperimentDAO experimentDAO, String uuid,
             Logger logger) {
         var user = activeUserService.getActiveUser(authentication);
-        boolean unauthorizedAccess = authenticationIsEnabled && !experimentDAO.isShared()
-                && !experimentDAO.getCreatedBy().getUsername().equals(user.username())
-                && !claimUtils.validateAccessRightsOnALLExperiments(authentication, logger);
 
-        if (unauthorizedAccess) {
+        if (!canRead(authentication, user, experimentDAO, logger)) {
             logger.warn("User tried to access an unauthorized experiment with id:" + uuid);
             throw new UnauthorizedException("You don't have access to that experiment.");
         }
+    }
+
+    /** Sharing an experiment does not open its data: others also need the datasets it ran on. */
+    private boolean canRead(Authentication authentication, UserDTO user, ExperimentDAO experimentDAO, Logger logger) {
+        if (!authenticationIsEnabled
+                || experimentDAO.getCreatedBy().getUsername().equals(user.username())
+                || claimUtils.validateAccessRightsOnALLExperiments(authentication, logger)) {
+            return true;
+        }
+        return experimentDAO.isShared()
+                && claimUtils.hasAccessRightsOnDatasets(authentication, datasetsOf(experimentDAO), logger);
+    }
+
+    private static List<String> datasetsOf(ExperimentDAO experimentDAO) {
+        AnalysisRequestDTO analysis = AnalysisRequestDTO.fromStored(experimentDAO.getAnalysis());
+        return analysis != null && analysis.inputdata() != null ? analysis.inputdata().allDatasets() : null;
     }
 
     private void validateDatasetAccess(Authentication authentication, AnalysisRequestDTO analysis, Logger logger) {

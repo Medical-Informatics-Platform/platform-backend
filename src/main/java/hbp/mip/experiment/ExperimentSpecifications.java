@@ -135,6 +135,23 @@ public class ExperimentSpecifications {
         }
     }
 
+    /** Every dataset the experiment ran on is in {@code allowedDatasets}, a JSON array of lowercase codes. */
+    public static class DatasetsReadable implements Specification<ExperimentDAO> {
+
+        private final String allowedDatasets;
+
+        public DatasetsReadable(String allowedDatasets) {
+            this.allowedDatasets = allowedDatasets;
+        }
+
+        public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
+                @NonNull CriteriaBuilder cb) {
+            // Defined in V5__ExperimentDatasetsReadableFunction.sql.
+            return cb.isTrue(cb.function("experiment_datasets_readable", Boolean.class,
+                    root.get("analysis"), cb.literal(allowedDatasets)));
+        }
+    }
+
     public static class ExperimentOrderBy implements Specification<ExperimentDAO> {
 
         private final String orderBy;
