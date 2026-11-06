@@ -119,7 +119,7 @@ public class ExperimentAPI {
             @RequestBody ExperimentExecutionDTO experimentExecutionDTO) {
         var logger = new Logger(activeUserService.getActiveUser(authentication).username(),
                 "(POST) /experiments/preview");
-        logger.info("Request for experiment preview. RequestBody: "
+        logger.debug("Request for experiment preview. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(experimentExecutionDTO));
 
         var experimentResponse = experimentService.previewExperiment(authentication, experimentExecutionDTO, logger);
@@ -133,7 +133,7 @@ public class ExperimentAPI {
             @RequestBody ExperimentExecutionDTO experimentExecutionDTO) {
         var user = activeUserService.getActiveUser(authentication);
         var logger = new Logger(user.username(), "(POST) /experiments/runs");
-        logger.info("Request for experiment run. RequestBody: "
+        logger.debug("Request for experiment run. RequestBody: "
                 + JsonConverters.convertObjectToJsonString(experimentExecutionDTO));
 
         var experimentResponse = experimentService.runExperiment(authentication, user, experimentExecutionDTO,
