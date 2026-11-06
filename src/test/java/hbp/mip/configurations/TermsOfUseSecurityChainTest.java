@@ -38,6 +38,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -63,6 +64,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -260,6 +263,40 @@ class TermsOfUseSecurityChainTest {
             assertThat(mvc.perform(get(path).contextPath("/services")).andReturn().getResponse().getStatus())
                     .as(path).isIn(302, 401);
         }
+    }
+
+    @Test
+    void logoutClearsTheSiteDataOverHttps() throws Exception {
+        mvc.perform(post("/services/logout").contextPath("/services").secure(true).session(session("alice")))
+                .andExpect(header().string("Clear-Site-Data", "\"cache\", \"storage\""))
+                .andExpect(cookie().maxAge("jupyterhub-hub-login", 0))
+                .andExpect(cookie().path("jupyterhub-hub-login", "/notebook/hub/"));
+    }
+
+    @Test
+    void loopbackLogoutEndsTheSessionWithoutACsrfToken() throws Exception {
+        // MockMvc's default remote address is 127.0.0.1: Spring's back-channel logout calls this instance from there.
+        MockHttpSession session = session("alice");
+
+        mvc.perform(post("/services/logout").contextPath("/services").session(session))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(session.isInvalid()).isTrue();
+    }
+
+    @Test
+    void remoteLogoutNeedsTheCsrfToken() throws Exception {
+        RequestPostProcessor remote = request -> {
+            request.setRemoteAddr("203.0.113.5");
+            return request;
+        };
+
+        mvc.perform(post("/services/logout").contextPath("/services").with(remote).session(session("alice")))
+                .andExpect(status().isForbidden());
+        // What the portal's sign-out form sends: the value of the XSRF-TOKEN cookie.
+        mvc.perform(post("/services/logout").contextPath("/services").with(remote).session(session("alice"))
+                        .cookie(new Cookie("XSRF-TOKEN", "csrf")).param("_csrf", "csrf"))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
