@@ -248,6 +248,13 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void backChannelLogoutIsReachableWithoutASessionAndRefusesABadToken() throws Exception {
+        mvc.perform(post("/services/logout/connect/back-channel/keycloak").contextPath("/services")
+                        .contentType("application/x-www-form-urlencoded").param("logout_token", "not-a-token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void apiDescriptionAndActuatorRootNeedALogin() throws Exception {
         for (String path : List.of("/services/v3/api-docs", "/services/swagger-ui.html", "/services/actuator")) {
             assertThat(mvc.perform(get(path).contextPath("/services")).andReturn().getResponse().getStatus())

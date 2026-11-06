@@ -18,6 +18,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.client.oidc.session.OidcSessionRegistry;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -30,6 +31,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
@@ -72,6 +74,12 @@ public class SecurityConfiguration {
     @Value("${authentication.session_max_age:8h}")
     private String sessionMaxAge;
 
+    @Value("${server.port:8080}")
+    private int serverPort;
+
+    @Value("${server.servlet.contextPath:/services}")
+    private String contextPath;
+
     public SecurityConfiguration(SpaRedirectAuthenticationSuccessHandler spaRedirectAuthenticationSuccessHandler,
             FrontendRedirectCaptureFilter frontendRedirectCaptureFilter,
             ActiveUserService activeUserService,
@@ -100,6 +108,12 @@ public class SecurityConfiguration {
             http.oauth2Login(login -> login.successHandler(spaRedirectAuthenticationSuccessHandler));
 
             http.addFilterBefore(new SessionMaxAgeFilter(DurationStyle.detectAndParse(sessionMaxAge)), SecurityContextHolderFilter.class);
+
+            // Keycloak ends a disabled user's or a signed-out user's portal session (needs the client's Backchannel
+            // Logout URL). Spring then calls /logout on this instance with that session's cookie.
+            // ponytail: the session registry is in memory, one backend replica; a shared registry if that changes.
+            http.oidcLogout(logout -> logout.backChannel(backChannel -> backChannel
+                    .logoutUri("http://localhost:" + serverPort + contextPath + "/logout")));
 
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.
@@ -153,6 +167,18 @@ public class SecurityConfiguration {
 
         }
         return http.build();
+    }
+
+    // Back-channel logout keeps session ids in its registry; login changes the id, and the registry only hears of it
+    // through these events. Without them Keycloak's logout finds no session to end.
+    @Bean
+    HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
+    @Bean
+    OidcSessionRegistry oidcSessionRegistry() {
+        return new UserWideOidcSessionRegistry();
     }
 
     static boolean isLocalOrUnset(String url) {
