@@ -232,6 +232,19 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void authenticationCanOnlyBeOffForALocalPortal() {
+        assertThat(SecurityConfiguration.isLocalOrUnset("")).isTrue();
+        assertThat(SecurityConfiguration.isLocalOrUnset("http://localhost")).isTrue();
+        assertThat(SecurityConfiguration.isLocalOrUnset("http://localhost:4200")).isTrue();
+        assertThat(SecurityConfiguration.isLocalOrUnset("https://hbpmip.link")).isFalse();
+        // No host can be read from these, and each may still be a public portal.
+        assertThat(SecurityConfiguration.isLocalOrUnset("mip.example.org")).isFalse();
+        assertThat(SecurityConfiguration.isLocalOrUnset("mip.example.org:443")).isFalse();
+        assertThat(SecurityConfiguration.isLocalOrUnset("https://my_portal.example.org")).isFalse();
+        assertThat(SecurityConfiguration.isLocalOrUnset("http://a b")).isFalse();
+    }
+
+    @Test
     void unauthenticatedRequestIsStillRejectedByAuthentication() throws Exception {
         int status = mvc.perform(get("/services/experiments").contextPath("/services"))
                 .andReturn().getResponse().getStatus();

@@ -35,6 +35,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -133,6 +135,10 @@ public class SecurityConfiguration {
             // <--- XSRF Token handling
 
         } else {
+            if (!isLocalOrUnset(frontendBaseUrl)) {
+                throw new IllegalStateException("AUTHENTICATION is off but the portal is public at " + frontendBaseUrl
+                        + ": every endpoint would be open. Turn authentication on.");
+            }
             http.authorizeHttpRequests(auth -> auth
                     .requestMatchers("/**").permitAll());
             http.csrf((csrf) -> csrf
@@ -140,6 +146,20 @@ public class SecurityConfiguration {
 
         }
         return http.build();
+    }
+
+    static boolean isLocalOrUnset(String url) {
+        if (!StringUtils.hasText(url)) {
+            return true;
+        }
+        // A URL with no host we can read (no scheme, a bad character) may still be public: never count it as local.
+        String host;
+        try {
+            host = new URI(url.trim()).getHost();
+        } catch (URISyntaxException e) {
+            return false;
+        }
+        return host != null && (host.equals("localhost") || host.equals("127.0.0.1") || host.equals("[::1]"));
     }
 
     // The default publisher sends no event for OAuth2 exceptions, so failed Bearer and OIDC logins would go unlogged.
