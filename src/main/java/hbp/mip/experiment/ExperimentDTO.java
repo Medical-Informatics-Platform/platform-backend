@@ -2,7 +2,6 @@ package hbp.mip.experiment;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
 import hbp.mip.user.UserDTO;
-import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.RawJson;
 
 import java.util.Date;
@@ -33,7 +32,7 @@ public record ExperimentDTO(
                 experimentDAO.isViewed(),
                 includeResult && experimentDAO.getResult() != null ? new RawJson(experimentDAO.getResult()) : null,
                 experimentDAO.getStatus(),
-                JsonConverters.convertJsonStringToObject(experimentDAO.getAnalysis(), AnalysisRequestDTO.class),
+                AnalysisRequestDTO.fromStored(experimentDAO.getAnalysis()),
                 experimentDAO.getMipVersion());
     }
 }

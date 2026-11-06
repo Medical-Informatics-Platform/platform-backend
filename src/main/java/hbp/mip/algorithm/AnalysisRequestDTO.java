@@ -1,5 +1,9 @@
 package hbp.mip.algorithm;
 
+import com.google.gson.JsonParseException;
+import hbp.mip.utils.JsonConverters;
+import hbp.mip.utils.Logger;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -10,6 +14,16 @@ public record AnalysisRequestDTO(
         List<AnalysisPreprocessingStepDTO> preprocessing,
         AnalysisAlgorithmDTO algorithm,
         Map<String, Object> flags) {
+
+    /** A stored analysis can be an error message, not JSON (see V2 migration); it then reads as no analysis. */
+    public static AnalysisRequestDTO fromStored(String analysis) {
+        try {
+            return JsonConverters.convertJsonStringToObject(analysis, AnalysisRequestDTO.class);
+        } catch (JsonParseException e) {
+            new Logger("unknown", "AnalysisRequestDTO").warn("Stored analysis is unreadable: " + e.getClass().getSimpleName());
+            return null;
+        }
+    }
 
     public record AnalysisInputDataDTO(
             String data_model,

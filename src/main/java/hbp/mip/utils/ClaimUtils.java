@@ -67,6 +67,30 @@ public class ClaimUtils {
         }
     }
 
+    /** True when the user may use every one of the datasets. No datasets named: false, nothing proves access. */
+    public boolean hasAccessRightsOnDatasets(Authentication authentication, List<String> datasets, Logger logger) {
+        if (datasets == null || datasets.isEmpty()) {
+            return false;
+        }
+        ArrayList<String> authorities = getAuthorityRoles(authentication);
+        return hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)
+                || datasets.stream().allMatch(dataset -> hasRoleAccess(authorities, getDatasetClaim(dataset), logger));
+    }
+
+    /** The dataset codes the user may use, lowercase; null when the all-datasets role covers every dataset. */
+    public List<String> usableDatasets(Authentication authentication, Logger logger) {
+        ArrayList<String> authorities = getAuthorityRoles(authentication);
+        if (hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
+            return null;
+        }
+        String prefix = datasetClaimPrefix.toLowerCase();
+        return authorities.stream()
+                .map(String::toLowerCase)
+                .filter(authority -> authority.startsWith(prefix))
+                .map(authority -> authority.substring(prefix.length()))
+                .toList();
+    }
+
     public boolean validateAccessRightsOnALLExperiments(Authentication authentication, Logger logger) {
         ArrayList<String> authorities = getAuthorityRoles(authentication);
         return hasRoleAccess(authorities, allExperimentsAllowedClaim, logger);
