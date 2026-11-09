@@ -3,6 +3,7 @@ package hbp.mip.configurations;
 import hbp.mip.user.ActiveUserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
@@ -89,6 +91,10 @@ public class SecurityConfiguration {
     // validator beans below; the chain itself only needs the DPoP flag.
     @Value("${authentication.cli_require_dpop:false}")
     private boolean cliRequireDpop;
+
+    // Secure on HTTPS. COOKIE_SECURE=false keeps clearing these cookies over plain HTTP.
+    @Value("${authentication.secure_cookies:true}")
+    private boolean secureCookies;
 
     @Value("${server.port:8080}")
     private int serverPort;
@@ -163,8 +169,7 @@ public class SecurityConfiguration {
                     .addLogoutHandler(new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter(
                             ClearSiteDataHeaderWriter.Directive.CACHE,
                             ClearSiteDataHeaderWriter.Directive.STORAGE)))
-                    .addLogoutHandler(new CookieClearingLogoutHandler(
-                            expiredHubCookie("jupyterhub-hub-login"), expiredHubCookie("jupyterhub-session-id")))
+                    .addLogoutHandler(this::clearHubCookies)
                     .deleteCookies("JSESSIONID")
                     .logoutSuccessHandler(successHandler));
 
@@ -222,10 +227,19 @@ public class SecurityConfiguration {
 
     // ponytail: assumes the hub's default base path; a setting if a deployment moves it. A notebook server's own
     // cookie is not cleared, because its path holds the username: it ends at the hub's next token refresh.
-    private static Cookie expiredHubCookie(String name) {
+    private void clearHubCookies(HttpServletRequest request, HttpServletResponse response,
+            Authentication authentication) {
+        new CookieClearingLogoutHandler(
+                expiredHubCookie("jupyterhub-hub-login", request.isSecure()),
+                expiredHubCookie("jupyterhub-session-id", request.isSecure()))
+                .logout(request, response, authentication);
+    }
+
+    private Cookie expiredHubCookie(String name, boolean requestSecure) {
         Cookie cookie = new Cookie(name, null);
         cookie.setPath("/notebook/hub/");
         cookie.setMaxAge(0);
+        cookie.setSecure(secureCookies && requestSecure);
         return cookie;
     }
 

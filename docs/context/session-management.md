@@ -37,6 +37,7 @@ Not limited. One account may hold several portal sessions, laptop sign-ins and a
 - DPoP for the laptop client: with `KEYCLOAK_CLI_REQUIRE_DPOP` on, the laptop client's (`mip-cli-<federation>`) tokens must be DPoP-bound (RFC 9449) and arrive with the `DPoP` scheme, and Spring verifies the DPoP proof (signature, `htu`/`htm`, `ath` — the SHA-256 of the access token, `iat`, replay and the token's `cnf.jkt` against the proof's key). Platform-client tokens (portal, notebooks) keep working over `Bearer`; remove the flag once every federation has switched. The proof's `htu` is the request URL, so nginx must pass `X-Forwarded-Proto`/`X-Forwarded-Host` for the backend location.
 - Turn-on order: while the flag is off, a DPoP-bound token sent with `Bearer` is accepted without a proof (the binding is not enforced). With the flag on before clients send DPoP, every laptop user fails. Turn on Keycloak DPoP for the laptop client, this flag, and a DPoP-capable mip client release in one change window.
 - The proof replay check keeps recent `jti` values in memory, per backend replica: with more than one replica, a proof can be replayed on another replica within the short `iat` window (it stays bound to one method and URL). Acceptable for now; use a shared cache if it matters later.
+- JupyterHub login cookies expired on portal sign-out are marked Secure when the request is HTTPS (`COOKIE_SECURE`, default true, including `X-Forwarded-Proto`). Set `COOKIE_SECURE=false` for a portal served over plain HTTP, so those cookies can still be cleared.
 
 ## Not available
 

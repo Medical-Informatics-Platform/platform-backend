@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 env:
   HARBOR_REGISTRY: docker-registry.ebrains.eu
   DOCKER_BUILDKIT: 1
