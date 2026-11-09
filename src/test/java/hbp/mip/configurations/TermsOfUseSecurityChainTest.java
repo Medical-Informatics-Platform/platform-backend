@@ -161,6 +161,19 @@ class TermsOfUseSecurityChainTest {
         });
     }
 
+    // A DPoP-scheme request carries an Authorization header, so it is never cookie-authenticated and needs
+    // no CSRF token; without this exemption Spring would 403 every DPoP POST.
+    @Test
+    void aDpopSchemePostIsExemptFromCsrf() throws Exception {
+        int status = mvc.perform(post("/services/experiments").contextPath("/services")
+                        .header("Authorization", "DPoP some-token"))
+                .andReturn().getResponse().getStatus();
+
+        // The DPoP filter itself is off while cli_require_dpop is, so this stays unauthenticated (302 or
+        // 401, as for any unauthenticated request); what matters is that it is not 403 CSRF.
+        assertThat(status).isIn(302, 401);
+    }
+
     @Test
     void bearerTokenOfTheLaptopClientIsAccepted() throws Exception {
         storedUser("alice", true);

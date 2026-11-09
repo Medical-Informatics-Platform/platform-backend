@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,6 +25,7 @@ import org.springframework.security.oauth2.client.oidc.session.OidcSessionRegist
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
@@ -43,6 +45,9 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.net.URI;
@@ -79,6 +84,15 @@ public class SecurityConfiguration {
 
     @Value("${authentication.session_max_age:8h}")
     private String sessionMaxAge;
+
+    // The public Keycloak client (device flow) of the mip client on users' own computers.
+    @Value("${authentication.cli_client_id:}")
+    private String cliClientId;
+
+    // Require the laptop client's tokens to be DPoP-bound (RFC 9449). ponytail: remove the flag once
+    // every federation has switched its Keycloak and laptop clients over.
+    @Value("${authentication.cli_require_dpop:false}")
+    private boolean cliRequireDpop;
 
     @Value("${server.port:8080}")
     private int serverPort;
@@ -123,8 +137,18 @@ public class SecurityConfiguration {
 
             // Allow API clients (e.g. notebooks) to authenticate with Bearer JWTs.
             // This runs alongside oauth2Login (session-based) authentication.
-            http.oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter(keycloakClientId))));
+            http.oauth2ResourceServer(oauth2 -> {
+                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter(keycloakClientId)));
+                if (cliRequireDpop) {
+                    // Spring's DPoP filter takes "Authorization: DPoP <token>" plus a DPoP proof header and
+                    // verifies the proof: its signature, htm/htu against this request, iat, jti replay and
+                    // the token's cnf.jkt against the proof's key. It reads request.getRequestURL(), which
+                    // the native forward-headers strategy builds from X-Forwarded-Proto/Host, so nginx must
+                    // send those for the backend location (platform-ui's nginx.conf.template does not yet).
+                    // ponytail: Spring keeps proof replays in an in-memory jti cache, one backend replica.
+                    oauth2.dPoP(Customizer.withDefaults());
+                }
+            });
 
             // Terms of use (NDA) apply to session and Bearer clients alike, not only to the portal UI.
             http.addFilterAfter(new TermsOfUseFilter(activeUserService, handlerExceptionResolver, PUBLIC_PATHS),
@@ -165,7 +189,10 @@ public class SecurityConfiguration {
                     // Bearer-token clients should not need CSRF (they are not cookie-authenticated).
                     .ignoringRequestMatchers((request) -> {
                         String authz = request.getHeader("Authorization");
-                        return authz != null && authz.startsWith("Bearer ");
+                        // Same prefix test Spring's DPoP filter uses, so no request that filter handles
+                        // still gets 403 for CSRF.
+                        return authz != null && (StringUtils.startsWithIgnoreCase(authz, "Bearer ")
+                                || StringUtils.startsWithIgnoreCase(authz, "DPoP"));
                     })
                     // Only this instance's own call: Spring's back-channel logout posts here without a token.
                     .ignoringRequestMatchers(SecurityConfiguration::isLocalLogout));
@@ -256,6 +283,43 @@ public class SecurityConfiguration {
     @Bean
     OAuth2TokenValidator<Jwt> requiredAudienceValidator(@Value("${authentication.required_audience:}") String audience) {
         return audienceValidator(audience);
+    }
+
+    // The laptop client's tokens must be DPoP-bound: Spring's DPoP filter verifies the proof, and this
+    // validator refuses a laptop-client token without the binding or one that arrives over the Bearer
+    // scheme. Platform-client tokens (portal, notebooks) stay Bearer. Only meaningful together with the
+    // dPoP() configurer above, which the same flag turns on.
+    @Bean
+    OAuth2TokenValidator<Jwt> cliDpopValidator(
+            @Value("${authentication.cli_client_id:}") String cliClientId,
+            @Value("${authentication.cli_require_dpop:false}") boolean requireDpop) {
+        return dpopValidator(cliClientId, requireDpop);
+    }
+
+    static OAuth2TokenValidator<Jwt> dpopValidator(String cliClientId, boolean requireDpop) {
+        return jwt -> !requireDpop || !StringUtils.hasText(cliClientId)
+                || !cliClientId.equals(jwt.getClaimAsString("azp"))
+                || (isDpopBound(jwt) && arrivedWithDpopScheme())
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                        "The laptop client's token must be DPoP-bound and used with the DPoP scheme", null));
+    }
+
+    private static boolean isDpopBound(Jwt jwt) {
+        Object confirmation = jwt.getClaims().get("cnf");
+        return confirmation instanceof Map<?, ?> claims && claims.get("jkt") != null;
+    }
+
+    // The validators only see the JWT; the request tells Bearer and DPoP apart. Spring Boot registers its
+    // RequestContextFilter before the security chain, so the request is in scope here; without it (tests)
+    // this fails closed.
+    static boolean arrivedWithDpopScheme() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (!(attributes instanceof ServletRequestAttributes servlet)) {
+            return false;
+        }
+        String authz = servlet.getRequest().getHeader("Authorization");
+        return authz != null && StringUtils.startsWithIgnoreCase(authz, OAuth2AccessToken.TokenType.DPOP.getValue());
     }
 
     static OAuth2TokenValidator<Jwt> audienceValidator(String audience) {

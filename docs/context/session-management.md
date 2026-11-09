@@ -34,6 +34,7 @@ Not limited. One account may hold several portal sessions, laptop sign-ins and a
 - The back-channel session registry is in memory: this works with one backend replica.
 - Any back-channel logout ends all of that user's portal sessions: Keycloak's user logout names only one session.
 - Set `KEYCLOAK_REQUIRED_AUDIENCE` once all of a federation's clients issue tokens naming it in `aud`. Empty means `aud` is not checked; `azp` always is.
+- Turn on `KEYCLOAK_CLI_REQUIRE_DPOP` once a federation's Keycloak issues DPoP-bound tokens for `mip-cli-<federation>` and the mip client has switched: the laptop client's tokens must then be DPoP-bound (RFC 9449) and arrive with the `DPoP` scheme, and Spring verifies the DPoP proof (signature, `htu`/`htm`, `iat`, replay and the token's `cnf.jkt` against the proof's key). The proof's `htu` is the request URL, so nginx must pass `X-Forwarded-Proto`/`X-Forwarded-Host` for the backend location. Platform-client tokens (portal, notebooks) keep working over `Bearer`; remove the flag once every federation has switched.
 
 ## Not available
 
