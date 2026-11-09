@@ -5,6 +5,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,10 @@ public class AuthenticationEventListener {
         Authentication authentication = event.getAuthentication();
         String username = authentication.getName();
         Logger logger = new Logger(username, "LOGGING IN");
-        logger.info("User " + username + " has logged in successfully from " + remoteAddress(authentication));
+        // This event fires for every Bearer (and DPoP) request too, not only for portal sessions; the client
+        // tells the portal and the laptop client apart. Never the token, sid or jti.
+        logger.info("User " + username + " has logged in successfully from " + remoteAddress(authentication)
+                + clientSuffix(authentication));
 
         // If you need to log additional details:
         authentication.getAuthorities().forEach(authority ->
@@ -41,6 +45,14 @@ public class AuthenticationEventListener {
     // Spring Security marks expiry only in the message, written by JwtTimestampValidator.
     static boolean isExpiredToken(Exception exception) {
         return exception.getMessage() != null && exception.getMessage().contains("Jwt expired at");
+    }
+
+    static String clientSuffix(Authentication authentication) {
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+            return "";
+        }
+        String client = jwtAuthentication.getToken().getClaimAsString("azp");
+        return " client=" + (client != null ? client : "none");
     }
 
     private static String remoteAddress(Authentication authentication) {
