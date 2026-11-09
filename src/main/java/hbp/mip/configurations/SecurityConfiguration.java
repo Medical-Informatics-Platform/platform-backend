@@ -185,10 +185,10 @@ public class SecurityConfiguration {
                     // Bearer-token clients should not need CSRF (they are not cookie-authenticated).
                     .ignoringRequestMatchers((request) -> {
                         String authz = request.getHeader("Authorization");
-                        // Same prefix test Spring's DPoP filter uses, so no request that filter handles
-                        // still gets 403 for CSRF.
+                        // Same scheme-plus-space test for both: the request must actually carry a token,
+                        // and one with an Authorization header is never cookie-authenticated.
                         return authz != null && (StringUtils.startsWithIgnoreCase(authz, "Bearer ")
-                                || StringUtils.startsWithIgnoreCase(authz, "DPoP"));
+                                || StringUtils.startsWithIgnoreCase(authz, "DPoP "));
                     })
                     // Only this instance's own call: Spring's back-channel logout posts here without a token.
                     .ignoringRequestMatchers(SecurityConfiguration::isLocalLogout));

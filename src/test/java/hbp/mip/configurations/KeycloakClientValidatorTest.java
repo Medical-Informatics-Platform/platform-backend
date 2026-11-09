@@ -107,6 +107,11 @@ class KeycloakClientValidatorTest {
         assertThat(validator.validate(token(Map.of("azp", "mip-cli"))).hasErrors()).isTrue();
         assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
                 .hasErrors()).isFalse();
+
+        // The Bearer scheme must be told apart from DPoP by the request, not by "any Authorization header".
+        requestArrivedWith("Bearer");
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
     }
 
     @Test

@@ -175,6 +175,13 @@ class TermsOfUseSecurityChainTest {
     }
 
     @Test
+    void aDpopSchemeWithoutATokenIsNotExemptFromCsrf() throws Exception {
+        // The exemption is scheme-plus-space, like Bearer: a header that names no token gets no exemption.
+        mvc.perform(post("/services/experiments").contextPath("/services").header("Authorization", "DPoP"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void bearerTokenOfTheLaptopClientIsAccepted() throws Exception {
         storedUser("alice", true);
 

@@ -152,7 +152,8 @@ class DpopSecurityChainTest {
     void aDpopBoundLaptopTokenIsRefusedOverBearer() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withBearer(get("/services/experiments"), laptopToken("alice")))
+        // In request scope, so the refusal tests the Bearer scheme, not the missing request scope.
+        mvc.perform(withBearer(get("/services/experiments"), laptopToken("alice")).with(inRequestScope()))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -175,8 +176,39 @@ class DpopSecurityChainTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void aProofForAnotherUrlIsRefused() throws Exception {
+        storedUser("alice", true);
+        String token = laptopToken("alice");
+
+        // What a request looks like when nginx does not pass X-Forwarded-Proto/Host: the proof names the
+        // public https URL, but the backend still sees its own http one.
+        String proofForPublicUrl = proof(token, "https://portal.example.org/services/experiments");
+        int status = mvc.perform(post("/services/experiments").contextPath("/services")
+                        .header("Authorization", "DPoP " + token)
+                        .header("DPoP", proofForPublicUrl)
+                        .with(inRequestScope()))
+                .andReturn().getResponse().getStatus();
+
+        assertThat(status).isEqualTo(401);
+    }
+
+    @Test
+    void aDpopRequestWithoutAProofIsRefused() throws Exception {
+        storedUser("alice", true);
+
+        mvc.perform(post("/services/experiments").contextPath("/services")
+                        .header("Authorization", "DPoP " + laptopToken("alice"))
+                        .with(inRequestScope()))
+                .andExpect(status().isUnauthorized());
+    }
+
     // The proof's htu is the request URL as the backend sees it; MockMvc serves http://localhost/services.
     private static String proof(String accessToken) {
+        return proof(accessToken, "http://localhost/services/experiments");
+    }
+
+    private static String proof(String accessToken, String htu) {
         try {
             SignedJWT proof = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256)
@@ -185,7 +217,7 @@ class DpopSecurityChainTest {
                             .build(),
                     new JWTClaimsSet.Builder()
                             .claim("htm", "POST")
-                            .claim("htu", "http://localhost/services/experiments")
+                            .claim("htu", htu)
                             .claim("iat", Instant.now().getEpochSecond())
                             .claim("jti", UUID.randomUUID().toString())
                             .claim("ath", sha256UrlSafe(accessToken))
