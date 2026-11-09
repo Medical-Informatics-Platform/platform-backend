@@ -70,6 +70,10 @@ authentication:
   cli_require_dpop: ${KEYCLOAK_CLI_REQUIRE_DPOP:false}
   # Portal sessions end at this age however active they are (8h or PT8H).
   session_max_age: ${SESSION_MAX_AGE:8h}
+  # Secure attribute on the JupyterHub cookies cleared at sign-out. Default on: the
+  # attribute is set when the request is HTTPS (including X-Forwarded-Proto). Set
+  # COOKIE_SECURE=false so a portal served over plain HTTP can still clear them.
+  secure_cookies: ${COOKIE_SECURE:true}
 
 ### EXTERNAL SERVICES ###
 services:

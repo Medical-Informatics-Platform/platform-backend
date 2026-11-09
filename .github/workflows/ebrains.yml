@@ -6,6 +6,9 @@ on:
     tags:
       - "*"
 
+permissions:
+  contents: read
+
 jobs:
   to_ebrains:
     runs-on: ubuntu-latest

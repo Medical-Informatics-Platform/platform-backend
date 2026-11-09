@@ -307,7 +307,9 @@ class TermsOfUseSecurityChainTest {
         mvc.perform(post("/services/logout").contextPath("/services").secure(true).session(session("alice")))
                 .andExpect(header().string("Clear-Site-Data", "\"cache\", \"storage\""))
                 .andExpect(cookie().maxAge("jupyterhub-hub-login", 0))
-                .andExpect(cookie().path("jupyterhub-hub-login", "/notebook/hub/"));
+                .andExpect(cookie().path("jupyterhub-hub-login", "/notebook/hub/"))
+                .andExpect(cookie().secure("jupyterhub-hub-login", true))
+                .andExpect(cookie().secure("jupyterhub-session-id", true));
     }
 
     @Test
@@ -316,7 +318,9 @@ class TermsOfUseSecurityChainTest {
         MockHttpSession session = session("alice");
 
         mvc.perform(post("/services/logout").contextPath("/services").session(session))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(cookie().secure("jupyterhub-hub-login", false))
+                .andExpect(cookie().secure("jupyterhub-session-id", false));
 
         assertThat(session.isInvalid()).isTrue();
     }
