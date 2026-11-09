@@ -85,12 +85,8 @@ public class SecurityConfiguration {
     @Value("${authentication.session_max_age:8h}")
     private String sessionMaxAge;
 
-    // The public Keycloak client (device flow) of the mip client on users' own computers.
-    @Value("${authentication.cli_client_id:}")
-    private String cliClientId;
-
-    // Require the laptop client's tokens to be DPoP-bound (RFC 9449). ponytail: remove the flag once
-    // every federation has switched its Keycloak and laptop clients over.
+    // The public Keycloak client (device flow) of the mip client on users' own computers is named by the
+    // validator beans below; the chain itself only needs the DPoP flag.
     @Value("${authentication.cli_require_dpop:false}")
     private boolean cliRequireDpop;
 
@@ -330,12 +326,18 @@ public class SecurityConfiguration {
     }
 
     // Keycloak signs ID tokens with the same key and the same azp, so only its typ claim tells them from access tokens.
+    // DPoP-bound access tokens may carry typ "DPoP" instead of "Bearer" (RFC 9449); then cnf.jkt must be
+    // present, which is what makes such a token a bound access token and not an ID token. Keycloak's exact
+    // typ for DPoP tokens is still to be confirmed on a DPoP-enabled realm.
     @Bean
     OAuth2TokenValidator<Jwt> accessTokenValidator() {
-        return jwt -> "Bearer".equals(jwt.getClaimAsString("typ"))
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
-                        "The token is not an access token", null));
+        return jwt -> {
+            String typ = jwt.getClaimAsString("typ");
+            return "Bearer".equals(typ) || ("DPoP".equals(typ) && isDpopBound(jwt))
+                    ? OAuth2TokenValidatorResult.success()
+                    : OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                            "The token is not an access token", null));
+        };
     }
 
     static JwtAuthenticationConverter jwtAuthenticationConverter(String clientId) {

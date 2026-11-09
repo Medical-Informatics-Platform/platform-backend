@@ -56,6 +56,19 @@ class KeycloakClientValidatorTest {
     }
 
     @Test
+    void aDpopTypedTokenCountsAsAccessTokenOnlyWhenItIsDpopBound() {
+        OAuth2TokenValidator<Jwt> accessTokens = new SecurityConfiguration(null, null, null, null).accessTokenValidator();
+
+        // Keycloak may name DPoP-bound access tokens typ "DPoP"; the binding claim is what proves it.
+        assertThat(accessTokens.validate(token(Map.of("typ", "DPoP", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isFalse();
+        assertThat(accessTokens.validate(token(Map.of("typ", "DPoP"))).hasErrors()).isTrue();
+        // A DPoP-typed token is never an ID token, whatever its claims say.
+        assertThat(accessTokens.validate(token(Map.of("typ", "ID", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
+    }
+
+    @Test
     void requiredAudienceIsCheckedOnlyWhenSet() {
         OAuth2TokenValidator<Jwt> required = SecurityConfiguration.audienceValidator("mippublic");
         assertThat(required.validate(token(Map.of("aud", List.of("account", "mippublic")))).hasErrors()).isFalse();
