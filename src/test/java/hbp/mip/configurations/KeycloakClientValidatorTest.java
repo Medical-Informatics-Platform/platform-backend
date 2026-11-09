@@ -1,8 +1,13 @@
 package hbp.mip.configurations;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
@@ -51,6 +56,19 @@ class KeycloakClientValidatorTest {
     }
 
     @Test
+    void aDpopTypedTokenCountsAsAccessTokenOnlyWhenItIsDpopBound() {
+        OAuth2TokenValidator<Jwt> accessTokens = new SecurityConfiguration(null, null, null, null).accessTokenValidator();
+
+        // Keycloak may name DPoP-bound access tokens typ "DPoP"; the binding claim is what proves it.
+        assertThat(accessTokens.validate(token(Map.of("typ", "DPoP", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isFalse();
+        assertThat(accessTokens.validate(token(Map.of("typ", "DPoP"))).hasErrors()).isTrue();
+        // A DPoP-typed token is never an ID token, whatever its claims say.
+        assertThat(accessTokens.validate(token(Map.of("typ", "ID", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
+    }
+
+    @Test
     void requiredAudienceIsCheckedOnlyWhenSet() {
         OAuth2TokenValidator<Jwt> required = SecurityConfiguration.audienceValidator("mippublic");
         assertThat(required.validate(token(Map.of("aud", List.of("account", "mippublic")))).hasErrors()).isFalse();
@@ -63,5 +81,61 @@ class KeycloakClientValidatorTest {
     @Test
     void rejectsEverythingWithoutAClientId() {
         assertThat(SecurityConfiguration.clientValidator("", "").validate(token(Map.of("azp", ""))).hasErrors()).isTrue();
+    }
+
+    // The validator only sees the JWT; the request tells Bearer and DPoP apart.
+    @AfterEach
+    void forgetTheRequest() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    private static void requestArrivedWith(String scheme) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", scheme + " the-token");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    }
+
+    @Test
+    void whenRequiredEveryLaptopTokenMustBeDpopBoundAndArriveWithTheDpopScheme() {
+        OAuth2TokenValidator<Jwt> validator = SecurityConfiguration.dpopValidator("mip-cli", true);
+
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli"))).hasErrors()).isTrue();
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
+
+        requestArrivedWith("DPoP");
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli"))).hasErrors()).isTrue();
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isFalse();
+
+        // The Bearer scheme must be told apart from DPoP by the request, not by "any Authorization header".
+        requestArrivedWith("Bearer");
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
+    }
+
+    @Test
+    void platformTokensKeepWorkingOverBearerWhenDpopIsRequired() {
+        OAuth2TokenValidator<Jwt> validator = SecurityConfiguration.dpopValidator("mip-cli", true);
+
+        assertThat(validator.validate(token(Map.of("azp", "mippublic", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isFalse();
+        assertThat(validator.validate(token(Map.of("azp", "mippublic"))).hasErrors()).isFalse();
+    }
+
+    @Test
+    void withoutTheFlagOrTheLaptopClientTheValidatorAdmitsEverything() {
+        assertThat(SecurityConfiguration.dpopValidator("mip-cli", false)
+                .validate(token(Map.of("azp", "mip-cli"))).hasErrors()).isFalse();
+        assertThat(SecurityConfiguration.dpopValidator("", true)
+                .validate(token(Map.of("azp", "mip-cli"))).hasErrors()).isFalse();
+    }
+
+    @Test
+    void withoutARequestScopeTheValidatorFailsClosed() {
+        OAuth2TokenValidator<Jwt> validator = SecurityConfiguration.dpopValidator("mip-cli", true);
+
+        assertThat(validator.validate(token(Map.of("azp", "mip-cli", "cnf", Map.of("jkt", "thumbprint"))))
+                .hasErrors()).isTrue();
     }
 }

@@ -65,6 +65,9 @@ authentication:
   cli_client_id: ${KEYCLOAK_CLI_CLIENT_ID:}
   # When set, Bearer tokens must also name this in aud; set it once every client's tokens do.
   required_audience: ${KEYCLOAK_REQUIRED_AUDIENCE:}
+  # Require the laptop client's tokens to be DPoP-bound (RFC 9449) and used with the DPoP scheme.
+  # Turn on once Keycloak and the mip client have switched; remove once every federation has.
+  cli_require_dpop: ${KEYCLOAK_CLI_REQUIRE_DPOP:false}
   # Portal sessions end at this age however active they are (8h or PT8H).
   session_max_age: ${SESSION_MAX_AGE:8h}
 

@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
+import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -142,6 +143,42 @@ class TermsOfUseSecurityChainTest {
         assertThat(failures.events).singleElement()
                 .satisfies(event -> assertThat(event.getException().getClass().getSimpleName())
                         .doesNotContain("alice"));
+    }
+
+    // B1's premise: every Bearer (and DPoP) authentication publishes a success event, so the per-request
+    // login log line with its client is produced for API clients too, and no operator decision is needed.
+    @Test
+    void everyBearerAuthenticationPublishesASuccessEvent() throws Exception {
+        storedUser("alice", true);
+        failures.successes.clear();
+
+        mvc.perform(withBearer(get("/services/experiments"), "alice"))
+                .andExpect(status().isOk());
+
+        assertThat(failures.successes).singleElement().satisfies(event -> {
+            assertThat(event.getAuthentication().getName()).isEqualTo("alice");
+            assertThat(event.getAuthentication().getPrincipal()).isInstanceOf(Jwt.class);
+        });
+    }
+
+    // A DPoP-scheme request carries an Authorization header, so it is never cookie-authenticated and needs
+    // no CSRF token; without this exemption Spring would 403 every DPoP POST.
+    @Test
+    void aDpopSchemePostIsExemptFromCsrf() throws Exception {
+        int status = mvc.perform(post("/services/experiments").contextPath("/services")
+                        .header("Authorization", "DPoP some-token"))
+                .andReturn().getResponse().getStatus();
+
+        // The DPoP filter itself is off while cli_require_dpop is, so this stays unauthenticated (302 or
+        // 401, as for any unauthenticated request); what matters is that it is not 403 CSRF.
+        assertThat(status).isIn(302, 401);
+    }
+
+    @Test
+    void aDpopSchemeWithoutATokenIsNotExemptFromCsrf() throws Exception {
+        // The exemption is scheme-plus-space, like Bearer: a header that names no token gets no exemption.
+        mvc.perform(post("/services/experiments").contextPath("/services").header("Authorization", "DPoP"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -349,6 +386,11 @@ class TermsOfUseSecurityChainTest {
     static class Config {
 
         @Bean
+        public AuthenticationEventListener authenticationEventListener() {
+            return new AuthenticationEventListener();
+        }
+
+        @Bean
         UserRepository userRepository() {
             return mock(UserRepository.class);
         }
@@ -395,10 +437,16 @@ class TermsOfUseSecurityChainTest {
 
     static class FailureEvents {
         final List<AbstractAuthenticationFailureEvent> events = new ArrayList<>();
+        final List<AuthenticationSuccessEvent> successes = new ArrayList<>();
 
         @EventListener
         void record(AbstractAuthenticationFailureEvent event) {
             events.add(event);
+        }
+
+        @EventListener
+        void recordSuccess(AuthenticationSuccessEvent event) {
+            successes.add(event);
         }
     }
 
