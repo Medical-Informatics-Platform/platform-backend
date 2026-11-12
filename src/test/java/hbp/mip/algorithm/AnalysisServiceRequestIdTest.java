@@ -52,4 +52,12 @@ class AnalysisServiceRequestIdTest {
         assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 413, exaflowBody))
                 .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
     }
+
+    @Test
+    void convertResponse_passesExaflowMalformedRequestThrough() {
+        var exaflowBody = new StringBuilder("Request malformed:\nbody.inputdata: Field required");
+
+        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 422, exaflowBody))
+                .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
+    }
 }
