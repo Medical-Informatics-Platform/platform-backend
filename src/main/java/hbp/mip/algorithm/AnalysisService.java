@@ -67,7 +67,7 @@ public class AnalysisService {
     static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
             case 200 -> new RawJson(responseBody.toString());
-            case 400, 413, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
+            case 400, 413, 422, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
             // Exaflow is at its concurrent-analysis limit; its own message names internal components,
             // so it goes to the log and the user gets a retry message.
