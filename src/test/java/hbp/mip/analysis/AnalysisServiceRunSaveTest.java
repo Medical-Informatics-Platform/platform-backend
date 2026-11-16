@@ -2,6 +2,7 @@ package hbp.mip.analysis;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
 import hbp.mip.algorithm.AnalysisExecutionService;
+import hbp.mip.datamodel.DatasetLabelService;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDTO;
 import hbp.mip.utils.ClaimUtils;
@@ -53,6 +54,9 @@ class AnalysisServiceRunSaveTest {
 
     @Mock
     private AnalysisExecutionService analysisExecutionService;
+
+    @Mock
+    private DatasetLabelService datasetLabelService;
 
     @Mock
     private Authentication authentication;
@@ -240,7 +244,7 @@ class AnalysisServiceRunSaveTest {
 
     private AnalysisService service(boolean authenticationIsEnabled) {
         return new AnalysisService(activeUserService, claimUtils, analysisRepository, analysisRunRepository,
-                analysisExecutionService, authenticationIsEnabled, "9.0.0", Duration.ofHours(24));
+                analysisExecutionService, datasetLabelService, authenticationIsEnabled, "9.0.0", Duration.ofHours(24));
     }
 
     private AnalysisRunDAO keptRun(String owner, Date created) {

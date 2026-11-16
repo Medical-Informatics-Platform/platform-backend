@@ -2,6 +2,8 @@ package hbp.mip.analysis;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
 import hbp.mip.algorithm.AnalysisExecutionService;
+import hbp.mip.datamodel.DatasetLabelService;
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDTO;
 import hbp.mip.utils.*;
@@ -27,6 +29,7 @@ public class AnalysisService {
     private final AnalysisRepository analysisRepository;
     private final AnalysisRunRepository analysisRunRepository;
     private final AnalysisExecutionService analysisExecutionService;
+    private final DatasetLabelService datasetLabelService;
     private final boolean authenticationIsEnabled;
     private final String mipVersion;
     private final Duration runDraftTtl;
@@ -37,6 +40,7 @@ public class AnalysisService {
             AnalysisRepository analysisRepository,
             AnalysisRunRepository analysisRunRepository,
             AnalysisExecutionService analysisExecutionService,
+            DatasetLabelService datasetLabelService,
             @Value("${authentication.enabled}") boolean authenticationIsEnabled,
             @Value("${mip.version}") String mipVersion,
             @Value("${analyses.run-draft-ttl}") Duration runDraftTtl) {
@@ -45,6 +49,7 @@ public class AnalysisService {
         this.analysisRepository = analysisRepository;
         this.analysisRunRepository = analysisRunRepository;
         this.analysisExecutionService = analysisExecutionService;
+        this.datasetLabelService = datasetLabelService;
         this.authenticationIsEnabled = authenticationIsEnabled;
         this.mipVersion = mipVersion;
         this.runDraftTtl = runDraftTtl;
@@ -108,7 +113,8 @@ public class AnalysisService {
     private Specification<AnalysisDAO> sharedAndReadable(Authentication authentication, boolean shared,
             boolean hasAccessRights, Logger logger) {
         Specification<AnalysisDAO> spec = new AnalysisSpecifications.SharedAnalysis(shared);
-        List<String> datasets = hasAccessRights ? null : claimUtils.usableDatasets(authentication, logger);
+        Map<String, List<String>> datasets = hasAccessRights ? null
+                : claimUtils.usableDatasets(authentication, () -> labelsOrNone(logger), logger);
         return datasets == null
                 ? spec
                 : spec.and(new AnalysisSpecifications.DatasetsReadable(convertObjectToJsonString(datasets)));
@@ -159,17 +165,33 @@ public class AnalysisService {
             return true;
         }
         return analysisDAO.isShared()
-                && claimUtils.hasAccessRightsOnDatasets(authentication, datasetsOf(analysisDAO), logger);
+                && hasAccessRightsOnDatasetsOf(authentication, analysisDAO, logger);
     }
 
-    private static List<String> datasetsOf(AnalysisDAO analysisDAO) {
+    private boolean hasAccessRightsOnDatasetsOf(Authentication authentication, AnalysisDAO analysisDAO,
+            Logger logger) {
         AnalysisRequestDTO analysisRequest = AnalysisRequestDTO.fromStored(analysisDAO.getAnalysisRequest());
-        return analysisRequest != null && analysisRequest.inputdata() != null ? analysisRequest.inputdata().allDatasets() : null;
+        if (analysisRequest == null || analysisRequest.inputdata() == null) {
+            return false;
+        }
+        // Analyses saved before dataset codes became numeric name their datasets by the old text code.
+        return claimUtils.hasAccessRightsOnDatasets(authentication, analysisRequest.inputdata().data_model(),
+                analysisRequest.inputdata().allDatasets(), () -> labelsOrNone(logger), logger);
+    }
+
+    /** For reads and lists: when the labels cannot be fetched nothing resolves, so every dataset is denied. */
+    private DatasetLabels labelsOrNone(Logger logger) {
+        try {
+            return datasetLabelService.get(logger);
+        } catch (InternalServerError e) {
+            return DatasetLabels.NONE;
+        }
     }
 
     private void validateDatasetAccess(Authentication authentication, AnalysisRequestDTO analysisRequest, Logger logger) {
         if (authenticationIsEnabled) {
-            claimUtils.validateAccessRightsOnDatasets(authentication, analysisRequest.inputdata().allDatasets(), logger);
+            claimUtils.validateAccessRightsOnDatasets(authentication, analysisRequest.inputdata().data_model(),
+                    analysisRequest.inputdata().allDatasets(), () -> datasetLabelService.get(logger), logger);
         }
     }
 

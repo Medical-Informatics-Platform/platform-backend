@@ -1,6 +1,8 @@
 package hbp.mip.analysis;
 
 import hbp.mip.algorithm.AnalysisExecutionService;
+import hbp.mip.datamodel.DatasetLabelService;
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDAO;
 import hbp.mip.user.UserDTO;
@@ -27,6 +29,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,6 +58,8 @@ class AnalysisServiceSharedAccessTest {
     private AnalysisRunRepository analysisRunRepository;
     @Mock
     private AnalysisExecutionService analysisExecutionService;
+    @Mock
+    private DatasetLabelService datasetLabelService;
 
     private final Logger logger = new Logger("reader", "test");
     private AnalysisService service;
@@ -66,7 +71,9 @@ class AnalysisServiceSharedAccessTest {
         ReflectionTestUtils.setField(claimUtils, "allAnalysesAllowedClaim", "research_experiment_all");
         ReflectionTestUtils.setField(claimUtils, "datasetClaimPrefix", "research_dataset_");
         service = new AnalysisService(activeUserService, claimUtils, analysisRepository, analysisRunRepository,
-                analysisExecutionService, true, "9.0.0", Duration.ofHours(24));
+                analysisExecutionService, datasetLabelService, true, "9.0.0", Duration.ofHours(24));
+        lenient().when(datasetLabelService.get(any()))
+                .thenReturn(new DatasetLabels(Map.of("dm:1", Map.of("1", "DS1", "2", "DS2"))));
         lenient().when(activeUserService.getActiveUser(any()))
                 .thenReturn(new UserDTO("reader", "Reader", "reader@example.org", "subject", true));
     }
@@ -107,7 +114,7 @@ class AnalysisServiceSharedAccessTest {
     void listAsksTheDatabaseOnlyForSharedAnalysesOnTheUsersDatasets() {
         CriteriaBuilder cb = listedWith("research_dataset_DS1", "research_dataset_ds2", "other_role");
 
-        verify(cb).literal("[\"ds1\",\"ds2\"]");
+        verify(cb).literal("{\"dm:1\":[\"1\",\"2\",\"ds1\",\"ds2\"]}");
     }
 
     @Test

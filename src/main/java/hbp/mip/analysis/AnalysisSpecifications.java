@@ -135,7 +135,10 @@ public class AnalysisSpecifications {
         }
     }
 
-    /** Every dataset the analysis ran on is in {@code allowedDatasets}, a JSON array of lowercase codes. */
+    /**
+     * Every dataset the analysis ran on is allowed for its data model. {@code allowedDatasets} is a JSON object
+     * from data model to the lowercase dataset codes and labels the user may use (ClaimUtils.usableDatasets).
+     */
     public static class DatasetsReadable implements Specification<AnalysisDAO> {
 
         private final String allowedDatasets;
@@ -146,7 +149,7 @@ public class AnalysisSpecifications {
 
         public Predicate toPredicate(@NonNull Root<AnalysisDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
                 @NonNull CriteriaBuilder cb) {
-            // Defined in V6__AnalysisStudyTerminology.sql.
+            // Defined in V6__AnalysisStudyTerminology.sql, replaced by V7.
             return cb.isTrue(cb.function("analysis_datasets_readable", Boolean.class,
                     root.get("analysisRequest"), cb.literal(allowedDatasets)));
         }
