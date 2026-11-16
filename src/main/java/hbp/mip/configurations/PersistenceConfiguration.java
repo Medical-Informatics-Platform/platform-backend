@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 
 @Configuration
-@EnableJpaRepositories(basePackages = { "hbp.mip.experiment", "hbp.mip.user", "hbp.mip.folder" })
+@EnableJpaRepositories(basePackages = { "hbp.mip.analysis", "hbp.mip.user", "hbp.mip.study" })
 @EnableTransactionManagement
 public class PersistenceConfiguration {
 
@@ -36,7 +36,7 @@ public class PersistenceConfiguration {
         emfb.setDataSource(platformDataSource());
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         emfb.setJpaVendorAdapter(vendorAdapter);
-        emfb.setPackagesToScan("hbp.mip.experiment", "hbp.mip.user", "hbp.mip.folder");
+        emfb.setPackagesToScan("hbp.mip.analysis", "hbp.mip.user", "hbp.mip.study");
 
         return emfb;
     }

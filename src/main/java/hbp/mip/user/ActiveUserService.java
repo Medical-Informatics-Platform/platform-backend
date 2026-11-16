@@ -114,7 +114,7 @@ public class ActiveUserService {
         return Boolean.TRUE.equals(user.getAgreeNDA());
     }
 
-    // A username Keycloak gave to someone else must not inherit the previous holder's experiments or accepted terms.
+    // A username Keycloak gave to someone else must not inherit the previous holder's analyses or accepted terms.
     private static void refuseAnotherSubject(UserDAO stored, UserDAO authenticated) {
         if (isKnownSubject(stored) && isKnownSubject(authenticated)
                 && !stored.getSubjectId().equals(authenticated.getSubjectId())) {

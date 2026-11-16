@@ -15,12 +15,12 @@ public record AnalysisRequestDTO(
         AnalysisAlgorithmDTO algorithm,
         Map<String, Object> flags) {
 
-    /** A stored analysis can be an error message, not JSON (see V2 migration); it then reads as no analysis. */
-    public static AnalysisRequestDTO fromStored(String analysis) {
+    /** Historical request text can be an error message; unreadable requests remain absent in the DTO. */
+    public static AnalysisRequestDTO fromStored(String analysisRequest) {
         try {
-            return JsonConverters.convertJsonStringToObject(analysis, AnalysisRequestDTO.class);
+            return JsonConverters.convertJsonStringToObject(analysisRequest, AnalysisRequestDTO.class);
         } catch (JsonParseException e) {
-            new Logger("unknown", "AnalysisRequestDTO").warn("Stored analysis is unreadable: " + e.getClass().getSimpleName());
+            new Logger("unknown", "AnalysisRequestDTO").warn("Stored analysisRequest is unreadable: " + e.getClass().getSimpleName());
             return null;
         }
     }
