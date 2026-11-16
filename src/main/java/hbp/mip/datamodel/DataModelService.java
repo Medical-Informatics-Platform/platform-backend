@@ -3,8 +3,8 @@ package hbp.mip.datamodel;
 import com.google.gson.reflect.TypeToken;
 import hbp.mip.utils.ClaimUtils;
 import hbp.mip.utils.Exceptions.InternalServerError;
-import hbp.mip.utils.Exceptions.NoAuthorizedPathologiesException;
-import hbp.mip.utils.Exceptions.NoPathologiesAvailableException;
+import hbp.mip.utils.Exceptions.NoAuthorizedDataModelsException;
+import hbp.mip.utils.Exceptions.NoDataModelsAvailableException;
 import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
@@ -44,8 +44,8 @@ public class DataModelService {
 
         List<DataModelDTO> allDataModelDTOS = getAggregatedDataModelDTOs(logger);
         if (allDataModelDTOS.isEmpty()) {
-            logger.warn("No pathologies are available for this federation.");
-            throw new NoPathologiesAvailableException("No pathologies are available for this federation.");
+            logger.warn("No data models are available for this federation.");
+            throw new NoDataModelsAvailableException("No data models are available for this federation.");
         }
 
         if (!authenticationIsEnabled) {
@@ -56,9 +56,9 @@ public class DataModelService {
                 claimUtils.getAuthorizedDataModels(logger, authentication, allDataModelDTOS);
 
         if (authorizedDataModels.isEmpty()) {
-            logger.warn("User does not have access to any federation pathology.");
-            throw new NoAuthorizedPathologiesException(
-                    "You do not have access to any of the pathologies in this federation."
+            logger.warn("User does not have access to any federation data model.");
+            throw new NoAuthorizedDataModelsException(
+                    "You do not have access to any data models in this federation."
             );
         }
 
@@ -69,7 +69,7 @@ public class DataModelService {
         Map<String, DataModelAttributes> exaflowDataModelAttributes;
         Map<String, Map<String, List<String>>> datasetsVariablesByDataModel;
         Map<String, List<DataModelDTO.EnumerationDTO>> datasetEnumerationsByDataModel;
-        Type pathologyAttributesType = new TypeToken<Map<String, DataModelAttributes>>(){}.getType();
+        Type dataModelAttributesType = new TypeToken<Map<String, DataModelAttributes>>(){}.getType();
         Type datasetsVariablesType = new TypeToken<Map<String, Map<String, List<String>>>>(){}.getType();
         Type cdesMetadataType = new TypeToken<Map<String, Map<String, CDEMetadata>>>(){}.getType();
 
@@ -77,7 +77,7 @@ public class DataModelService {
             StringBuilder response = new StringBuilder();
             HTTPUtil.sendGet(exaflowAttributesUrl, exaflowApiToken, response);
             Map<String, DataModelAttributes> convertedResponse =
-                    JsonConverters.convertJsonStringToObject(response.toString(), pathologyAttributesType);
+                    JsonConverters.convertJsonStringToObject(response.toString(), dataModelAttributesType);
             exaflowDataModelAttributes = convertedResponse != null ? convertedResponse : Collections.emptyMap();
         } catch (Exception e) {
             logger.error("Could not fetch exaflow dataModels' metadata: " + e.getMessage());
@@ -105,7 +105,7 @@ public class DataModelService {
         }
 
         List<DataModelDTO> dataModelDTOs = new ArrayList<>();
-        exaflowDataModelAttributes.forEach((pathology, attributes) -> {
+        exaflowDataModelAttributes.forEach((dataModel, attributes) -> {
             assert attributes.properties != null;
             assert attributes.properties.get("cdes") != null;
             assert !attributes.properties.get("cdes").isEmpty();
