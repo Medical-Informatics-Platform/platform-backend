@@ -10,7 +10,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class AnalysisServiceRequestIdTest {
+class AnalysisExecutionServiceRequestIdTest {
 
     @Test
     void requireRunnable_rejectsMissingAlgorithmAndInputdataAsBadRequest() {
@@ -18,15 +18,15 @@ class AnalysisServiceRequestIdTest {
         var algorithm = new AnalysisRequestDTO.AnalysisAlgorithmDTO("histogram", null, List.of("age"), Map.of());
         var logger = new Logger("user", "test");
 
-        assertThatThrownBy(() -> AnalysisService.requireRunnable(null, logger))
+        assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(null, logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("analysis");
-        assertThatThrownBy(() -> AnalysisService.requireRunnable(
+        assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(
                 new AnalysisRequestDTO(null, inputdata, null, null, null), logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("algorithm.name");
-        assertThatThrownBy(() -> AnalysisService.requireRunnable(
+        assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(
                 new AnalysisRequestDTO(null, null, null, algorithm, null), logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("inputdata");
-        AnalysisService.requireRunnable(new AnalysisRequestDTO(null, inputdata, null, algorithm, null), logger);
+        AnalysisExecutionService.requireRunnable(new AnalysisRequestDTO(null, inputdata, null, algorithm, null), logger);
     }
 
     @Test
@@ -41,15 +41,15 @@ class AnalysisServiceRequestIdTest {
     void convertResponse_mapsExaflowBusyToRetryMessage() {
         var exaflowBody = new StringBuilder("The controller is already running the maximum number of concurrent analyses.");
 
-        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 503, exaflowBody))
-                .isEqualTo(Map.of("data", AnalysisService.BUSY_ERROR_MESSAGE, "type", "text/plain+error"));
+        assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 503, exaflowBody))
+                .isEqualTo(Map.of("data", AnalysisExecutionService.BUSY_ERROR_MESSAGE, "type", "text/plain+error"));
     }
 
     @Test
     void convertResponse_passesExaflowMessageTooLargeThrough() {
         var exaflowBody = new StringBuilder("result too large (>104857600 bytes / 100.0 MiB); reduce variables/levels");
 
-        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 413, exaflowBody))
+        assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 413, exaflowBody))
                 .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
     }
 
@@ -57,7 +57,7 @@ class AnalysisServiceRequestIdTest {
     void convertResponse_passesExaflowMalformedRequestThrough() {
         var exaflowBody = new StringBuilder("Request malformed:\nbody.inputdata: Field required");
 
-        assertThat(AnalysisService.convertResponseToAnalysisResult(new Logger("user", "test"), 422, exaflowBody))
+        assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 422, exaflowBody))
                 .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
     }
 }

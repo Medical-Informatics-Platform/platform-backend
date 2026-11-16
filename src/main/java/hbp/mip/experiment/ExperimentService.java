@@ -1,7 +1,7 @@
 package hbp.mip.experiment;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
-import hbp.mip.algorithm.AnalysisService;
+import hbp.mip.algorithm.AnalysisExecutionService;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.user.UserDTO;
 import hbp.mip.utils.*;
@@ -26,7 +26,7 @@ public class ExperimentService {
     private final ClaimUtils claimUtils;
     private final ExperimentRepository experimentRepository;
     private final ExperimentRunRepository experimentRunRepository;
-    private final AnalysisService analysisService;
+    private final AnalysisExecutionService analysisService;
     private final boolean authenticationIsEnabled;
     private final String mipVersion;
     private final Duration runDraftTtl;
@@ -36,7 +36,7 @@ public class ExperimentService {
             ClaimUtils claimUtils,
             ExperimentRepository experimentRepository,
             ExperimentRunRepository experimentRunRepository,
-            AnalysisService analysisService,
+            AnalysisExecutionService analysisService,
             @Value("${authentication.enabled}") boolean authenticationIsEnabled,
             @Value("${mip.version}") String mipVersion,
             @Value("${experiments.run-draft-ttl}") Duration runDraftTtl) {
@@ -176,12 +176,12 @@ public class ExperimentService {
     /** Runs an analysis and returns its result without storing anything. */
     public ExperimentDTO previewExperiment(Authentication authentication,
             ExperimentExecutionDTO experimentExecutionDTO, Logger logger) {
-        AnalysisService.requireRunnable(experimentExecutionDTO.analysis(), logger);
+        AnalysisExecutionService.requireRunnable(experimentExecutionDTO.analysis(), logger);
         analysisParametersLogging(experimentExecutionDTO, logger);
 
         validateDatasetAccess(authentication, experimentExecutionDTO.analysis(), logger);
         UUID uuid = UUID.randomUUID();
-        AnalysisService.AnalysisResultDTO analysisResult = analysisService.runAnalysis(
+        AnalysisExecutionService.AnalysisResultDTO analysisResult = analysisService.runAnalysis(
                 uuid,
                 experimentExecutionDTO.analysis(),
                 logger);

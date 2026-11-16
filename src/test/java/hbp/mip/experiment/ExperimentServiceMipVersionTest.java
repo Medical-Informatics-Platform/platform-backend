@@ -1,7 +1,7 @@
 package hbp.mip.experiment;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
-import hbp.mip.algorithm.AnalysisService;
+import hbp.mip.algorithm.AnalysisExecutionService;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.utils.ClaimUtils;
 import hbp.mip.utils.Logger;
@@ -38,7 +38,7 @@ class ExperimentServiceMipVersionTest {
     private ExperimentRunRepository experimentRunRepository;
 
     @Mock
-    private AnalysisService analysisService;
+    private AnalysisExecutionService analysisService;
 
     @Mock
     private Authentication authentication;
@@ -56,7 +56,7 @@ class ExperimentServiceMipVersionTest {
         var execution = sampleExecution();
 
         when(analysisService.runAnalysis(any(UUID.class), eq(execution.analysis()), any(Logger.class)))
-                .thenReturn(new AnalysisService.AnalysisResultDTO(200, Map.of("ok", true)));
+                .thenReturn(new AnalysisExecutionService.AnalysisResultDTO(200, Map.of("ok", true)));
 
         var response = experimentService.previewExperiment(authentication, execution, new Logger("user", "test"));
 

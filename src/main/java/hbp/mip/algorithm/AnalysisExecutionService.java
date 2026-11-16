@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class AnalysisService {
+public class AnalysisExecutionService {
 
     private static final String GENERIC_ERROR_MESSAGE =
             "Something went wrong. Please inform the system administrator or try again later.";
@@ -26,7 +26,7 @@ public class AnalysisService {
     @Value("${services.exaflow.apiToken:}")
     private String exaflowApiToken;
 
-    public AnalysisService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
+    public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
         this.analysisUrl = analysisUrl;
     }
 
