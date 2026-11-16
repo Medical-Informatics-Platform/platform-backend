@@ -67,6 +67,31 @@ class ExperimentServiceRunSaveTest {
     }
 
     @Test
+    void previewDoesNotPersistAnything() {
+        var execution = sampleExecution();
+        when(analysisService.runAnalysis(any(UUID.class), eq(execution.analysis()), any(Logger.class)))
+                .thenReturn(new AnalysisService.AnalysisResultDTO(200, Map.of("ok", true)));
+
+        experimentService.previewExperiment(authentication, execution, logger);
+
+        verifyNoInteractions(experimentRunRepository, experimentRepository);
+    }
+
+    @Test
+    void theSameRunCanBeSavedMoreThanOnceWithoutBeingConsumed() {
+        var run = keptRun("user", hoursAgo(1));
+        when(experimentRunRepository.findById(run.getUuid())).thenReturn(Optional.of(run));
+        when(experimentRepository.createExperimentFromRun(any(), anyString(), any(), any())).thenCallRealMethod();
+
+        var first = experimentService.saveExperimentRun(USER, run.getUuid().toString(), "First", logger);
+        var second = experimentService.saveExperimentRun(USER, run.getUuid().toString(), "Second", logger);
+
+        assertThat(first.uuid()).isNotEqualTo(second.uuid()).isNotEqualTo(run.getUuid());
+        verify(experimentRunRepository, org.mockito.Mockito.times(2)).findById(run.getUuid());
+        verifyNoInteractions(analysisService);
+    }
+
+    @Test
     void runExperiment_keepsSuccessfulRunForSaving() {
         var execution = sampleExecution();
         when(analysisService.runAnalysis(any(UUID.class), eq(execution.analysis()), any(Logger.class)))
