@@ -135,7 +135,10 @@ public class ExperimentSpecifications {
         }
     }
 
-    /** Every dataset the experiment ran on is in {@code allowedDatasets}, a JSON array of lowercase codes. */
+    /**
+     * Every dataset the experiment ran on is allowed for its data model. {@code allowedDatasets} is a JSON object
+     * from data model to the lowercase dataset codes and labels the user may use (ClaimUtils.usableDatasets).
+     */
     public static class DatasetsReadable implements Specification<ExperimentDAO> {
 
         private final String allowedDatasets;
@@ -146,7 +149,7 @@ public class ExperimentSpecifications {
 
         public Predicate toPredicate(@NonNull Root<ExperimentDAO> root, @NonNull CriteriaQuery<?> criteriaQuery,
                 @NonNull CriteriaBuilder cb) {
-            // Defined in V5__ExperimentDatasetsReadableFunction.sql.
+            // Defined in V5__ExperimentDatasetsReadableFunction.sql, replaced by V6.
             return cb.isTrue(cb.function("experiment_datasets_readable", Boolean.class,
                     root.get("analysis"), cb.literal(allowedDatasets)));
         }

@@ -2,6 +2,7 @@ package hbp.mip.experiment;
 
 import hbp.mip.algorithm.AnalysisRequestDTO;
 import hbp.mip.algorithm.AnalysisService;
+import hbp.mip.datamodel.DatasetLabelService;
 import hbp.mip.user.ActiveUserService;
 import hbp.mip.utils.ClaimUtils;
 import hbp.mip.utils.Logger;
@@ -41,6 +42,9 @@ class ExperimentServiceMipVersionTest {
     private AnalysisService analysisService;
 
     @Mock
+    private DatasetLabelService datasetLabelService;
+
+    @Mock
     private Authentication authentication;
 
     private ExperimentService experimentService;
@@ -48,7 +52,7 @@ class ExperimentServiceMipVersionTest {
     @BeforeEach
     void setUp() {
         experimentService = new ExperimentService(activeUserService, claimUtils, experimentRepository,
-                experimentRunRepository, analysisService, false, "9.0.0", Duration.ofHours(24));
+                experimentRunRepository, analysisService, datasetLabelService, false, "9.0.0", Duration.ofHours(24));
     }
 
     @Test

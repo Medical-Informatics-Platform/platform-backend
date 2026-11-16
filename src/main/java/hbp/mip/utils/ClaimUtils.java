@@ -1,6 +1,7 @@
 package hbp.mip.utils;
 
 import hbp.mip.datamodel.DataModelDTO;
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.UnauthorizedException;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +13,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,16 +31,24 @@ public class ClaimUtils {
     @Value("${authentication.dataset_claim_prefix}")
     private String datasetClaimPrefix;
 
-    private String getDatasetClaim(String datasetCode) {
-        return datasetClaimPrefix + datasetCode.toLowerCase();
+    /**
+     * The role that grants a dataset: the prefix and the dataset LABEL. Codes are numeric and carry no
+     * meaning for administrators, so roles name the readable label (for example research_dataset_edsd).
+     */
+    private String getDatasetClaim(String datasetLabel) {
+        return datasetClaimPrefix + datasetLabel;
     }
 
-    private static boolean hasRoleAccess(ArrayList<String> authorities, String role, Logger logger) {
-        List<String> userClaims = Arrays.asList(authorities.toString().toLowerCase()
-                .replaceAll("[\\s+\\]\\[]", "").split(","));
+    /** Roles compare in lowercase with whitespace, '+', '[' and ']' removed; a label is held to the same rule. */
+    private static String normalizeRole(String role) {
+        return role.toLowerCase(Locale.ROOT).replaceAll("[\\s+\\]\\[]", "");
+    }
 
-        logger.debug("User Claims: " + userClaims);
-        return userClaims.contains(role.toLowerCase());
+    private static boolean hasRoleAccess(List<String> authorities, String role, Logger logger) {
+        String wanted = normalizeRole(role);
+        boolean granted = authorities.stream().anyMatch(authority -> normalizeRole(authority).equals(wanted));
+        logger.debug("Role " + wanted + (granted ? " granted." : " not granted."));
+        return granted;
     }
 
     private static ArrayList<String> getAuthorityRoles(Authentication authentication) {
@@ -45,8 +57,28 @@ public class ClaimUtils {
                 .collect(Collectors.toList());
     }
 
-    public void validateAccessRightsOnDatasets(Authentication authentication,
-                                               List<String> experimentDatasets, Logger logger) {
+    /**
+     * True when the user holds the role of every label the dataset reference stands for. A reference
+     * that resolves to no label is never allowed: nothing says which role would grant it.
+     */
+    private boolean mayUseDataset(List<String> authorities, String dataModel, String dataset, DatasetLabels labels,
+                                  Logger logger) {
+        Set<String> datasetLabels = labels.labelsFor(dataModel, dataset);
+        if (datasetLabels.isEmpty()) {
+            logger.warn("Dataset " + dataset + " is not known in data model " + dataModel + ": access denied.");
+            return false;
+        }
+        return datasetLabels.stream().allMatch(label -> hasRoleAccess(authorities, getDatasetClaim(label), logger));
+    }
+
+    /**
+     * Refuses the request unless the user may use every dataset of the data model. Datasets are the
+     * codes sent by the UI, or the legacy text codes of experiments saved before codes were numeric;
+     * the labels are only fetched when the all-datasets role does not already cover them.
+     */
+    public void validateAccessRightsOnDatasets(Authentication authentication, String dataModel,
+                                               List<String> experimentDatasets, Supplier<DatasetLabels> labels,
+                                               Logger logger) {
         if (experimentDatasets == null || experimentDatasets.isEmpty()) {
             String errorMessage = "At least one dataset must be provided.";
             logger.warn(errorMessage);
@@ -56,9 +88,9 @@ public class ClaimUtils {
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 
         if (!hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
+            DatasetLabels datasetLabels = labels.get();
             for (String dataset : experimentDatasets) {
-                String datasetRole = getDatasetClaim(dataset);
-                if (!hasRoleAccess(authorities, datasetRole, logger)) {
+                if (!mayUseDataset(authorities, dataModel, dataset, datasetLabels, logger)) {
                     logger.warn("You are not allowed to use dataset: " + dataset);
                     throw new UnauthorizedException("You are not authorized to use these datasets.");
                 }
@@ -68,27 +100,42 @@ public class ClaimUtils {
     }
 
     /** True when the user may use every one of the datasets. No datasets named: false, nothing proves access. */
-    public boolean hasAccessRightsOnDatasets(Authentication authentication, List<String> datasets, Logger logger) {
+    public boolean hasAccessRightsOnDatasets(Authentication authentication, String dataModel, List<String> datasets,
+                                             Supplier<DatasetLabels> labels, Logger logger) {
         if (datasets == null || datasets.isEmpty()) {
             return false;
         }
         ArrayList<String> authorities = getAuthorityRoles(authentication);
-        return hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)
-                || datasets.stream().allMatch(dataset -> hasRoleAccess(authorities, getDatasetClaim(dataset), logger));
+        if (hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
+            return true;
+        }
+        DatasetLabels datasetLabels = labels.get();
+        return datasets.stream().allMatch(dataset -> mayUseDataset(authorities, dataModel, dataset, datasetLabels, logger));
     }
 
-    /** The dataset codes the user may use, lowercase; null when the all-datasets role covers every dataset. */
-    public List<String> usableDatasets(Authentication authentication, Logger logger) {
+    /**
+     * Per data model, the lowercase dataset references (codes and labels) the user may use; null when the
+     * all-datasets role covers every dataset. Same rule as {@link #hasAccessRightsOnDatasets}, so a
+     * listing and a single read agree.
+     */
+    public Map<String, List<String>> usableDatasets(Authentication authentication, Supplier<DatasetLabels> labels,
+                                                    Logger logger) {
         ArrayList<String> authorities = getAuthorityRoles(authentication);
         if (hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
             return null;
         }
-        String prefix = datasetClaimPrefix.toLowerCase();
-        return authorities.stream()
-                .map(String::toLowerCase)
-                .filter(authority -> authority.startsWith(prefix))
-                .map(authority -> authority.substring(prefix.length()))
-                .toList();
+        DatasetLabels datasetLabels = labels.get();
+        Map<String, List<String>> usable = new HashMap<>();
+        for (String dataModel : datasetLabels.dataModels()) {
+            List<String> references = datasetLabels.references(dataModel).stream()
+                    .filter(reference -> mayUseDataset(authorities, dataModel, reference, datasetLabels, logger))
+                    .sorted()
+                    .toList();
+            if (!references.isEmpty()) {
+                usable.put(dataModel, references);
+            }
+        }
+        return usable;
     }
 
     public boolean validateAccessRightsOnALLExperiments(Authentication authentication, Logger logger) {
@@ -116,7 +163,9 @@ public class ClaimUtils {
             Map<String, List<String>> originalDatasetVariables = curDataModel.datasetsVariables();
 
             for (DataModelDTO.EnumerationDTO dataset : dataModelDatasets) {
-                if (!hasRoleAccess(authorities, getDatasetClaim(dataset.code()), logger)) {
+                // The role names the dataset label; a dataset without one cannot be granted.
+                if (dataset.label() == null || dataset.label().isBlank()
+                        || !hasRoleAccess(authorities, getDatasetClaim(dataset.label()), logger)) {
                     continue;
                 }
 
