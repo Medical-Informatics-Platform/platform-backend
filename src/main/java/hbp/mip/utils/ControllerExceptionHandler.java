@@ -1,6 +1,6 @@
 package hbp.mip.utils;
 
-import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
+import hbp.mip.utils.Exceptions.AnalysisNotFoundException;
 import hbp.mip.utils.Exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +17,8 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     public record ErrorMessage (int statusCode, Date timestamp, String message, String description) {}
 
-    @ExceptionHandler(ExperimentNotFoundException.class)
-    public ResponseEntity<Object> handleExperimentNotFoundException(ExperimentNotFoundException ex, WebRequest request) {
+    @ExceptionHandler(AnalysisNotFoundException.class)
+    public ResponseEntity<Object> handleAnalysisNotFoundException(AnalysisNotFoundException ex, WebRequest request) {
         ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
                 new Date(),

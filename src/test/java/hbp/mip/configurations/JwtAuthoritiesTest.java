@@ -32,10 +32,10 @@ class JwtAuthoritiesTest {
     @Test
     void keepsTheAuthoritiesClaimButNotRealmRoles() {
         assertThat(authorities(Map.of(
-                "authorities", List.of("research_experiment_all"),
+                "authorities", List.of("research_analysis_all"),
                 "realm_access", Map.of("roles", List.of("research_dataset_tbi")),
                 "resource_access", Map.of("other-federation", Map.of("roles", List.of("research_dataset_all"))))))
-                .containsExactly("research_experiment_all");
+                .containsExactly("research_analysis_all");
     }
 
     @Test

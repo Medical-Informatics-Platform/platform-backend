@@ -1,7 +1,7 @@
 package hbp.mip.algorithm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import hbp.mip.experiment.ExperimentExecutionDTO;
+import hbp.mip.analysis.AnalysisExecutionDTO;
 import hbp.mip.utils.JsonConverters;
 import org.junit.jupiter.api.Test;
 
@@ -29,18 +29,18 @@ class AnalysisRequestDTODeserializationTest {
             """;
 
     @Test
-    void jacksonReadsAnalysisFromExperimentExecutionBody() throws Exception {
-        String body = "{\"name\":\"experiment\",\"analysis\":" + ANALYSIS_JSON + "}";
+    void jacksonReadsAnalysisFromAnalysisExecutionBody() throws Exception {
+        String body = "{\"name\":\"analysis\",\"analysisRequest\":" + ANALYSIS_JSON + "}";
 
-        ExperimentExecutionDTO execution = new ObjectMapper().readValue(body, ExperimentExecutionDTO.class);
+        AnalysisExecutionDTO execution = new ObjectMapper().readValue(body, AnalysisExecutionDTO.class);
 
-        assertThat(execution.analysis().algorithm().name()).isEqualTo("histogram");
-        assertThat(execution.analysis().inputdata().datasets()).containsExactly("ds1");
-        assertThat(execution.analysis().preprocessing()).extracting("name").containsExactly("winsorize");
+        assertThat(execution.analysisRequest().algorithm().name()).isEqualTo("histogram");
+        assertThat(execution.analysisRequest().inputdata().datasets()).containsExactly("ds1");
+        assertThat(execution.analysisRequest().preprocessing()).extracting("name").containsExactly("winsorize");
     }
 
     @Test
-    void gsonReadsAnalysisFromStoredExperimentJson() {
+    void gsonReadsAnalysisFromStoredAnalysisJson() {
         AnalysisRequestDTO analysis = JsonConverters.convertJsonStringToObject(ANALYSIS_JSON, AnalysisRequestDTO.class);
 
         assertThat(analysis.algorithm().name()).isEqualTo("histogram");

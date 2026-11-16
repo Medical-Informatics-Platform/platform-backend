@@ -22,7 +22,7 @@ class ClaimUtilsDatasetVariablesTest {
     void setUp() {
         claimUtils = new ClaimUtils();
         ReflectionTestUtils.setField(claimUtils, "allDatasetsAllowedClaim", "role_research_dataset_all");
-        ReflectionTestUtils.setField(claimUtils, "allExperimentsAllowedClaim", "role_research_experiment_all");
+        ReflectionTestUtils.setField(claimUtils, "allAnalysesAllowedClaim", "role_research_analysis_all");
         ReflectionTestUtils.setField(claimUtils, "datasetClaimPrefix", "role_research_dataset_");
     }
 

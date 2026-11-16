@@ -37,8 +37,8 @@ class LoginRedirectTest {
 
     @Test
     void ordinaryPathIsKept() throws Exception {
-        assertThat(targetFor("/experiments?id=1#top", "https://portal.example/"))
-                .isEqualTo("https://portal.example/experiments?id=1#top");
+        assertThat(targetFor("/analyses?id=1#top", "https://portal.example/"))
+                .isEqualTo("https://portal.example/analyses?id=1#top");
     }
 
     private static String targetFor(String frontendRedirect, String baseUrl) throws ServletException, IOException {

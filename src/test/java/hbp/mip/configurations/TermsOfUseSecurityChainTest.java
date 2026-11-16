@@ -73,7 +73,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The terms-of-use gate through the real SecurityConfiguration filter chain, so moving the filter to a point
  * where the session or Bearer authentication is not yet known fails here. The real ActiveUserAPI and
- * ControllerExceptionHandler render the responses; /experiments is a stand-in. No datasource, Keycloak or
+ * ControllerExceptionHandler render the responses; /analyses is a stand-in. No datasource, Keycloak or
  * Exaflow. A Bearer token's value is {@code <username>[.<azp>[.<typ>[.<sub>]]]}; azp defaults to the platform
  * client, typ to Bearer and sub to the username.
  */
@@ -107,21 +107,21 @@ class TermsOfUseSecurityChainTest {
     void bearerUserWhoHasNotAgreedIsBlocked() throws Exception {
         storedUser("alice", false);
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value(403))
                 .andExpect(jsonPath("$.message").value(TermsOfUseNotAcceptedException.MESSAGE))
                 .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.description").value("uri=/services/experiments"));
+                .andExpect(jsonPath("$.description").value("uri=/services/analyses"));
     }
 
     @Test
     void bearerUserWhoAgreedReachesTheController() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("experiments"));
+                .andExpect(content().string("analyses"));
     }
 
     @Test
@@ -129,7 +129,7 @@ class TermsOfUseSecurityChainTest {
         storedUser("alice", true);
 
         // e.g. another federation's portal token, whatever its aud says.
-        mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice.other-federation"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -137,7 +137,7 @@ class TermsOfUseSecurityChainTest {
     void rejectedBearerTokenPublishesAFailureEventWithoutTheToken() throws Exception {
         failures.events.clear();
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice.other-federation"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice.other-federation"))
                 .andExpect(status().isUnauthorized());
 
         assertThat(failures.events).singleElement()
@@ -152,7 +152,7 @@ class TermsOfUseSecurityChainTest {
         storedUser("alice", true);
         failures.successes.clear();
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice"))
                 .andExpect(status().isOk());
 
         assertThat(failures.successes).singleElement().satisfies(event -> {
@@ -165,7 +165,7 @@ class TermsOfUseSecurityChainTest {
     // no CSRF token; without this exemption Spring would 403 every DPoP POST.
     @Test
     void aDpopSchemePostIsExemptFromCsrf() throws Exception {
-        int status = mvc.perform(post("/services/experiments").contextPath("/services")
+        int status = mvc.perform(post("/services/analyses").contextPath("/services")
                         .header("Authorization", "DPoP some-token"))
                 .andReturn().getResponse().getStatus();
 
@@ -177,7 +177,7 @@ class TermsOfUseSecurityChainTest {
     @Test
     void aDpopSchemeWithoutATokenIsNotExemptFromCsrf() throws Exception {
         // The exemption is scheme-plus-space, like Bearer: a header that names no token gets no exemption.
-        mvc.perform(post("/services/experiments").contextPath("/services").header("Authorization", "DPoP"))
+        mvc.perform(post("/services/analyses").contextPath("/services").header("Authorization", "DPoP"))
                 .andExpect(status().isForbidden());
     }
 
@@ -185,7 +185,7 @@ class TermsOfUseSecurityChainTest {
     void bearerTokenOfTheLaptopClientIsAccepted() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice.mip-cli"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice.mip-cli"))
                 .andExpect(status().isOk());
     }
 
@@ -193,7 +193,7 @@ class TermsOfUseSecurityChainTest {
     void idTokenOfThisFederationIsRejectedAsBearerToken() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice.client.ID"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice.client.ID"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -232,7 +232,7 @@ class TermsOfUseSecurityChainTest {
         mvc.perform(withBearer(get("/services/activeUser"), "alice.client.Bearer.sub-2"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value(UserIdentityConflictException.MESSAGE));
-        mvc.perform(withBearer(get("/services/experiments"), "alice.client.Bearer.sub-2"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice.client.Bearer.sub-2"))
                 .andExpect(status().isForbidden());
     }
 
@@ -240,7 +240,7 @@ class TermsOfUseSecurityChainTest {
     void sessionUserWhoHasNotAgreedIsBlocked() throws Exception {
         storedUser("alice", false);
 
-        mvc.perform(get("/services/experiments").contextPath("/services").session(session("alice")))
+        mvc.perform(get("/services/analyses").contextPath("/services").session(session("alice")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value(TermsOfUseNotAcceptedException.MESSAGE));
     }
@@ -269,7 +269,7 @@ class TermsOfUseSecurityChainTest {
     void sessionPastItsMaximumAgeIsSignedOut() throws Exception {
         storedUser("alice", true);
         MockHttpSession session = session("alice");
-        mvc.perform(get("/services/experiments").contextPath("/services").session(session))
+        mvc.perform(get("/services/analyses").contextPath("/services").session(session))
                 .andExpect(status().isOk());
 
         // MockHttpSession's creation time is fixed: an old session is one created before "now minus the maximum".
@@ -282,7 +282,7 @@ class TermsOfUseSecurityChainTest {
         old.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
-        assertThat(mvc.perform(get("/services/experiments").contextPath("/services").session(old))
+        assertThat(mvc.perform(get("/services/analyses").contextPath("/services").session(old))
                 .andReturn().getResponse().getStatus()).isIn(302, 401);
         assertThat(old.isInvalid()).isTrue();
     }
@@ -355,7 +355,7 @@ class TermsOfUseSecurityChainTest {
 
     @Test
     void unauthenticatedRequestIsStillRejectedByAuthentication() throws Exception {
-        int status = mvc.perform(get("/services/experiments").contextPath("/services"))
+        int status = mvc.perform(get("/services/analyses").contextPath("/services"))
                 .andReturn().getResponse().getStatus();
 
         // 302 to the login page or 401, depending on which entry point Spring Security picks; never our 403.
@@ -456,9 +456,9 @@ class TermsOfUseSecurityChainTest {
 
     @RestController
     static class StandInAPI {
-        @GetMapping("/experiments")
-        String experiments() {
-            return "experiments";
+        @GetMapping("/analyses")
+        String analyses() {
+            return "analyses";
         }
     }
 }

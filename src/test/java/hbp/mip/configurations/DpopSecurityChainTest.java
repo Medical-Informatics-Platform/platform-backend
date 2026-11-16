@@ -129,9 +129,9 @@ class DpopSecurityChainTest {
     void aDpopBoundLaptopTokenOverTheDpopSchemeIsNotBlockedByCsrfAndGetsThrough() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withDpop(post("/services/experiments"), laptopToken("alice")))
+        mvc.perform(withDpop(post("/services/analyses"), laptopToken("alice")))
                 .andExpect(status().isOk())
-                .andExpect(content().string("experiments"));
+                .andExpect(content().string("analyses"));
     }
 
     @Test
@@ -139,7 +139,7 @@ class DpopSecurityChainTest {
         storedUser("alice", true);
 
         String proof = proof(laptopToken("alice"));
-        MockHttpServletRequestBuilder request = post("/services/experiments").contextPath("/services")
+        MockHttpServletRequestBuilder request = post("/services/analyses").contextPath("/services")
                 .header("Authorization", "DPoP " + laptopToken("alice"))
                 .header("DPoP", proof)
                 .with(inRequestScope());
@@ -153,7 +153,7 @@ class DpopSecurityChainTest {
         storedUser("alice", true);
 
         // In request scope, so the refusal tests the Bearer scheme, not the missing request scope.
-        mvc.perform(withBearer(get("/services/experiments"), laptopToken("alice")).with(inRequestScope()))
+        mvc.perform(withBearer(get("/services/analyses"), laptopToken("alice")).with(inRequestScope()))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -162,9 +162,9 @@ class DpopSecurityChainTest {
         storedUser("alice", true);
         String unbound = laptopToken("alice").replace("." + THUMBPRINT, "");
 
-        assertThat(mvc.perform(withBearer(get("/services/experiments"), unbound))
+        assertThat(mvc.perform(withBearer(get("/services/analyses"), unbound))
                 .andReturn().getResponse().getStatus()).isEqualTo(401);
-        assertThat(mvc.perform(withDpop(post("/services/experiments"), unbound))
+        assertThat(mvc.perform(withDpop(post("/services/analyses"), unbound))
                 .andReturn().getResponse().getStatus()).isEqualTo(401);
     }
 
@@ -172,7 +172,7 @@ class DpopSecurityChainTest {
     void aPlatformTokenOverBearerIsUnaffected() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(withBearer(get("/services/experiments"), "alice"))
+        mvc.perform(withBearer(get("/services/analyses"), "alice"))
                 .andExpect(status().isOk());
     }
 
@@ -183,8 +183,8 @@ class DpopSecurityChainTest {
 
         // What a request looks like when nginx does not pass X-Forwarded-Proto/Host: the proof names the
         // public https URL, but the backend still sees its own http one.
-        String proofForPublicUrl = proof(token, "https://portal.example.org/services/experiments");
-        int status = mvc.perform(post("/services/experiments").contextPath("/services")
+        String proofForPublicUrl = proof(token, "https://portal.example.org/services/analyses");
+        int status = mvc.perform(post("/services/analyses").contextPath("/services")
                         .header("Authorization", "DPoP " + token)
                         .header("DPoP", proofForPublicUrl)
                         .with(inRequestScope()))
@@ -197,7 +197,7 @@ class DpopSecurityChainTest {
     void aDpopRequestWithoutAProofIsRefused() throws Exception {
         storedUser("alice", true);
 
-        mvc.perform(post("/services/experiments").contextPath("/services")
+        mvc.perform(post("/services/analyses").contextPath("/services")
                         .header("Authorization", "DPoP " + laptopToken("alice"))
                         .with(inRequestScope()))
                 .andExpect(status().isUnauthorized());
@@ -205,7 +205,7 @@ class DpopSecurityChainTest {
 
     // The proof's htu is the request URL as the backend sees it; MockMvc serves http://localhost/services.
     private static String proof(String accessToken) {
-        return proof(accessToken, "http://localhost/services/experiments");
+        return proof(accessToken, "http://localhost/services/analyses");
     }
 
     private static String proof(String accessToken, String htu) {
@@ -330,14 +330,14 @@ class DpopSecurityChainTest {
 
     @RestController
     static class StandInAPI {
-        @GetMapping("/experiments")
-        String experiments() {
-            return "experiments";
+        @GetMapping("/analyses")
+        String analyses() {
+            return "analyses";
         }
 
-        @PostMapping("/experiments")
-        String runExperiments() {
-            return "experiments";
+        @PostMapping("/analyses")
+        String runAnalyses() {
+            return "analyses";
         }
     }
 }
