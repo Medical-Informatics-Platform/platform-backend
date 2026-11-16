@@ -14,3 +14,6 @@ This directory contains durable context for humans and AI coding agents working 
 
 ## How to use this context
 Start with `AGENTS.md`, then read the files here that match the task. For code changes, check `architecture.md`, `module-index.md`, `commands.md`, `testing.md`, and `risk-register.md` before editing.
+
+See [terminology migration](../terminology-migration.md) for the coordinated API,
+database and UI contract change, rollout, rollback, and data-model error mapping.

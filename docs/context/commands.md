@@ -37,7 +37,7 @@ target/platform-backend.jar
 mvn test
 ```
 
-There is no committed `src/test/java` tree. This command currently functions as the baseline Maven test phase/smoke check.
+Focused JUnit and MockMvc tests live under `src/test/java`.
 
 ## Lint
 ```bash

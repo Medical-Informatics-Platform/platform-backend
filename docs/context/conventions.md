@@ -9,7 +9,7 @@
 - Repositories use the `*Repository` suffix.
 - JPA entities use the `*DAO` suffix.
 - API/request/response shapes use the `*DTO` suffix, often as Java records.
-- Feature modules are grouped by package: `algorithm`, `datamodel`, `experiment`, and `user`.
+- Feature modules are grouped by package: `algorithm`, `datamodel`, `analysis`, and `user`.
 
 ### Backend Layering
 - Controllers accept HTTP input, create user/action logs, and delegate to services.
@@ -26,7 +26,7 @@
 ### Logging
 - User-facing actions use `hbp.mip.utils.Logger`.
 - Logs include username, endpoint, and message.
-- Existing code logs some request and experiment details; avoid expanding sensitive logging.
+- Existing code logs some request and analysis details; avoid expanding sensitive logging.
 
 ### Configuration
 - Spring properties are defined in `src/main/resources/application.yml`.
@@ -42,7 +42,7 @@
 ### Persistence
 - Flyway owns migrations.
 - Hibernate validates schema with `ddl-auto: validate`.
-- Current JPA repositories/entities are in `experiment` and `user`.
+- Current JPA repositories/entities are in `analysis` and `user`.
 
 ### Agent Tool and Token Budget
 - Agents should use focused repository inspection commands and avoid dumping broad context.

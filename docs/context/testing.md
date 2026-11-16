@@ -31,8 +31,8 @@ Unknown / TODO: verify once integration tests exist. For database behavior, run 
 Add focused tests when changing:
 
 - `SecurityConfiguration`: auth modes, CSRF behavior, JWT authorities, permitted endpoints.
-- `ClaimUtils`, `DataModelService`, `ExperimentService`: authorization and data access logic.
-- `ExperimentRepository` and DAOs: persistence and schema-sensitive behavior.
+- `ClaimUtils`, `DataModelService`, `AnalysisService`: authorization and data access logic.
+- `AnalysisRepository` and DAOs: persistence and schema-sensitive behavior.
 - `HTTPUtil` or Exaflow integrations: external response handling and error mapping.
 - `ControllerExceptionHandler`: HTTP status and error response mapping.
 
@@ -45,11 +45,11 @@ No committed test fixtures or mocks were found. For future tests, prefer:
 
 ## Under-Tested Critical Paths
 - OAuth2/JWT authority mapping and authentication-disabled mode.
-- Dataset and experiment authorization checks.
-- Experiment creation, background execution, deletion, and immutable-field validation.
+- Dataset and analysis authorization checks.
+- Analysis creation, background execution, deletion, and immutable-field validation.
 - Exaflow metadata aggregation and error handling.
 - Flyway migrations and schema validation.
-- Logging behavior around request bodies, tokens, and experiment results.
+- Logging behavior around request bodies, tokens, and analysis results.
 
 ## Validation Matrix
 

@@ -30,15 +30,15 @@ Notes: Raw authority strings are intentional and should not be automatically pre
 
 ## `src/main/java/hbp/mip/algorithm`
 
-Purpose: Exaflow analysis execution (`AnalysisService`, called by `ExperimentService`) and Exaflow specification endpoints (`GET /specifications/{inputdata,preprocessing,algorithms}`).
+Purpose: Exaflow analysis execution (`AnalysisExecutionService`, called by `AnalysisService`) and Exaflow specification endpoints (`GET /specifications/{inputdata,preprocessing,algorithms}`).
 
-Key files: `AnalysisService.java`, `AnalysisRequestDTO.java`, `SpecificationsAPI.java`, `SpecificationsService.java`, specification DTOs.
+Key files: `AnalysisExecutionService.java`, `AnalysisRequestDTO.java`, `SpecificationsAPI.java`, `SpecificationsService.java`, specification DTOs.
 
-Used by: The UI and notebook client for specifications; `ExperimentService` for experiment previews and runs.
+Used by: The UI and notebook client for specifications; `AnalysisService` for analysis previews and runs.
 
 Rules: Keep Exaflow calls in the service layer. Dataset access checks must cover `inputdata.allDatasets()` (datasets plus validation datasets).
 
-Tests: `AnalysisServiceRequestIdTest`, `AnalysisRequestDTODeserializationTest`, `AlgorithmSpecificationDTOTest`, `ExaflowKMeansAndSmdContractTest`, `ExaflowPcaCreatorContractTest`.
+Tests: `AnalysisExecutionServiceRequestIdTest`, `AnalysisRequestDTODeserializationTest`, `AlgorithmSpecificationDTOTest`, `ExaflowKMeansAndSmdContractTest`, `ExaflowPcaCreatorContractTest`.
 
 
 ## `src/main/java/hbp/mip/datamodel`
@@ -47,7 +47,7 @@ Purpose: Data model and dataset metadata API.
 
 Key files: `DataModelAPI.java`, `DataModelService.java`, `DataModelDTO.java`.
 
-Used by: Clients discovering available pathologies, variables, datasets, and metadata.
+Used by: Clients discovering available data models, variables, datasets, and metadata.
 
 Rules: Preserve claim-based filtering when authentication is enabled.
 
@@ -55,59 +55,59 @@ Tests: Cover Exaflow response parsing, empty responses, and authorization filter
 
 Notes: Data comes from multiple configured Exaflow endpoints and is aggregated in service code.
 
-## `src/main/java/hbp/mip/experiment`
+## `src/main/java/hbp/mip/analysis`
 
-Purpose: Experiment lifecycle API, business logic, persistence entity, repository, and query specifications.
+Purpose: Analysis lifecycle API, business logic, persistence entity, repository, and query specifications.
 
-Key files: `ExperimentAPI.java`, `ExperimentService.java`, `ExperimentRepository.java`, `ExperimentDAO.java`, `ExperimentSpecifications.java`, `ExperimentRunDAO.java`, `ExperimentRunRepository.java`.
+Key files: `AnalysisAPI.java`, `AnalysisService.java`, `AnalysisRepository.java`, `AnalysisDAO.java`, `AnalysisSpecifications.java`, `AnalysisRunDAO.java`, `AnalysisRunRepository.java`.
 
-Used by: Clients creating, listing, updating, deleting, and running experiments.
+Used by: Clients creating, listing, updating, deleting, and running analyses.
 
 Rules: Preserve ownership/shared access checks, max page size behavior, immutable field validation, and Flyway-backed schema compatibility.
 
 Tests: Add service/repository tests for behavior changes and migration checks for schema changes.
 
-Notes: Every analysis executes synchronously through `/experiments/preview` or `/experiments/runs`; saving never calls Exaflow. The `analysis` column of `experiment` and `experiment_run` holds the `AnalysisRequestDTO` JSON; the algorithm name is in `algorithm_id`.
+Notes: Every analysis executes synchronously through `/analyses/preview` or `/analyses/runs`; saving never calls Exaflow. The `analysis` column of `analysis` and `analysis_run` holds the `AnalysisRequestDTO` JSON; the algorithm name is in `algorithm_id`.
 
 ```
-POST /experiments/preview   -> 200 experiment   { name, analysis }   (compute and return, nothing stored)
-POST /experiments/runs      -> 200 experiment   { name, analysis }   (compute and keep; uuid is the run id)
-POST /experiments           -> 201 experiment   { runId, name }      (save the kept run, no Exaflow call)
+POST /analyses/preview   -> 200 analysis   { name, analysis }   (compute and return, nothing stored)
+POST /analyses/runs      -> 200 analysis   { name, analysis }   (compute and keep; uuid is the run id)
+POST /analyses           -> 201 analysis   { runId, name }      (save the kept run, no Exaflow call)
 ```
 
-A successful run is stored in `experiment_run` for `experiments.run-draft-ttl` (`EXPERIMENT_RUN_DRAFT_TTL`, default `PT24H`); rows older than that are purged whenever a new run is kept. Saving without a `runId` or `name` returns 400; a run that is missing, expired or owned by another user returns 404. The saved experiment keeps the run's `created`/`finished` times and MIP version.
+A successful run is stored in `analysis_run` for `analyses.run-draft-ttl` (`EXPERIMENT_RUN_DRAFT_TTL`, default `PT24H`); rows older than that are purged whenever a new run is kept. Saving without a `runId` or `name` returns 400; a run that is missing, expired or owned by another user returns 404. The saved analysis keeps the run's `created`/`finished` times and MIP version.
 
-## `src/main/java/hbp/mip/folder`
+## `src/main/java/hbp/mip/study`
 
-Purpose: Experiment folders ("analysis sets") and the named subsets ("sets") inside them: what the experiments dashboard curates.
+Purpose: Analysis folders ("analysis sets") and the named subsets ("sets") inside them: what the analyses dashboard curates.
 
-Key files: `ExperimentFolderAPI.java`, `ExperimentFolderService.java`, `ExperimentFolderRepository.java`, `ExperimentFolderDAO.java`, `ExperimentSetDAO.java`, `ExperimentFolderMemberDAO.java`, and the folder `*DTO` records.
+Key files: `StudyAPI.java`, `StudyService.java`, `StudyRepository.java`, `StudyDAO.java`, `AnalysisGroupDAO.java`, `StudyMemberDAO.java`, and the folder `*DTO` records.
 
 Used by: the frozen frontend contract, all under the `/services` context:
 
 ```text
-GET    /experiment-folders                              -> 200 { folders: [folder] }
-POST   /experiment-folders                              -> 201 folder        { name, experimentUuid? }
-GET    /experiment-folders/{folderId}                    -> 200 folder
-PATCH  /experiment-folders/{folderId}                    -> 200 folder        { name }
-DELETE /experiment-folders/{folderId}                    -> 204
-POST   /experiment-folders/{folderId}/members            -> 200 folder        { experimentUuid }
-DELETE /experiment-folders/{folderId}/members/{uuid}     -> 200 folder
-POST   /experiment-folders/{folderId}/sets               -> 201 folder        { name, experimentUuid? }
-PATCH  /experiment-folders/{folderId}/sets/{setId}       -> 200 folder        { name }
-DELETE /experiment-folders/{folderId}/sets/{setId}       -> 200 folder
-PATCH  /experiment-folders/{folderId}/members/{uuid}/set -> 200 folder        { setId: "uuid" | null }
+GET    /studies                              -> 200 { folders: [folder] }
+POST   /studies                              -> 201 folder        { name, analysisUuid? }
+GET    /studies/{folderId}                    -> 200 folder
+PATCH  /studies/{folderId}                    -> 200 folder        { name }
+DELETE /studies/{folderId}                    -> 204
+POST   /studies/{folderId}/members            -> 200 folder        { analysisUuid }
+DELETE /studies/{folderId}/members/{uuid}     -> 200 folder
+POST   /studies/{folderId}/sets               -> 201 folder        { name, analysisUuid? }
+PATCH  /studies/{folderId}/sets/{setId}       -> 200 folder        { name }
+DELETE /studies/{folderId}/sets/{setId}       -> 200 folder
+PATCH  /studies/{folderId}/members/{uuid}/set -> 200 folder        { setId: "uuid" | null }
 
-folder = { id, name, experimentIds: [uuid], sets: [ { id, name, experimentIds: [uuid] } ] }
+folder = { id, name, analysisIds: [uuid], sets: [ { id, name, analysisIds: [uuid] } ] }
 ```
 
 A null `setId` ungroups without leaving the folder. Everything but `DELETE /{folderId}` answers with the updated folder, so the caller never rebuilds ordering or partitioning locally.
 
-Rules: Scope every read and write to the user resolved from the token; a folder owned by somebody else answers 404, never 403. Member and set writes load the folder with `findByIdForUpdate` (`PESSIMISTIC_WRITE`) before the membership check, so concurrent adds/moves on one folder serialize and the member unique constraint stays a backstop, not the thing that decides the request. Write through `saveAndFlush` and translate a unique name violation into 409 — the name pre-check alone cannot win a race between two tabs. Keep one member row per (folder, experiment) — that is what makes sets a strict partition. Names follow the frontend rules: collapse whitespace, trim, 60 chars, unique per owner (and per folder, for sets) ignoring case. Preserve the position columns (`sort_order`, `folder_position`, `set_position`); they are the order the dashboard renders. Deleting a folder or a set never deletes the runs.
+Rules: Scope every read and write to the user resolved from the token; a folder owned by somebody else answers 404, never 403. Member and set writes load the folder with `findByIdForUpdate` (`PESSIMISTIC_WRITE`) before the membership check, so concurrent adds/moves on one folder serialize and the member unique constraint stays a backstop, not the thing that decides the request. Write through `saveAndFlush` and translate a unique name violation into 409 — the name pre-check alone cannot win a race between two tabs. Keep one member row per (folder, analysis) — that is what makes sets a strict partition. Names follow the frontend rules: collapse whitespace, trim, 60 chars, unique per owner (and per folder, for sets) ignoring case. Preserve the position columns (`sort_order`, `folder_position`, `set_position`); they are the order the dashboard renders. Deleting a folder or a set never deletes the runs.
 
-Tests: `ExperimentFolderServiceTest` (Mockito) covers naming, ownership, membership, ordering, and the lost-race 409; `ExperimentFolderDTOTest` covers the three orderings in the response; `ExperimentFolderAPITest` (standalone MockMvc) pins the wire contract — body field names, response field names, and the status of every failure.
+Tests: `StudyServiceTest` (Mockito) covers naming, ownership, membership, ordering, and the lost-race 409; `StudyDTOTest` covers the three orderings in the response; `StudyAPITest` (standalone MockMvc) pins the wire contract — body field names, response field names, and the status of every failure.
 
-Notes: Folders hold experiment ids, never experiment copies, so nothing here can go stale by carrying a run's data. Statuses: 200 reads and mutations that leave a folder behind, 201 new folder or set, 204 only `DELETE /{folderId}`, 400 blank name or malformed id, 404 folder/set not the caller's or run not readable, 403 run not readable, 409 duplicate name (pre-check or lost database race).
+Notes: Folders hold analysis ids, never analysis copies, so nothing here can go stale by carrying a run's data. Statuses: 200 reads and mutations that leave a folder behind, 201 new folder or set, 204 only `DELETE /{folderId}`, 400 blank name or malformed id, 404 folder/set not the caller's or run not readable, 403 run not readable, 409 duplicate name (pre-check or lost database race).
 
 ## `src/main/java/hbp/mip/user`
 
@@ -164,3 +164,5 @@ Rules: Treat registry credentials, mirror tokens, image tags, and release trigge
 Tests: Validate workflow syntax and review secret usage before editing.
 
 Notes: No test/build CI workflow was found beyond release image publishing.
+
+V6 renames domain tables and payload columns; see [the migration contract](../terminology-migration.md).
