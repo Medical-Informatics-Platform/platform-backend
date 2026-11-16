@@ -104,7 +104,7 @@ class TermsOfUseFilterTest {
         storedUser("alice", false);
         authenticate(bearer("alice"));
 
-        MockHttpServletResponse response = run("GET", "/experiments");
+        MockHttpServletResponse response = run("GET", "/analyses");
 
         assertBlocked(response);
         assertThat(response.getErrorMessage()).isEqualTo(TermsOfUseNotAcceptedException.MESSAGE);
@@ -117,7 +117,7 @@ class TermsOfUseFilterTest {
         when(userRepository.findByUsername("alice")).thenReturn(previousHolder);
         authenticate(bearer("alice"));
 
-        MockHttpServletResponse response = run("GET", "/experiments");
+        MockHttpServletResponse response = run("GET", "/analyses");
 
         assertThat(response.getHeader("X-Passed")).isNull();
         assertThat(response.getStatus()).isEqualTo(403);

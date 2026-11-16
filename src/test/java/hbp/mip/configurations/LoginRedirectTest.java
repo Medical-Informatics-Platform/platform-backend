@@ -36,9 +36,15 @@ class LoginRedirectTest {
     }
 
     @Test
+    void analysisStudioPathAndNavigationStateAreKept() throws Exception {
+        assertThat(targetFor("/analysis-studio?analysisId=123#results", "https://portal.example/"))
+                .isEqualTo("https://portal.example/analysis-studio?analysisId=123#results");
+    }
+
+    @Test
     void ordinaryPathIsKept() throws Exception {
-        assertThat(targetFor("/experiments?id=1#top", "https://portal.example/"))
-                .isEqualTo("https://portal.example/experiments?id=1#top");
+        assertThat(targetFor("/analyses-dashboard?id=1#top", "https://portal.example/"))
+                .isEqualTo("https://portal.example/analyses-dashboard?id=1#top");
     }
 
     private static String targetFor(String frontendRedirect, String baseUrl) throws ServletException, IOException {

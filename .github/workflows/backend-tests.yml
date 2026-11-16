@@ -1,0 +1,31 @@
+name: Backend tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: maven:3.9-eclipse-temurin-21
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: platform_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Unit, HTTP contract, migration, and persistence tests
+        run: mvn -B -ntp -Ppostgres-integration -Dit.database.url=jdbc:postgresql://postgres:5432/platform_test clean verify

@@ -1,0 +1,94 @@
+package hbp.mip.algorithm;
+
+import hbp.mip.utils.Exceptions.BadRequestException;
+import hbp.mip.utils.Exceptions.InternalServerError;
+import hbp.mip.utils.HTTPUtil;
+import hbp.mip.utils.JsonConverters;
+import hbp.mip.utils.Logger;
+import hbp.mip.utils.RawJson;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+public class AnalysisExecutionService {
+
+    private static final String GENERIC_ERROR_MESSAGE =
+            "Something went wrong. Please inform the system administrator or try again later.";
+    static final String BUSY_ERROR_MESSAGE =
+            "The platform is busy running other analyses. Please try again in a few minutes.";
+
+    private final String analysisUrl;
+
+    @Value("${services.exaflow.apiToken:}")
+    private String exaflowApiToken;
+
+    public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
+        this.analysisUrl = analysisUrl;
+    }
+
+    /** Rejects with 400 a payload Exaflow cannot run, before any access check or persistence touches it. */
+    public static void requireRunnable(AnalysisRequestDTO analysisRequest, Logger logger) {
+        String missing = analysisRequest == null ? "analysisRequest"
+                : analysisRequest.algorithm() == null || analysisRequest.algorithm().name() == null ? "algorithm.name"
+                : analysisRequest.inputdata() == null ? "inputdata"
+                : null;
+        if (missing != null) {
+            String errorMessage = "Missing required " + missing + ".";
+            logger.warn(errorMessage);
+            throw new BadRequestException(errorMessage);
+        }
+    }
+
+    public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
+        AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), analysisRequest.inputdata(),
+                analysisRequest.preprocessing(), analysisRequest.algorithm(), analysisRequest.flags());
+        String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);
+
+        logger.debug("Exaflow analysis request, endpoint: " + analysisUrl);
+        logger.debug("Exaflow analysis request, body: " + requestBody);
+
+        int responseCode;
+        var responseBody = new StringBuilder();
+        try {
+            responseCode = HTTPUtil.sendPost(analysisUrl, exaflowApiToken, requestBody, responseBody);
+        } catch (IOException e) {
+            logger.error("Could not run the exaflow analysis: " + e.getMessage());
+            throw new InternalServerError(e.getMessage());
+        }
+
+        Object result = convertResponseToAnalysisResult(logger, responseCode, responseBody);
+        return new AnalysisResultDTO(responseCode, result);
+    }
+
+    static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
+        return switch (code) {
+            case 200 -> new RawJson(responseBody.toString());
+            case 400, 413, 422, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
+            case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
+            // Exaflow is at its concurrent-analysis limit; its own message names internal components,
+            // so it goes to the log and the user gets a retry message.
+            case 503 -> {
+                logger.warn("Exaflow rejected the analysis as busy: " + responseBody);
+                yield convertExaflowResponseToAnalysisResult(BUSY_ERROR_MESSAGE);
+            }
+            default -> handleUnexpectedResponseCode(logger, code);
+        };
+    }
+
+    private static Map<String, Object> convertExaflowResponseToAnalysisResult(String resultBody) {
+        return Map.of("data", resultBody, "type", "text/plain+error");
+    }
+
+    private static Object handleUnexpectedResponseCode(Logger logger, int code) {
+        String errorMessage = "Exaflow execution responded with an unexpected status code: " + code;
+        logger.error(errorMessage);
+        throw new InternalServerError(errorMessage);
+    }
+
+    public record AnalysisResultDTO(int code, Object body) {
+    }
+}

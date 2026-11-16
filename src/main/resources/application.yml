@@ -59,7 +59,7 @@ spring:
 authentication:
   enabled: ${AUTHENTICATION:1}
   all_datasets_allowed_claim: research_dataset_all
-  all_experiments_allowed_claim: research_experiment_all
+  all_analyses_allowed_claim: research_experiment_all
   dataset_claim_prefix: research_dataset_
   # Public Keycloak client (device flow) for `mip login` on users' own computers; empty = not offered.
   cli_client_id: ${KEYCLOAK_CLI_CLIENT_ID:}
@@ -91,10 +91,10 @@ services:
 frontend:
   base-url: ${PLATFORM_UI_BASE_URL:http://localhost:4200}
 
-### EXPERIMENTS ###
-experiments:
-  # How long an unsaved studio run stays available to "Save experiment" without re-running it.
-  run-draft-ttl: ${EXPERIMENT_RUN_DRAFT_TTL:PT24H}
+### ANALYSES ###
+analyses:
+  # How long an unsaved studio run stays available to "Save analysis" without re-running it.
+  run-draft-ttl: ${ANALYSIS_RUN_DRAFT_TTL:PT24H}
 
 ### PLATFORM VERSION ###
 mip:

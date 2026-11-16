@@ -21,8 +21,8 @@ public class ClaimUtils {
     @Value("${authentication.all_datasets_allowed_claim}")
     private String allDatasetsAllowedClaim;
 
-    @Value("${authentication.all_experiments_allowed_claim}")
-    private String allExperimentsAllowedClaim;
+    @Value("${authentication.all_analyses_allowed_claim}")
+    private String allAnalysesAllowedClaim;
 
     @Value("${authentication.dataset_claim_prefix}")
     private String datasetClaimPrefix;
@@ -46,8 +46,8 @@ public class ClaimUtils {
     }
 
     public void validateAccessRightsOnDatasets(Authentication authentication,
-                                               List<String> experimentDatasets, Logger logger) {
-        if (experimentDatasets == null || experimentDatasets.isEmpty()) {
+                                               List<String> analysisDatasets, Logger logger) {
+        if (analysisDatasets == null || analysisDatasets.isEmpty()) {
             String errorMessage = "At least one dataset must be provided.";
             logger.warn(errorMessage);
             throw new BadRequestException(errorMessage);
@@ -56,14 +56,14 @@ public class ClaimUtils {
         ArrayList<String> authorities = getAuthorityRoles(authentication);
 
         if (!hasRoleAccess(authorities, allDatasetsAllowedClaim, logger)) {
-            for (String dataset : experimentDatasets) {
+            for (String dataset : analysisDatasets) {
                 String datasetRole = getDatasetClaim(dataset);
                 if (!hasRoleAccess(authorities, datasetRole, logger)) {
                     logger.warn("You are not allowed to use dataset: " + dataset);
                     throw new UnauthorizedException("You are not authorized to use these datasets.");
                 }
             }
-            logger.debug("User is authorized to use the datasets: " + experimentDatasets);
+            logger.debug("User is authorized to use the datasets: " + analysisDatasets);
         }
     }
 
@@ -91,9 +91,9 @@ public class ClaimUtils {
                 .toList();
     }
 
-    public boolean validateAccessRightsOnALLExperiments(Authentication authentication, Logger logger) {
+    public boolean validateAccessRightsOnALLAnalyses(Authentication authentication, Logger logger) {
         ArrayList<String> authorities = getAuthorityRoles(authentication);
-        return hasRoleAccess(authorities, allExperimentsAllowedClaim, logger);
+        return hasRoleAccess(authorities, allAnalysesAllowedClaim, logger);
     }
 
     public List<DataModelDTO> getAuthorizedDataModels(Logger logger, Authentication authentication,

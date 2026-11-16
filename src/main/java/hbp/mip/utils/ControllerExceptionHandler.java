@@ -1,6 +1,6 @@
 package hbp.mip.utils;
 
-import hbp.mip.utils.Exceptions.ExperimentNotFoundException;
+import hbp.mip.utils.Exceptions.AnalysisNotFoundException;
 import hbp.mip.utils.Exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +17,9 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     public record ErrorMessage (int statusCode, Date timestamp, String message, String description) {}
 
-    @ExceptionHandler(ExperimentNotFoundException.class)
-    public ResponseEntity<Object> handleExperimentNotFoundException(ExperimentNotFoundException ex, WebRequest request) {
+    @ExceptionHandler({AnalysisNotFoundException.class, StudyNotFoundException.class,
+            AnalysisGroupNotFoundException.class})
+    public ResponseEntity<Object> handleResourceNotFoundException(RuntimeException ex, WebRequest request) {
         ErrorMessage message = new ErrorMessage(
                 HttpStatus.NOT_FOUND.value(),
                 new Date(),
@@ -51,7 +52,7 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     // UnauthorizedException means a signed-in user was denied: 403. A 401 would make the portal sign in again.
-    @ExceptionHandler({UnauthorizedException.class, NoAuthorizedPathologiesException.class,
+    @ExceptionHandler({UnauthorizedException.class, NoAuthorizedDataModelsException.class,
             TermsOfUseNotAcceptedException.class, UserIdentityConflictException.class})
     public ResponseEntity<Object> handleForbiddenException(
             RuntimeException ex,
@@ -66,9 +67,9 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(message, HttpStatus.FORBIDDEN);
     }
 
-    @ExceptionHandler(NoPathologiesAvailableException.class)
-    public ResponseEntity<Object> handleNoPathologiesAvailableException(
-            NoPathologiesAvailableException ex,
+    @ExceptionHandler(NoDataModelsAvailableException.class)
+    public ResponseEntity<Object> handleNoDataModelsAvailableException(
+            NoDataModelsAvailableException ex,
             WebRequest request
     ) {
         ErrorMessage message = new ErrorMessage(

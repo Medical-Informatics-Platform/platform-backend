@@ -175,4 +175,37 @@
            </plugin>
        </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>postgres-integration</id>
+            <properties>
+                <it.database.url>jdbc:postgresql://127.0.0.1:5432/platform_test</it.database.url>
+                <it.database.username>postgres</it.database.username>
+                <it.database.password>postgres</it.database.password>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <it.database.url>${it.database.url}</it.database.url>
+                                <it.database.username>${it.database.username}</it.database.username>
+                                <it.database.password>${it.database.password}</it.database.password>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

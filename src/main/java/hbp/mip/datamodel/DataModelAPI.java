@@ -26,13 +26,13 @@ public class DataModelAPI {
 
     @GetMapping
     public ResponseEntity<List<DataModelDTO>> getDataModels(Authentication authentication) {
-        var logger = new Logger(activeUserService.getActiveUser(authentication).username(), "(GET) /dataModels");
-        logger.info("Request for dataModels.");
+        var logger = new Logger(activeUserService.getActiveUser(authentication).username(), "(GET) /data-models");
+        logger.info("Request for data models.");
         var dataModels = dataModelService.getDataModels(authentication, logger);
 
         String userDataModelsSTR = dataModels.stream().map(DataModelDTO::code)
                 .collect(Collectors.joining(", "));
-        logger.info("DataModels returned: " + dataModels.size() + ". [" + userDataModelsSTR + "].");
+        logger.info("Data models returned: " + dataModels.size() + ". [" + userDataModelsSTR + "].");
 
         return ResponseEntity.ok(dataModels);
     }
