@@ -17,6 +17,7 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 
 #### AUTHENTICATION ###
 * AUTHENTICATION: true for production, false for development.
+* `authentication.all_analyses_allowed_claim`: defaults to the existing external authority `research_experiment_all`. Preserve that authority and existing grants.
 
 #### DATABASE CONFIGURATION ###
 * PLATFORM_DB_URL: JDBC URL to connect to the platform database, default value is "jdbc:postgresql://127.0.0.1:5432/platform".
@@ -27,8 +28,10 @@ To use this image, you need a running instance of PostgreSQL and to configure th
 #### EXTERNAL SERVICES ###
 * EXAFLOW_URL: URL to Exaflow server. Default is "http://localhost:5000" .
 
-#### EXPERIMENTS ###
-* EXPERIMENT_RUN_DRAFT_TTL: How long an unsaved studio run can still be saved without re-running it, as an ISO-8601 duration. Default is "PT24H".
+#### ANALYSES ###
+* ANALYSIS_RUN_DRAFT_TTL: How long an unsaved studio run can still be saved without re-running it, as an ISO-8601 duration. Default is "PT24H".
+
+The backend uses Analysis, Study, and Analysis Group terminology. See the [module index](docs/context/module-index.md) for API and persistence details. Run `mvn test`, `mvn -Ppostgres-integration verify` against a disposable PostgreSQL database, and `mvn clean package`; connection settings are in [the testing guide](docs/context/testing.md).
 
 #### KEYCLOAK ###
 * KEYCLOAK_AUTH_URL: Keycloak authentication URL.

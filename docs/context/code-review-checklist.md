@@ -23,7 +23,7 @@
 - [ ] No secrets are committed.
 - [ ] Sensitive values are not logged.
 - [ ] Auth/authz behavior is preserved or explicitly reviewed.
-- [ ] Dataset and experiment access checks are preserved.
+- [ ] Dataset and analysis access checks are preserved.
 - [ ] Token exposure and CSRF behavior are reviewed if touched.
 
 ## Maintainability
