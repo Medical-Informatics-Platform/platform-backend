@@ -9,7 +9,7 @@
 - Repositories use the `*Repository` suffix.
 - JPA entities use the `*DAO` suffix.
 - API/request/response shapes use the `*DTO` suffix, often as Java records.
-- Feature modules are grouped by package: `algorithm`, `datamodel`, `experiment`, and `user`.
+- Feature modules are grouped by package: `algorithm`, `datamodel`, `analysis`, `study`, and `user`.
 
 ### Backend Layering
 - Controllers accept HTTP input, create user/action logs, and delegate to services.
@@ -26,7 +26,7 @@
 ### Logging
 - User-facing actions use `hbp.mip.utils.Logger`.
 - Logs include username, endpoint, and message.
-- Existing code logs some request and experiment details; avoid expanding sensitive logging.
+- Existing code logs some request and analysis details; avoid expanding sensitive logging.
 
 ### Configuration
 - Spring properties are defined in `src/main/resources/application.yml`.
@@ -42,7 +42,7 @@
 ### Persistence
 - Flyway owns migrations.
 - Hibernate validates schema with `ddl-auto: validate`.
-- Current JPA repositories/entities are in `experiment` and `user`.
+- Current JPA repositories/entities are in `analysis`, `study`, and `user`.
 
 ### Agent Tool and Token Budget
 - Agents should use focused repository inspection commands and avoid dumping broad context.
@@ -51,8 +51,8 @@
 - When large context is unavoidable, the agent should ask first, explain the expected size and reason, and summarize results instead of pasting raw output.
 
 ## Recommended Conventions to Verify
-- Add a test dependency such as Spring Boot test support before creating substantive Java tests, if not already added by a future change.
+- Use existing Spring Boot test support, JUnit, Mockito, and MockMvc. Use real PostgreSQL for schema and SQL-function checks.
 - Prefer constructor-bound configuration properties for new configuration-heavy code, but match local `@Value` style for small scoped changes.
-- Prefer managed Spring executors for new background work instead of raw `Thread`, unless intentionally preserving existing behavior.
+- Preserve synchronous preview/run/save. A terminology rename must not introduce background execution.
 - Prefer a Spring HTTP client abstraction for larger external integration changes; keep small fixes consistent with `HTTPUtil`.
 - Add a Java formatter/static-analysis command before enforcing style mechanically.

@@ -6,9 +6,10 @@ This is a backend service for the Medical Informatics Platform. It is a Java 21 
 ## High-Level Structure
 The application entrypoint is `hbp.mip.MIPApplication`. APIs are grouped by feature package:
 
-- `algorithm`: runs analyses through Exaflow (for the `experiment` package) and exposes Exaflow's inputdata, preprocessing and algorithm specifications (`/specifications/*`).
+- `algorithm`: runs analyses through Exaflow (for the `analysis` package) and exposes Exaflow's inputdata, preprocessing and algorithm specifications (`/specifications/*`).
 - `datamodel`: exposes data models and dataset metadata from Exaflow, filtered by user claims when authentication is enabled.
-- `experiment`: creates, lists, updates, deletes, and executes experiments; persists experiment records in PostgreSQL.
+- `analysis`: manages platform Analysis records and the preview/run/save workflow.
+- `study`: owns Studies, Analysis Groups, and ordered Analysis memberships.
 - `user`: resolves the active user from OAuth2/OIDC or JWT authentication and persists user profile/NDA state.
 - `configurations`: configures security, OAuth2/OIDC, JWT authority mapping, persistence, Flyway, OpenAPI, and SPA redirects.
 - `utils`: shared HTTP, JSON, logging, claim, resource, and exception utilities.
@@ -28,7 +29,7 @@ flowchart TD
 - HTTP requests enter controllers named `*API`.
 - Controllers create a `hbp.mip.utils.Logger` with active user and endpoint context, then delegate to services.
 - Services enforce business rules, authorization checks, external calls, and persistence workflows.
-- Repositories and JPA `*DAO` entities handle database access for users and experiments.
+- Repositories and JPA `*DAO` entities handle database access for users and analyses.
 - DTOs are returned from controllers as API response shapes.
 - Exceptions are mapped by `ControllerExceptionHandler`.
 
@@ -47,17 +48,17 @@ Persistence is configured in `PersistenceConfiguration`.
 
 - Data source properties come from `spring.datasource`.
 - Flyway runs at startup through a `flyway` bean.
-- JPA scans `hbp.mip.experiment` and `hbp.mip.user`.
-- Existing migration `V1__InitialSchema.sql` creates `user` and `experiment` tables.
-- `V3__ExperimentRunDrafts.sql` creates `experiment_run`, which keeps unsaved studio run results until they are saved or expire.
-- Hibernate is configured with `ddl-auto: validate`, so schema changes should be made through Flyway migrations.
+- JPA scans `hbp.mip.analysis`, `hbp.mip.study`, and `hbp.mip.user`.
+- Shipped migrations V1–V5 create the historical schema. V6 renames records to `analysis`, `analysis_run`, `study`, `analysis_group`, and `study_member`, with complete requests in `analysis_request`.
+- Flyway owns schema changes. PostgreSQL integration tests explicitly validate JPA mappings against the migrated schema.
 
 ## API Layer
 The servlet context path is `/services`. Main endpoints include:
 
-- `/algorithms`
+- `/specifications/{inputdata,preprocessing,algorithms}`
 - `/data-models`
-- `/experiments` (`/experiments/preview` computes without storing, `/experiments/runs` computes and keeps the result, `POST /experiments` saves a kept run)
+- `/analyses` (`/analyses/preview` computes without storing, `/analyses/runs` computes and keeps the result, `POST /analyses` saves a kept run)
+- `/studies` (owner-scoped Study, Analysis Group, and membership operations)
 - `/activeUser`
 
 OpenAPI is configured by `OpenApiConfig` and springdoc dependencies.
@@ -72,21 +73,20 @@ OpenAPI is configured by `OpenApiConfig` and springdoc dependencies.
 - Raw authority mapping for claims and Keycloak roles, intentionally without adding a `ROLE_` prefix.
 - Anonymous development behavior when `authentication.enabled` is disabled.
 
-Authorization-sensitive logic appears in `ClaimUtils`, `ExperimentService`, `DataModelService`, and active user handling.
+Authorization-sensitive logic appears in `ClaimUtils`, `AnalysisService`, `DataModelService`, and active user handling.
 
-## Background Work and External Services
+## Execution and External Services
 - `SpecificationsService` fetches inputdata, preprocessing, and algorithm specifications from Exaflow per request.
-- `ExperimentService` starts a background `Thread` for persisted experiment execution.
+- `AnalysisService` executes preview/run synchronously through `AnalysisExecutionService`. Preview stores nothing; successful runs retain owner-only drafts. Save copies a retained result without execution.
 - Data model and algorithm metadata are fetched through `HTTPUtil` using configured Exaflow URLs.
 
 ## Config and Environment Model
 - All runtime config is in `src/main/resources/application.yml` with `${ENV:default}` placeholders.
 - Containers pass environment variables (see `mip/deployment`); no separate config template is rendered at startup.
-- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, `EXPERIMENT_RUN_DRAFT_TTL`, and logging.
+- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, `ANALYSIS_RUN_DRAFT_TTL`, and logging.
 - Do not introduce direct environment reads in business logic; route configuration through Spring properties.
 
 ## Known Gaps
-- No committed `src/test/java` tree.
 - No Maven wrapper.
 - No Docker Compose or local database bootstrap file found.
 - No dedicated Java lint/formatter/static-analysis command found.

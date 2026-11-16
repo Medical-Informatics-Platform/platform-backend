@@ -1,66 +1,41 @@
 # Testing
 
-## Detected Test Setup
-- No committed `src/test/java` tree was found.
-- No `spring-boot-starter-test`, JUnit, Mockito, AssertJ, Surefire, Failsafe, or JaCoCo configuration was found in `pom.xml`.
-- `mvn test` is still the baseline Maven test phase and should be run after changes.
+## Unit and HTTP contract tests
 
-## Test Directory Structure
-Use package-mirroring under:
+Use Java 21 and Maven:
 
-```text
-src/test/java/hbp/mip
-```
-
-Recommended naming:
-
-- `*Test` for unit tests.
-- `*IT` for integration tests.
-
-## Fast Tests
 ```bash
 mvn test
+mvn clean package
 ```
 
-Until test dependencies are added, this may only compile and run an empty test phase.
+`src/test/java/hbp/mip` contains JUnit, Mockito, AssertJ, MockMvc, and security tests. Spring Boot test support is already in the build. Unit tests cover Analysis request/result serialization, preview/run/save, draft expiry, sharing and dataset authorization, Study/group operations, data-model listing, Exaflow contracts, and authentication navigation.
 
-## Full Tests
-Unknown / TODO: verify once integration tests exist. For database behavior, run relevant tests against PostgreSQL and verify Flyway migrations apply cleanly.
+## PostgreSQL integration tests
 
-## Backend Test Guidance
-Add focused tests when changing:
+The `postgres-integration` profile uses Maven Failsafe to run `*IT` tests during `verify`. PostgreSQL is required; an unavailable database fails the run instead of skipping coverage. No additional Java test dependencies are needed: tests use the existing PostgreSQL JDBC driver, Flyway, Spring JDBC, and JPA.
 
-- `SecurityConfiguration`: auth modes, CSRF behavior, JWT authorities, permitted endpoints.
-- `ClaimUtils`, `DataModelService`, `ExperimentService`: authorization and data access logic.
-- `ExperimentRepository` and DAOs: persistence and schema-sensitive behavior.
-- `HTTPUtil` or Exaflow integrations: external response handling and error mapping.
-- `ControllerExceptionHandler`: HTTP status and error response mapping.
+Against a disposable local database:
 
-## Fixtures and Mocks
-No committed test fixtures or mocks were found. For future tests, prefer:
+```bash
+mvn -B -ntp -Ppostgres-integration \
+  -Dit.database.url=jdbc:postgresql://127.0.0.1:5432/platform_test \
+  -Dit.database.username=postgres \
+  -Dit.database.password=postgres \
+  clean verify
+```
 
-- Mocking Exaflow HTTP responses for service-level tests.
-- Using representative DTO payloads near the tests that need them.
-- Using PostgreSQL-backed integration tests for migration/schema behavior.
+These are also the profile defaults. The test user needs permission to create/drop schemas. Each test creates a random isolated schema, and cleanup drops that schema after the application context closes. Use a database reserved for tests.
 
-## Under-Tested Critical Paths
-- OAuth2/JWT authority mapping and authentication-disabled mode.
-- Dataset and experiment authorization checks.
-- Experiment creation, background execution, deletion, and immutable-field validation.
-- Exaflow metadata aggregation and error handling.
-- Flyway migrations and schema validation.
-- Logging behavior around request bodies, tokens, and experiment results.
+`BackendPersistenceIT` verifies:
 
-## Validation Matrix
+- Fresh Flyway migration through V6 and startup of the real persistence configuration, including package scanning, query parsing, and explicit Hibernate schema validation.
+- Populated V5 upgrades preserving every saved-record, unsaved-run, Study, Analysis Group, and membership value, including malformed historical requests, results with explicit nulls/large integers, timestamps, permissions, and ordering.
+- Dataset-authorization parity between the old V5 and new V6 SQL functions across selected/validation datasets, missing or malformed input, and mixed case.
+- Saving migrated active runs without execution, repeated saves, expiry and owner checks, query filtering before totals, unchanged external claims, and Study/group/deletion operations.
 
-| Change type | Required validation |
-|---|---|
-| Documentation-only change | `git diff --check`; optionally `pre-commit run --all-files` |
-| Controller/API behavior change | Add or update controller/service tests; run `mvn test`; document request/response impact |
-| Service/business logic change | Add focused unit tests; run `mvn test` |
-| Database migration | Add new Flyway migration; verify against PostgreSQL; run `mvn test`; document rollback considerations |
-| Auth/permission change | Add security/authorization tests; manually review `SecurityConfiguration`, `ClaimUtils`, and affected services |
-| Exaflow integration change | Mock success/error responses; run `mvn test`; verify config keys and timeout/error behavior |
-| Dependency update | Explain need; run `mvn test` and `mvn clean package`; check Docker build if runtime-related |
-| Refactor without behavior change | Run `mvn test`; add characterization tests first if touching high-risk logic |
-| Docker/runtime config change | Run `docker build -t hbpmip/platform-backend:testing .`; verify relevant env/template values |
+The `backend-tests.yml` workflow runs `clean verify` with this profile, Java 21, and a PostgreSQL service on pull requests and master pushes.
+
+## Review expectations
+
+Keep focused HTTP tests for changes to routes, field names, totals, and status codes. Keep service authorization and raw-result tests. Migrations must be new files; do not rename or edit shipped migrations. Review the rename migration and claim handling together with the backend/UI deployment changes.

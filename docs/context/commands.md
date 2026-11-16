@@ -37,7 +37,7 @@ target/platform-backend.jar
 mvn test
 ```
 
-There is no committed `src/test/java` tree. This command currently functions as the baseline Maven test phase/smoke check.
+Runs JUnit/Mockito and HTTP contract tests. PostgreSQL integration tests require `mvn -Ppostgres-integration verify`; see [testing.md](testing.md) for connection properties.
 
 ## Lint
 ```bash
@@ -70,9 +70,9 @@ Flyway migrations live in:
 src/main/resources/db/migration
 ```
 
-The application configures Flyway startup migration through `PersistenceConfiguration`. Hibernate uses `ddl-auto: validate`, so schema changes should be made through Flyway migrations.
+The application configures Flyway startup migration through `PersistenceConfiguration`. Flyway owns schema changes; PostgreSQL integration tests explicitly validate Hibernate mappings.
 
-Unknown / TODO: verify the preferred command for applying migrations against a local PostgreSQL instance outside app startup.
+The `postgres-integration` Maven profile applies migrations to isolated test schemas, tests fresh and populated upgrades, and removes those schemas afterwards.
 
 ## Docker
 Build the container image:
@@ -89,4 +89,4 @@ Detected workflows:
 - `.github/workflows/publish_images.yml`: on published release, builds and pushes Docker images to Docker Hub and EBRAINS Harbor.
 - `.github/workflows/ebrains.yml`: mirrors `master` and tags to EBRAINS GitLab on push.
 
-No regular pull-request test workflow was found.
+`backend-tests.yml` runs the package build, unit/HTTP tests, and PostgreSQL migration/persistence tests on pull requests and master pushes.
