@@ -13,19 +13,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Covers the Exaflow specification fields that AlgorithmSpecificationDTOTest does not:
- * parameter `enums`/`default` and inputData `stattypes`, plus a nested JSON object surviving
+ * parameter `enums`/`default` and inputData `types`, plus a nested JSON object surviving
  * the Gson read -> Jackson write hop that the kmeans_cluster_creator preprocessing needs.
  */
 class ExaflowKMeansAndSmdContractTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void deserializesParameterEnumsDefaultsAndStatTypes() {
+    void deserializesParameterEnumsDefaultsAndSlotTypes() {
         String payload = """
                 [
                   {
-                    "y": { "stattypes": ["numerical"] },
-                    "x": { "stattypes": ["nominal"] },
+                    "y": { "types": ["numerical"] },
+                    "x": { "types": ["nominal"] },
                     "required_preprocessing": ["missing_values_handler"],
                     "parameters": {
                       "k_selection": {
@@ -50,8 +50,8 @@ class ExaflowKMeansAndSmdContractTest {
         assertThat(kSelection.default_value()).isEqualTo("manual");
         assertThat(kSelection.required()).isTrue();
         assertThat(algorithm.parameters().get("k").max()).isEqualTo(4294967276.0);
-        assertThat(algorithm.y().stattypes()).containsExactly("numerical");
-        assertThat(algorithm.x().stattypes()).containsExactly("nominal");
+        assertThat(algorithm.y().types()).containsExactly("numerical");
+        assertThat(algorithm.x().types()).containsExactly("nominal");
         assertThat(algorithm.required_preprocessing()).containsExactly("missing_values_handler");
     }
 

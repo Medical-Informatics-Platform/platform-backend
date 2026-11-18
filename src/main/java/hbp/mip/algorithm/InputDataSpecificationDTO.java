@@ -6,7 +6,6 @@ public record InputDataSpecificationDTO(
         String label,
         String desc,
         List<String> types,
-        List<String> stattypes,
         Boolean required,
         Integer min_count,
         Integer max_count) {
