@@ -18,43 +18,43 @@ class ExaflowCdeVariableTypesContractTest {
             [
               {
                 "name": "cox_regression_classical",
-                "y": { "types": ["real"], "stattypes": ["numerical"], "required": true },
-                "x": { "types": ["real", "text"], "stattypes": ["numerical", "nominal", "ordinal", "binary"] },
+                "y": { "types": ["numerical"], "required": true },
+                "x": { "types": ["numerical", "nominal", "ordinal", "binary"] },
                 "parameters": {
                   "event_var": {
                     "label": "Event variable",
                     "types": ["text"],
                     "required": true,
                     "enums": { "type": "input_var_names", "source": ["x", "y"] },
-                    "variable_stattypes": ["binary"]
+                    "variable_types": ["binary"]
                   },
-                  "alpha": { "types": ["real"], "variable_stattypes": null }
+                  "alpha": { "types": ["real"], "variable_types": null }
                 }
               },
               {
                 "name": "glmm_ordinal",
-                "y": { "types": ["text"], "stattypes": ["ordinal"], "min_count": 1, "max_count": 1 },
-                "x": { "types": ["text"], "stattypes": ["binary"] }
+                "y": { "types": ["ordinal"], "min_count": 1, "max_count": 1 },
+                "x": { "types": ["binary"] }
               }
             ]
             """;
 
     @Test
-    void keepsBinaryAndOrdinalStattypesAndParameterVariableStattypes() throws Exception {
+    void keepsBinaryAndOrdinalSlotTypesAndParameterVariableTypes() throws Exception {
         List<AlgorithmSpecificationDTO> algorithms = JsonConverters.convertJsonStringToObject(SPECIFICATIONS,
                 new TypeToken<List<AlgorithmSpecificationDTO>>() {
                 }.getType());
 
-        assertThat(algorithms.get(0).x().stattypes()).containsExactly("numerical", "nominal", "ordinal", "binary");
-        assertThat(algorithms.get(0).parameters().get("event_var").variable_stattypes()).containsExactly("binary");
-        assertThat(algorithms.get(0).parameters().get("alpha").variable_stattypes()).isNull();
-        assertThat(algorithms.get(1).y().stattypes()).containsExactly("ordinal");
+        assertThat(algorithms.get(0).x().types()).containsExactly("numerical", "nominal", "ordinal", "binary");
+        assertThat(algorithms.get(0).parameters().get("event_var").variable_types()).containsExactly("binary");
+        assertThat(algorithms.get(0).parameters().get("alpha").variable_types()).isNull();
+        assertThat(algorithms.get(1).y().types()).containsExactly("ordinal");
 
         JsonNode serialized = new ObjectMapper().readTree(SpringJsonMapper.INSTANCE.writeValueAsString(algorithms));
-        assertThat(serialized.at("/0/parameters/event_var/variable_stattypes/0").asText()).isEqualTo("binary");
-        assertThat(serialized.at("/0/parameters/alpha").has("variable_stattypes")).isFalse();
-        assertThat(serialized.at("/1/y/stattypes/0").asText()).isEqualTo("ordinal");
-        assertThat(serialized.at("/1/x/stattypes/0").asText()).isEqualTo("binary");
+        assertThat(serialized.at("/0/parameters/event_var/variable_types/0").asText()).isEqualTo("binary");
+        assertThat(serialized.at("/0/parameters/alpha").has("variable_types")).isFalse();
+        assertThat(serialized.at("/1/y/types/0").asText()).isEqualTo("ordinal");
+        assertThat(serialized.at("/1/x/types/0").asText()).isEqualTo("binary");
     }
 
     @Test

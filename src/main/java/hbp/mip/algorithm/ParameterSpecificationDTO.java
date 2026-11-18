@@ -17,7 +17,7 @@ public record ParameterSpecificationDTO(
         String dict_values_type,
         Double min,
         Double max,
-        List<String> variable_stattypes) {
+        List<String> variable_types) {
     public record ParameterEnumSpecificationDTO(
             String type,
             List<Object> source) {
