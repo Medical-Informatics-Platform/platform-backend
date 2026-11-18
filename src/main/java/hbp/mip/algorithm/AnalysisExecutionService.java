@@ -1,5 +1,7 @@
 package hbp.mip.algorithm;
 
+import hbp.mip.datamodel.DatasetLabelService;
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.InternalServerError;
 import hbp.mip.utils.HTTPUtil;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,12 +25,15 @@ public class AnalysisExecutionService {
             "The platform is busy running other analyses. Please try again in a few minutes.";
 
     private final String analysisUrl;
+    private final DatasetLabelService datasetLabelService;
 
     @Value("${services.exaflow.apiToken:}")
     private String exaflowApiToken;
 
-    public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
+    public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl,
+            DatasetLabelService datasetLabelService) {
         this.analysisUrl = analysisUrl;
+        this.datasetLabelService = datasetLabelService;
     }
 
     /** Rejects with 400 a payload Exaflow cannot run, before any access check or persistence touches it. */
@@ -44,7 +50,9 @@ public class AnalysisExecutionService {
     }
 
     public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
-        AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), analysisRequest.inputdata(),
+        AnalysisRequestDTO.AnalysisInputDataDTO inputdata =
+                withDatasetLabels(analysisRequest.inputdata(), datasetLabelService.get(logger));
+        AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), inputdata,
                 analysisRequest.preprocessing(), analysisRequest.algorithm(), analysisRequest.flags());
         String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);
 
@@ -62,6 +70,20 @@ public class AnalysisExecutionService {
 
         Object result = convertResponseToAnalysisResult(logger, responseCode, responseBody);
         return new AnalysisResultDTO(responseCode, result);
+    }
+
+    /** Exaflow names datasets by label; the portal and notebooks send dataset codes. */
+    static AnalysisRequestDTO.AnalysisInputDataDTO withDatasetLabels(
+            AnalysisRequestDTO.AnalysisInputDataDTO inputdata, DatasetLabels labels) {
+        String dataModel = inputdata.data_model();
+        return new AnalysisRequestDTO.AnalysisInputDataDTO(dataModel,
+                toLabels(dataModel, inputdata.datasets(), labels),
+                toLabels(dataModel, inputdata.validation_datasets(), labels),
+                inputdata.filters(), inputdata.variables());
+    }
+
+    private static List<String> toLabels(String dataModel, List<String> datasets, DatasetLabels labels) {
+        return datasets == null ? null : datasets.stream().map(dataset -> labels.labelOf(dataModel, dataset)).toList();
     }
 
     static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {

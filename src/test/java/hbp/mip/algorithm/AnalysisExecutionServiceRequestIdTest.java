@@ -1,5 +1,6 @@
 package hbp.mip.algorithm;
 
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Logger;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,24 @@ class AnalysisExecutionServiceRequestIdTest {
                 List.of("age")).allDatasets()).containsExactly("ds1", "restricted");
         assertThat(new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of(), List.of("restricted"), null,
                 List.of("age")).allDatasets()).isEmpty();
+    }
+
+    @Test
+    void withDatasetLabels_sendsExaflowTheDatasetLabels() {
+        var labels = new DatasetLabels(Map.of("tbi:1.0", Map.of("1", "Creactive", "2", "CLM")));
+        var inputdata = new AnalysisRequestDTO.AnalysisInputDataDTO("tbi:1.0", List.of("1", "CLM", "unknown"),
+                List.of("2"), Map.of("condition", "AND"), List.of("age"));
+
+        var sent = AnalysisExecutionService.withDatasetLabels(inputdata, labels);
+
+        assertThat(sent.datasets()).containsExactly("Creactive", "CLM", "unknown");
+        assertThat(sent.validation_datasets()).containsExactly("CLM");
+        assertThat(sent.data_model()).isEqualTo("tbi:1.0");
+        assertThat(sent.filters()).isEqualTo(inputdata.filters());
+        assertThat(sent.variables()).containsExactly("age");
+        assertThat(AnalysisExecutionService.withDatasetLabels(
+                new AnalysisRequestDTO.AnalysisInputDataDTO("tbi:1.0", List.of("1"), null, null, List.of("age")),
+                labels).validation_datasets()).isNull();
     }
 
     @Test

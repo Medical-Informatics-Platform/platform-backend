@@ -50,6 +50,16 @@ public record DatasetLabels(Map<String, Map<String, String>> labelsByCodeByDataM
         return Collections.unmodifiableSet(byCode.isEmpty() ? byLabel : byCode);
     }
 
+    /**
+     * The label Exaflow expects for a dataset reference: requests name datasets by label, while the
+     * portal and notebooks select them by code. An unknown or ambiguous reference is returned as is,
+     * so Exaflow reports it.
+     */
+    public String labelOf(String dataModel, String reference) {
+        Set<String> labels = labelsFor(dataModel, reference);
+        return labels.size() == 1 ? labels.iterator().next() : reference;
+    }
+
     public Set<String> dataModels() {
         return labelsByCodeByDataModel.keySet();
     }
