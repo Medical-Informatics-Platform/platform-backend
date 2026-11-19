@@ -2,14 +2,11 @@ package hbp.mip.algorithm;
 
 import hbp.mip.utils.Exceptions.BadRequestException;
 import hbp.mip.utils.Exceptions.InternalServerError;
-import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
 import hbp.mip.utils.RawJson;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,10 +18,10 @@ public class AnalysisExecutionService {
     static final String BUSY_ERROR_MESSAGE =
             "The platform is busy running other analyses. Please try again in a few minutes.";
 
-    private final String analysisUrl;
+    private final ExaflowAmqpClient amqpClient;
 
-    public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
-        this.analysisUrl = analysisUrl;
+    public AnalysisExecutionService(ExaflowAmqpClient amqpClient) {
+        this.amqpClient = amqpClient;
     }
 
     /** Rejects with 400 a payload Exaflow cannot run, before any access check or persistence touches it. */
@@ -40,31 +37,34 @@ public class AnalysisExecutionService {
         }
     }
 
+    /** Submits a transient preview and fails fast if Exaflow has no active consumer. */
+    public AnalysisResultDTO previewAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
+        return execute(requestId, analysisRequest, true, logger);
+    }
+
+    /** Submits a normal analysis run, letting RabbitMQ buffer it if Exaflow is transiently restarting. */
     public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
+        return execute(requestId, analysisRequest, false, logger);
+    }
+
+    private AnalysisResultDTO execute(UUID requestId, AnalysisRequestDTO analysisRequest, boolean requireConsumer,
+            Logger logger) {
         AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), analysisRequest.inputdata(),
                 analysisRequest.preprocessing(), analysisRequest.algorithm());
         String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);
 
-        logger.debug("Exaflow analysis request, endpoint: " + analysisUrl);
         logger.debug("Exaflow analysis request, body: " + requestBody);
 
-        int responseCode;
-        var responseBody = new StringBuilder();
-        try {
-            responseCode = HTTPUtil.sendPost(analysisUrl, requestBody, responseBody);
-        } catch (IOException e) {
-            logger.error("Could not run the exaflow analysis: " + e.getMessage());
-            throw new InternalServerError(e.getMessage());
-        }
-
-        Object result = convertResponseToAnalysisResult(logger, responseCode, responseBody);
-        return new AnalysisResultDTO(responseCode, result);
+        ExaflowAmqpClient.ExaflowReply reply = amqpClient.submit(requestId.toString(), requestBody, requireConsumer,
+                logger);
+        return new AnalysisResultDTO(reply.code(),
+                convertResponseToAnalysisResult(logger, reply.code(), reply.body()));
     }
 
-    static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
+    static Object convertResponseToAnalysisResult(Logger logger, int code, String responseBody) {
         return switch (code) {
-            case 200 -> new RawJson(responseBody.toString());
-            case 400, 413, 422, 460, 461, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
+            case 200 -> new RawJson(responseBody);
+            case 400, 413, 422, 460, 461, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody);
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
             // Exaflow is at its concurrent-analysis limit; its own message names internal components,
             // so it goes to the log and the user gets a retry message.

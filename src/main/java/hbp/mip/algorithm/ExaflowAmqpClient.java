@@ -374,7 +374,6 @@ public class ExaflowAmqpClient implements AutoCloseable, DisposableBean {
             case "invalid_request" -> 422;
             case "BadUserInput", "DataModelUnavailable", "DatasetUnavailable" -> 460;
             case "insufficient_data" -> 461;
-            case "SMPCUsageError" -> 462;
             case "WorkerUnresponsiveError" -> 512;
             case "WorkerTaskTimeoutError" -> 513;
             case "GlobalWorkerUnavailableError" -> 503;

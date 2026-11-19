@@ -88,7 +88,6 @@ authentication:
 ### EXTERNAL SERVICES ###
 services:
   exaflow:
-    analysisUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/analysis
     inputdataSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/inputdata
     preprocessingSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/preprocessing
     algorithmsSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/algorithms

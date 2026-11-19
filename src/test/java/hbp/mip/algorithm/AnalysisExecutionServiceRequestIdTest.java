@@ -39,7 +39,7 @@ class AnalysisExecutionServiceRequestIdTest {
 
     @Test
     void convertResponse_mapsExaflowBusyToRetryMessage() {
-        var exaflowBody = new StringBuilder("The controller is already running the maximum number of concurrent analyses.");
+        var exaflowBody = "The controller is already running the maximum number of concurrent analyses.";
 
         assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 503, exaflowBody))
                 .isEqualTo(Map.of("data", AnalysisExecutionService.BUSY_ERROR_MESSAGE, "type", "text/plain+error"));
@@ -47,17 +47,17 @@ class AnalysisExecutionServiceRequestIdTest {
 
     @Test
     void convertResponse_passesExaflowMessageTooLargeThrough() {
-        var exaflowBody = new StringBuilder("result too large (>104857600 bytes / 100.0 MiB); reduce variables/levels");
+        var exaflowBody = "result too large (>104857600 bytes / 100.0 MiB); reduce variables/levels";
 
         assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 413, exaflowBody))
-                .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
+                .isEqualTo(Map.of("data", exaflowBody, "type", "text/plain+error"));
     }
 
     @Test
     void convertResponse_passesExaflowMalformedRequestThrough() {
-        var exaflowBody = new StringBuilder("Request malformed:\nbody.inputdata: Field required");
+        var exaflowBody = "Request malformed:\nbody.inputdata: Field required";
 
         assertThat(AnalysisExecutionService.convertResponseToAnalysisResult(new Logger("user", "test"), 422, exaflowBody))
-                .isEqualTo(Map.of("data", exaflowBody.toString(), "type", "text/plain+error"));
+                .isEqualTo(Map.of("data", exaflowBody, "type", "text/plain+error"));
     }
 }
