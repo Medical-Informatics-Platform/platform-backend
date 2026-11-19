@@ -66,14 +66,13 @@ class DataModelListingTest {
 
     private void withMetadata(String attributes, ThrowingAction action) throws Exception {
         ReflectionTestUtils.setField(service, "authenticationIsEnabled", true);
-        ReflectionTestUtils.setField(service, "exaflowApiToken", "");
         ReflectionTestUtils.setField(service, "exaflowAttributesUrl", "attributes");
         ReflectionTestUtils.setField(service, "exaflowDatasetsVariables", "variables");
         ReflectionTestUtils.setField(service, "exaflowCDEsMetadataUrl", "cdes");
         try (var http = mockStatic(HTTPUtil.class)) {
-            http.when(() -> HTTPUtil.sendGet(anyString(), anyString(), any(StringBuilder.class)))
+            http.when(() -> HTTPUtil.sendGet(anyString(), any(StringBuilder.class)))
                     .thenAnswer(call -> {
-                        call.<StringBuilder>getArgument(2).append("attributes".equals(call.getArgument(0)) ? attributes : "{}");
+                        call.<StringBuilder>getArgument(1).append("attributes".equals(call.getArgument(0)) ? attributes : "{}");
                         return null;
                     });
             action.run();

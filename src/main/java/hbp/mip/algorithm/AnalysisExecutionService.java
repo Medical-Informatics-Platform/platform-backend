@@ -23,9 +23,6 @@ public class AnalysisExecutionService {
 
     private final String analysisUrl;
 
-    @Value("${services.exaflow.apiToken:}")
-    private String exaflowApiToken;
-
     public AnalysisExecutionService(@Value("${services.exaflow.analysisUrl}") String analysisUrl) {
         this.analysisUrl = analysisUrl;
     }
@@ -54,7 +51,7 @@ public class AnalysisExecutionService {
         int responseCode;
         var responseBody = new StringBuilder();
         try {
-            responseCode = HTTPUtil.sendPost(analysisUrl, exaflowApiToken, requestBody, responseBody);
+            responseCode = HTTPUtil.sendPost(analysisUrl, requestBody, responseBody);
         } catch (IOException e) {
             logger.error("Could not run the exaflow analysis: " + e.getMessage());
             throw new InternalServerError(e.getMessage());

@@ -29,10 +29,10 @@ class AnalysisExecutionServiceContractTest {
         var sent = new AtomicReference<String>();
         String result = "{\"n_obs\":217,\"p\":null}";
         try (var http = mockStatic(HTTPUtil.class)) {
-            http.when(() -> HTTPUtil.sendPost(eq("http://exaflow/analysis"), isNull(), anyString(), any()))
+            http.when(() -> HTTPUtil.sendPost(eq("http://exaflow/analysis"), anyString(), any()))
                     .thenAnswer(call -> {
-                        sent.set(call.getArgument(2));
-                        call.<StringBuilder>getArgument(3).append(result);
+                        sent.set(call.getArgument(1));
+                        call.<StringBuilder>getArgument(2).append(result);
                         return 200;
                     });
             var response = new AnalysisExecutionService("http://exaflow/analysis")

@@ -24,9 +24,6 @@ public class DataModelService {
     @Value("${authentication.enabled}")
     private boolean authenticationIsEnabled;
 
-    @Value("${services.exaflow.apiToken:}")
-    private String exaflowApiToken;
-
     @Value("${services.exaflow.attributesUrl}")
     private String exaflowAttributesUrl;
 
@@ -75,7 +72,7 @@ public class DataModelService {
 
         try {
             StringBuilder response = new StringBuilder();
-            HTTPUtil.sendGet(exaflowAttributesUrl, exaflowApiToken, response);
+            HTTPUtil.sendGet(exaflowAttributesUrl, response);
             Map<String, DataModelAttributes> convertedResponse =
                     JsonConverters.convertJsonStringToObject(response.toString(), dataModelAttributesType);
             exaflowDataModelAttributes = convertedResponse != null ? convertedResponse : Collections.emptyMap();
@@ -86,7 +83,7 @@ public class DataModelService {
 
         try {
             StringBuilder response = new StringBuilder();
-            HTTPUtil.sendGet(exaflowDatasetsVariables, exaflowApiToken, response);
+            HTTPUtil.sendGet(exaflowDatasetsVariables, response);
             Map<String, Map<String, List<String>>> convertedResponse = JsonConverters.convertJsonStringToObject(response.toString(), datasetsVariablesType);
             datasetsVariablesByDataModel = convertedResponse != null ? convertedResponse : Collections.emptyMap();
         } catch (Exception e) {
@@ -96,7 +93,7 @@ public class DataModelService {
 
         try {
             StringBuilder response = new StringBuilder();
-            HTTPUtil.sendGet(exaflowCDEsMetadataUrl, exaflowApiToken, response);
+            HTTPUtil.sendGet(exaflowCDEsMetadataUrl, response);
             Map<String, Map<String, CDEMetadata>> convertedResponse = JsonConverters.convertJsonStringToObject(response.toString(), cdesMetadataType);
             datasetEnumerationsByDataModel = convertedResponse != null ? extractDatasetEnumerations(convertedResponse) : Collections.emptyMap();
         } catch (Exception e) {
