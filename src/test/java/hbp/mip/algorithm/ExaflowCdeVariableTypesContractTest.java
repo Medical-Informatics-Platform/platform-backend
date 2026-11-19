@@ -60,16 +60,16 @@ class ExaflowCdeVariableTypesContractTest {
     @Test
     void readsIntegerAndNumericStringDatasetCodes() throws Exception {
         String body = """
-                {"name":"e","analysis":{"inputdata":{"data_model":"dementia:0.1","datasets":["12", 3],
+                {"name":"e","analysisRequest":{"inputdata":{"data_model":"dementia:0.1","datasets":["12", 3],
                  "validation_datasets":["4"],"filters":{"rules":[{"id":"gender","value":1}]},"variables":["gender"]},
                  "algorithm":{"name":"logistic_regression","y":["gender"]}}}
                 """;
 
-        hbp.mip.experiment.ExperimentExecutionDTO execution =
-                SpringJsonMapper.INSTANCE.readValue(body, hbp.mip.experiment.ExperimentExecutionDTO.class);
+        hbp.mip.analysis.AnalysisExecutionDTO execution =
+                SpringJsonMapper.INSTANCE.readValue(body, hbp.mip.analysis.AnalysisExecutionDTO.class);
 
-        assertThat(execution.analysis().inputdata().allDatasets()).containsExactly("12", "3", "4");
-        JsonNode sent = new ObjectMapper().readTree(JsonConverters.convertObjectToJsonString(execution.analysis()));
+        assertThat(execution.analysisRequest().inputdata().allDatasets()).containsExactly("12", "3", "4");
+        JsonNode sent = new ObjectMapper().readTree(JsonConverters.convertObjectToJsonString(execution.analysisRequest()));
         assertThat(sent.at("/inputdata/datasets/0").isTextual()).isTrue();
         assertThat(sent.at("/inputdata/datasets/1").asText()).isEqualTo("3");
         assertThat(sent.at("/inputdata/filters/rules/0/value").isIntegralNumber()).isTrue();

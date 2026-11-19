@@ -1,6 +1,8 @@
 package hbp.mip.algorithm;
 
 import com.google.gson.JsonParser;
+import hbp.mip.datamodel.DatasetLabelService;
+import hbp.mip.datamodel.DatasetLabels;
 import hbp.mip.utils.HTTPUtil;
 import hbp.mip.utils.JsonConverters;
 import hbp.mip.utils.Logger;
@@ -14,9 +16,17 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 class AnalysisExecutionServiceContractTest {
+
+    private static DatasetLabelService datasetLabelService() {
+        DatasetLabelService service = mock(DatasetLabelService.class);
+        when(service.get(any())).thenReturn(DatasetLabels.NONE);
+        return service;
+    }
     @Test
     void exaflowStillReceivesTheUnwrappedRequestWithTheExecutionId() {
         var request = new AnalysisRequestDTO("original-request-id",
@@ -35,7 +45,7 @@ class AnalysisExecutionServiceContractTest {
                         call.<StringBuilder>getArgument(3).append(result);
                         return 200;
                     });
-            var response = new AnalysisExecutionService("http://exaflow/analysis")
+            var response = new AnalysisExecutionService("http://exaflow/analysis", datasetLabelService())
                     .runAnalysis(executionId, request, new Logger("user", "test"));
             var expected = JsonParser.parseString(JsonConverters.convertObjectToJsonString(request)).getAsJsonObject();
             expected.addProperty("request_id", executionId.toString());
