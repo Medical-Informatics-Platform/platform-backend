@@ -39,12 +39,13 @@ ENV FRAMEWORK_LOG_LEVEL="INFO"
 
 WORKDIR /opt
 
-# Pin Alpine 3.24 versions. openssl 3.5.9-r0 is past 3.5.8-r0, which fixed
-# CVE-2026-14456, CVE-2026-63073 and CVE-2026-75803. zlib 1.4-r0 fixes
+# Pin Alpine 3.24 versions. openssl 3.5.9-r1 fixes CVE-2026-107496,
+# CVE-2026-88822, CVE-2026-88823, CVE-2026-95691 and CVE-2026-95692 (the base
+# image still ships the vulnerable 3.5.9-r0). zlib 1.4-r0 fixes
 # CVE-2026-4738 (the base image still ships 1.3.2-r1).
 RUN apk add --no-cache \
-    libcrypto3=3.5.9-r0 \
-    libssl3=3.5.9-r0 \
+    libcrypto3=3.5.9-r1 \
+    libssl3=3.5.9-r1 \
     curl=8.23.0-r0 \
     zlib=1.4-r0
 
