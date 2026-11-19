@@ -31,6 +31,8 @@
         <lombok.version>1.18.48</lombok.version>
         <snakeyaml.version>2.7</snakeyaml.version>
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
+        <!-- amqp-client 5.30.0 from Boot 4.1.2 is GHSA-68mj-5wr7-6fgg, GHSA-93j5-89vc-pph4, GHSA-jh4v-gfqj-7rhx. -->
+        <rabbit-amqp-client.version>5.38.0</rabbit-amqp-client.version>
         <!-- Security: jackson-databind <= 2.21.4 and 3.x < 3.1.5 are affected by
              CVE-2026-59889 / GHSA-5gvw-p9qm-jgwh (@JsonView bypass on @JsonUnwrapped
              deserialization). 2.22.0-2.22.2 and 3.2.0-3.2.2 are in turn affected by
@@ -79,6 +81,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
