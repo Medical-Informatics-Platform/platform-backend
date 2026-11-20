@@ -55,7 +55,7 @@ class AnalysisServiceMipVersionTest {
     void previewAnalysis_returnsMipVersionFromEnvironment() {
         var execution = sampleExecution();
 
-        when(analysisExecutionService.runAnalysis(any(UUID.class), eq(execution.analysisRequest()), any(Logger.class)))
+        when(analysisExecutionService.previewAnalysis(any(UUID.class), eq(execution.analysisRequest()), any(Logger.class)))
                 .thenReturn(new AnalysisExecutionService.AnalysisResultDTO(200, Map.of("ok", true)));
 
         var response = analysisService.previewAnalysis(authentication, execution, new Logger("user", "test"));

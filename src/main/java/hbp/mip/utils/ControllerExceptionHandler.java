@@ -86,6 +86,22 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
+    // Curated transport failures. The client already logged the cause type. Do not add a stack trace.
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ErrorMessage> handleServiceUnavailable(ServiceUnavailableException ex, WebRequest request) {
+        return transportFailure(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(GatewayTimeoutException.class)
+    public ResponseEntity<ErrorMessage> handleGatewayTimeout(GatewayTimeoutException ex, WebRequest request) {
+        return transportFailure(HttpStatus.GATEWAY_TIMEOUT, ex.getMessage(), request);
+    }
+
+    private ResponseEntity<ErrorMessage> transportFailure(HttpStatus status, String message, WebRequest request) {
+        ErrorMessage body = new ErrorMessage(status.value(), new Date(), message, request.getDescription(false));
+        return new ResponseEntity<>(body, status);
+    }
+
     @ExceptionHandler({InternalServerError.class, Exception.class})
     public ResponseEntity<ErrorMessage> globalExceptionHandler(Exception ex, WebRequest request) {
         logger.error("An unexpected exception occurred: " + ex.getClass() +

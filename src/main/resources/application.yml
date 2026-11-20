@@ -20,6 +20,16 @@ server:
 
 ### DATABASE CONFIGURATION ###
 spring:
+  rabbitmq:
+    # RABBITMQ_URL is applied with the RabbitMQ client's setUri, which decodes %XX.
+    # addresses stays unset: Boot does not decode %XX and would override host, port, and vhost.
+    connection-timeout: 5s
+    channel-rpc-timeout: 10s
+    requested-heartbeat: 30s
+    # Wait for the broker to confirm each analysis publish.
+    publisher-confirm-type: correlated
+    # Return publishes the broker cannot route instead of dropping them.
+    publisher-returns: true
   datasource:
     url: ${PLATFORM_DB_URL:jdbc:postgresql://127.0.0.1:5433/portal}
     username: ${PLATFORM_DB_USER:portal}
@@ -78,13 +88,27 @@ authentication:
 ### EXTERNAL SERVICES ###
 services:
   exaflow:
-    analysisUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/analysis
     inputdataSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/inputdata
     preprocessingSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/preprocessing
     algorithmsSpecUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/specifications/algorithms
     attributesUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/data_models_attributes
     datasets_variables: ${EXAFLOW_URL:http://127.0.0.1:5000}/datasets_variables
     cdesMetadataUrl: ${EXAFLOW_URL:http://127.0.0.1:5000}/cdes_metadata
+    rabbitmq:
+      # Exaflow-owned request queue. This backend does not declare it.
+      requestQueue: ${EXAFLOW_RABBITMQ_REQUEST_QUEUE:exaflow.analysis.requests}
+      # Durable quorum reply queue owned by this backend, one name per deployment.
+      replyQueue: ${EXAFLOW_RABBITMQ_REPLY_QUEUE:platform-backend.analysis.replies}
+      # How long a submit waits for its correlated reply.
+      replyTimeout: ${EXAFLOW_RABBITMQ_REPLY_TIMEOUT:PT1H}
+      # How long a submit waits for the broker to confirm the publish.
+      publishTimeout: ${EXAFLOW_RABBITMQ_PUBLISH_TIMEOUT:PT30S}
+
+management:
+  health:
+    rabbit:
+      # A broker outage must not turn actuator health DOWN.
+      enabled: false
 
 frontend:
   base-url: ${PLATFORM_UI_BASE_URL:http://localhost:4200}

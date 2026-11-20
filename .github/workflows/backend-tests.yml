@@ -25,7 +25,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      rabbitmq:
+        image: rabbitmq:4.4.1
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q check_running"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Unit, HTTP contract, migration, and persistence tests
+        # The job runs in a container, so the broker is the service hostname, same as Postgres.
+        env:
+          RABBITMQ_TEST_URL: amqp://guest:guest@rabbitmq:5672
         run: mvn -B -ntp -Ppostgres-integration -Dit.database.url=jdbc:postgresql://postgres:5432/platform_test clean verify

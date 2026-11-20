@@ -79,11 +79,12 @@ Authorization-sensitive logic appears in `ClaimUtils`, `AnalysisService`, `DataM
 - `SpecificationsService` fetches inputdata, preprocessing, and algorithm specifications from Exaflow per request.
 - `AnalysisService` executes preview/run synchronously through `AnalysisExecutionService`. Preview stores nothing; successful runs retain owner-only drafts. Save copies a retained result without execution.
 - Data model and algorithm metadata are fetched through `HTTPUtil` using configured Exaflow URLs.
+- Analysis execution runs exclusively over RabbitMQ. `AnalysisExecutionService` publishes the JSON request body to Exaflow's request queue via `ExaflowAmqpClient` and waits on a backend-owned reply queue. Specifications and metadata stay on `EXAFLOW_URL`. It requires an Exaflow build that includes madgik/exaflow#673 and madgik/exaflow#681 with its RabbitMQ consumer enabled. Replies are at-least-once; a duplicate or late reply is acked and dropped. Transient previews (`POST /analyses/preview`) check `consumer_count == 0` and fail fast with HTTP 503; normal runs (`POST /analyses/runs`) queue in RabbitMQ and rely on `mandatory` return for a missing request queue. A confirmed publish that gets no reply within the reply timeout is HTTP 504. Both use a fixed message. `RABBITMQ_URL` is parsed with the RabbitMQ client's `setUri` so `%2F` and encoded passwords match Exaflow.
 
 ## Config and Environment Model
 - All runtime config is in `src/main/resources/application.yml` with `${ENV:default}` placeholders.
 - Containers pass environment variables (see `mip/deployment`); no separate config template is rendered at startup.
-- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow URLs, frontend base URL, `MIP_VERSION`, `ANALYSIS_RUN_DRAFT_TTL`, and logging.
+- Important config areas include datasource, OAuth2/Keycloak, authentication flags, Exaflow HTTP URLs (specs/metadata), RabbitMQ analysis transport (`RABBITMQ_URL`, request/reply queue names, reply and publish timeouts), frontend base URL, `MIP_VERSION`, `ANALYSIS_RUN_DRAFT_TTL`, and logging. Rabbit health is disabled so a broker outage does not mark the API down.
 - Do not introduce direct environment reads in business logic; route configuration through Spring properties.
 
 ## Known Gaps

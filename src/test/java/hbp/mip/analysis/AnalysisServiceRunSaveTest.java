@@ -81,11 +81,12 @@ class AnalysisServiceRunSaveTest {
     @Test
     void previewDoesNotPersistAnything() {
         var execution = sampleExecution();
-        when(analysisExecutionService.runAnalysis(any(UUID.class), eq(execution.analysisRequest()), any(Logger.class)))
+        when(analysisExecutionService.previewAnalysis(any(UUID.class), eq(execution.analysisRequest()), any(Logger.class)))
                 .thenReturn(new AnalysisExecutionService.AnalysisResultDTO(200, Map.of("ok", true)));
 
         analysisService.previewAnalysis(authentication, execution, logger);
 
+        verify(analysisExecutionService).previewAnalysis(any(UUID.class), eq(execution.analysisRequest()), any(Logger.class));
         verifyNoInteractions(analysisRunRepository, analysisRepository);
     }
 

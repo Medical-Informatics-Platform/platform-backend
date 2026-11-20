@@ -34,7 +34,7 @@ These are also the profile defaults. The test user needs permission to create/dr
 - Dataset-authorization parity between the old V5 and new V6 SQL functions across selected/validation datasets, missing or malformed input, and mixed case.
 - Saving migrated active runs without execution, repeated saves, expiry and owner checks, query filtering before totals, unchanged external claims, and Study/group/deletion operations.
 
-The `backend-tests.yml` workflow runs `clean verify` with this profile, Java 21, and a PostgreSQL service on pull requests and master pushes.
+The `backend-tests.yml` workflow runs `clean verify` with this profile, Java 21, a PostgreSQL service, and RabbitMQ 4.4.1 on pull requests and master pushes. Broker tests run when `RABBITMQ_TEST_URL` is set (`amqp://guest:guest@rabbitmq:5672` in that workflow).
 
 ## Review expectations
 

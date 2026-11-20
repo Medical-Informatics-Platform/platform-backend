@@ -176,21 +176,7 @@ public class AnalysisService {
     /** Runs an analysis and returns its result without storing anything. */
     public AnalysisDTO previewAnalysis(Authentication authentication,
             AnalysisExecutionDTO analysisExecutionDTO, Logger logger) {
-        AnalysisExecutionService.requireRunnable(analysisExecutionDTO.analysisRequest(), logger);
-        analysisRequestParametersLogging(analysisExecutionDTO, logger);
-
-        validateDatasetAccess(authentication, analysisExecutionDTO.analysisRequest(), logger);
-        UUID uuid = UUID.randomUUID();
-        AnalysisExecutionService.AnalysisResultDTO analysisResult = analysisExecutionService.runAnalysis(
-                uuid,
-                analysisExecutionDTO.analysisRequest(),
-                logger);
-
-        return new AnalysisDTO(uuid, analysisExecutionDTO.name(), null, null, null, null, null, null,
-                analysisResult.body(),
-                analysisResult.code() >= 400 ? AnalysisDAO.Status.error : AnalysisDAO.Status.success,
-                analysisExecutionDTO.analysisRequest(),
-                mipVersion);
+        return executeAnalysis(authentication, analysisExecutionDTO, true, logger);
     }
 
     /**
@@ -201,11 +187,29 @@ public class AnalysisService {
     public AnalysisDTO runAnalysis(Authentication authentication, UserDTO user,
             AnalysisExecutionDTO analysisExecutionDTO, Logger logger) {
         Date started = new Date();
-        AnalysisDTO run = previewAnalysis(authentication, analysisExecutionDTO, logger);
+        AnalysisDTO run = executeAnalysis(authentication, analysisExecutionDTO, false, logger);
         if (run.status() == AnalysisDAO.Status.success) {
             keepRun(run, analysisExecutionDTO.analysisRequest(), started, user, logger);
         }
         return run;
+    }
+
+    private AnalysisDTO executeAnalysis(Authentication authentication, AnalysisExecutionDTO analysisExecutionDTO,
+            boolean preview, Logger logger) {
+        AnalysisExecutionService.requireRunnable(analysisExecutionDTO.analysisRequest(), logger);
+        analysisRequestParametersLogging(analysisExecutionDTO, logger);
+
+        validateDatasetAccess(authentication, analysisExecutionDTO.analysisRequest(), logger);
+        UUID uuid = UUID.randomUUID();
+        AnalysisExecutionService.AnalysisResultDTO analysisResult = preview
+                ? analysisExecutionService.previewAnalysis(uuid, analysisExecutionDTO.analysisRequest(), logger)
+                : analysisExecutionService.runAnalysis(uuid, analysisExecutionDTO.analysisRequest(), logger);
+
+        return new AnalysisDTO(uuid, analysisExecutionDTO.name(), null, null, null, null, null, null,
+                analysisResult.body(),
+                analysisResult.code() >= 400 ? AnalysisDAO.Status.error : AnalysisDAO.Status.success,
+                analysisExecutionDTO.analysisRequest(),
+                mipVersion);
     }
 
     private void keepRun(AnalysisDTO run, AnalysisRequestDTO analysisRequest, Date started, UserDTO user,
