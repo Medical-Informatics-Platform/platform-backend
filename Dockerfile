@@ -60,6 +60,8 @@ RUN addgroup -g 10001 appgroup && adduser -D -H -u 10001 -G appgroup appuser \
     && chown -R 10001:10001 /opt/platform/api /usr/share/jars
 
 USER 10001
-ENTRYPOINT ["java", "--add-opens", "java.base/java.io=ALL-UNNAMED", "-Daeron.term.buffer.length", "-jar", "/usr/share/jars/platform-backend.jar"]
+# Java4Shell (OpenJDK Base64 intrinsic heap corruption, x86-64 AVX-512 VBMI):
+# disable the Base64 intrinsics. Flag is valid on x86-64 and arm64.
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "--add-opens", "java.base/java.io=ALL-UNNAMED", "-Daeron.term.buffer.length", "-jar", "/usr/share/jars/platform-backend.jar"]
 EXPOSE 8080
 HEALTHCHECK --start-period=60s CMD ["sh", "-c", "set -o pipefail; curl --fail --silent --show-error http://localhost:8080/services/actuator/health | grep -q '\"status\":\"UP\"'"]
