@@ -23,8 +23,7 @@ class AnalysisExecutionServiceContractTest {
                 new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of("ds1"), List.of("validation"),
                         Map.of("condition", "AND"), List.of("age")),
                 List.of(new AnalysisRequestDTO.AnalysisPreprocessingStepDTO("scale", Map.of("method", "standard"))),
-                new AnalysisRequestDTO.AnalysisAlgorithmDTO("histogram", List.of("age"), null, Map.of("bins", 10)),
-                Map.of("option", true));
+                new AnalysisRequestDTO.AnalysisAlgorithmDTO("histogram", List.of("age"), null, Map.of("bins", 10)));
         var executionId = UUID.randomUUID();
         var sent = new AtomicReference<String>();
         String result = "{\"n_obs\":217,\"p\":null}";

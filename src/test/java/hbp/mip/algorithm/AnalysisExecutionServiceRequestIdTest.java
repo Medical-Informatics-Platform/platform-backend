@@ -21,12 +21,12 @@ class AnalysisExecutionServiceRequestIdTest {
         assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(null, logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("analysisRequest");
         assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(
-                new AnalysisRequestDTO(null, inputdata, null, null, null), logger))
+                new AnalysisRequestDTO(null, inputdata, null, null), logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("algorithm.name");
         assertThatThrownBy(() -> AnalysisExecutionService.requireRunnable(
-                new AnalysisRequestDTO(null, null, null, algorithm, null), logger))
+                new AnalysisRequestDTO(null, null, null, algorithm), logger))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("inputdata");
-        AnalysisExecutionService.requireRunnable(new AnalysisRequestDTO(null, inputdata, null, algorithm, null), logger);
+        AnalysisExecutionService.requireRunnable(new AnalysisRequestDTO(null, inputdata, null, algorithm), logger);
     }
 
     @Test

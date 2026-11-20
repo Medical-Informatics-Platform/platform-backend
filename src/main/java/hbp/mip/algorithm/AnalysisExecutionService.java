@@ -42,7 +42,7 @@ public class AnalysisExecutionService {
 
     public AnalysisResultDTO runAnalysis(UUID requestId, AnalysisRequestDTO analysisRequest, Logger logger) {
         AnalysisRequestDTO requestWithId = new AnalysisRequestDTO(requestId.toString(), analysisRequest.inputdata(),
-                analysisRequest.preprocessing(), analysisRequest.algorithm(), analysisRequest.flags());
+                analysisRequest.preprocessing(), analysisRequest.algorithm());
         String requestBody = JsonConverters.convertObjectToJsonString(requestWithId);
 
         logger.debug("Exaflow analysis request, endpoint: " + analysisUrl);
@@ -64,7 +64,7 @@ public class AnalysisExecutionService {
     static Object convertResponseToAnalysisResult(Logger logger, int code, StringBuilder responseBody) {
         return switch (code) {
             case 200 -> new RawJson(responseBody.toString());
-            case 400, 413, 422, 460, 461, 462, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
+            case 400, 413, 422, 460, 461, 512, 513 -> convertExaflowResponseToAnalysisResult(responseBody.toString());
             case 500 -> convertExaflowResponseToAnalysisResult(GENERIC_ERROR_MESSAGE);
             // Exaflow is at its concurrent-analysis limit; its own message names internal components,
             // so it goes to the log and the user gets a retry message.

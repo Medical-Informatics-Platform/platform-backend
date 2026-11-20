@@ -131,7 +131,7 @@ class AnalysisAPITest {
     private static AnalysisDTO response() {
         var analysisRequest = new AnalysisRequestDTO(null,
                 new AnalysisRequestDTO.AnalysisInputDataDTO("dm:1", List.of("ds1"), null, null, List.of("age")),
-                null, new AnalysisRequestDTO.AnalysisAlgorithmDTO("histogram", List.of("age"), null, null), null);
+                null, new AnalysisRequestDTO.AnalysisAlgorithmDTO("histogram", List.of("age"), null, null));
         return new AnalysisDTO(ID, "My analysis", USER, null, null, null, true, false,
                 new RawJson("{\"n_obs\":217,\"p\":null}"), AnalysisDAO.Status.success, analysisRequest, "9.0.0");
     }

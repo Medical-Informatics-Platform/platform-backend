@@ -77,8 +77,7 @@ class ExaflowKMeansAndSmdContractTest {
                         "dementia:0.1", List.of("edsd0"), null, null, List.of("gender")),
                 List.of(new AnalysisRequestDTO.AnalysisPreprocessingStepDTO("kmeans_cluster_creator", parameters)),
                 new AnalysisRequestDTO.AnalysisAlgorithmDTO(
-                        "chi_squared", List.of("kmeans_cluster"), List.of("gender"), Map.of()),
-                null);
+                        "chi_squared", List.of("kmeans_cluster"), List.of("gender"), Map.of()));
 
         JsonNode reusable = objectMapper.readTree(JsonConverters.convertObjectToJsonString(request))
                 .at("/preprocessing/0/parameters/reusable_preprocessing");

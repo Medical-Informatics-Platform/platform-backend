@@ -12,8 +12,7 @@ public record AnalysisRequestDTO(
         String request_id,
         AnalysisInputDataDTO inputdata,
         List<AnalysisPreprocessingStepDTO> preprocessing,
-        AnalysisAlgorithmDTO algorithm,
-        Map<String, Object> flags) {
+        AnalysisAlgorithmDTO algorithm) {
 
     /** Historical request text can be an error message; unreadable requests remain absent in the DTO. */
     public static AnalysisRequestDTO fromStored(String analysisRequest) {

@@ -29,7 +29,6 @@ class AlgorithmSpecificationDTOTest {
                     "desc": "Short description.",
                     "documentation": "Long algorithm documentation.",
                     "type": "exareme3",
-                    "flags": ["beta"],
                     "y": { "label": "Y", "desc": "", "types": ["real"], "required": true, "min_count": 1, "max_count": 1 },
                     "x": { "label": "X", "desc": "", "types": ["real"], "required": true, "min_count": 1 },
                     "requires_validation_datasets": false,
@@ -65,7 +64,6 @@ class AlgorithmSpecificationDTOTest {
         assertThat(folds.dict_keys_enums().source()).containsExactly("x", "y");
         assertThat(algorithm.documentation()).isEqualTo("Long algorithm documentation.");
         assertThat(algorithm.type()).isEqualTo("exareme3");
-        assertThat(algorithm.flags()).containsExactly("beta");
         assertThat(algorithm.y().min_count()).isEqualTo(1);
         assertThat(algorithm.y().max_count()).isEqualTo(1);
         assertThat(algorithm.requires_validation_datasets()).isFalse();
@@ -181,8 +179,7 @@ class AlgorithmSpecificationDTOTest {
                         "linear_regression",
                         List.of("age"),
                         List.of("outcome"),
-                        Map.of()),
-                null);
+                        Map.of()));
 
         JsonNode serialized = objectMapper.readTree(objectMapper.writeValueAsString(request));
         JsonNode preprocessingNode = serialized.at("/preprocessing/0");

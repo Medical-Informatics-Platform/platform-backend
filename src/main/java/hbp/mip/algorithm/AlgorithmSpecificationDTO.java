@@ -11,7 +11,6 @@ public record AlgorithmSpecificationDTO(
         String desc,
         String documentation,
         String type,
-        List<String> flags,
         InputDataSpecificationDTO y,
         InputDataSpecificationDTO x,
         boolean requires_validation_datasets,

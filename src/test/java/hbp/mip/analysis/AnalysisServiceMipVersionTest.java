@@ -77,8 +77,7 @@ class AnalysisServiceMipVersionTest {
                         "histogram",
                         null,
                         List.of("age"),
-                        Map.of()),
-                null);
+                        Map.of()));
         return new AnalysisExecutionDTO("test analysis", analysisRequest);
     }
 }
