@@ -40,6 +40,11 @@
              GHSA-wv8q-qhhj-9h54 (parser/databind DoS). 2.22.3 and 3.2.3 fix all of them; 2.22.4 / 3.2.4 are the latest patches. -->
         <jackson-2-bom.version>2.22.4</jackson-2-bom.version>
         <jackson-bom.version>3.2.4</jackson-bom.version>
+        <!-- Boot 4.1.2 still manages Tomcat 11.0.27, which is affected by the
+             November 2026 Tomcat advisories (CVE-2026-95517, CVE-2026-118028,
+             CVE-2026-116561, CVE-2026-116830, ...). 11.0.29 is the newest
+             released fix. Remove this override once Boot manages 11.0.30+. -->
+        <tomcat.version>11.0.29</tomcat.version>
     </properties>
 
     <dependencies>
